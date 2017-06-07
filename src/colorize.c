@@ -19,7 +19,7 @@ static float gdal_getpixel(GDALRasterBandH img, double pi, double pj)
 	// TODO: some sort of bilinear or bicubic interpolation ?
 	int i = round(pi);
 	int j = round(pj);
-	GDALRasterIO(img, GF_Read, i, j, 1, 1, roi, 1, 1, GDT_Float32, 0, 0);
+	int r = GDALRasterIO(img, GF_Read, i,j,1, 1, roi,1,1, GDT_Float32, 0,0);
 	return roi[0*0+0];
 }
 

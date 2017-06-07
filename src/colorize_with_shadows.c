@@ -50,7 +50,7 @@ int main_elevate_with_shadows(int c, char *v[])
 
         for (int i = 0; i < 12; i++)
         {
-                fscanf(proj, "%lf", &P[i]);
+                int r = fscanf(proj, "%lf", &P[i]);
         }
         fclose(proj);
 
@@ -148,7 +148,7 @@ int main_colorize_with_shadows(int c, char *v[])
 
         for (int i = 0; i < 12; i++)
         {
-                fscanf(proj, "%lf", &P[i]);
+                int r = fscanf(proj, "%lf", &P[i]);
 //                printf("%.20f\n", P[i]);
         }
         fclose(proj);

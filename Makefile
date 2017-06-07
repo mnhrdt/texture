@@ -1,38 +1,37 @@
 # the following two options are used to control all C and C++ compilations
-export CFLAGS =   -march=native -O3
-export CXXFLAGS = -march=native -O3
+CFLAGS   ?= -march=native -O3
+CXXFLAGS ?= -march=native -O3
 
-# these options are only used for the programs directly inside "./c/"
-IIOLIBS = -lz -ltiff -lpng -ljpeg -lm
+# required libraries
+IIOLIBS := -lz -ltiff -lpng -ljpeg -lm
+GEOLIBS := -lstdc++ -lGeographic
 
-# The following conditional statement appends "-std=gnu99" to CFLAGS when the
-# compiler does not define __STDC_VERSION__.  The idea is that many older
-# compilers are able to compile standard C when given that option.
-# This hack seems to work for all versions of gcc, clang and icc.
-CVERSION = $(shell $(CC) -dM -E - < /dev/null | grep __STDC_VERSION__)
-ifeq ($(CVERSION),)
+# variables
+override CFLAGS := $(CFLAGS) `gdal-config --cflags`
+override LDLIBS := $(LDLIBS) `gdal-config --libs` $(IIOLIBS) $(GEOLIBS)
+
+# binaries
+BIN := colorize get_corners get_P_of_crop colorize_with_shadows
+BIN := $(addprefix bin/,$(BIN))
+OBJ := src/iio.o src/geographiclib_wrapper.o
+
+# default target (build all the programs inside bin/)
+default: $(BIN)
+
+# rule to build all the targets with the same pattern
+$(BIN) : bin/% : src/%.o $(OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+# bureaucracy
+clean: ; $(RM) $(BIN) src/*.o
+.PHONY: clean default
+
+# unit test
+test: bin/colorize
+	./bin/colorize data/Challenge1_Lidar.tif -21 data/img_01.ntf data/img_01.rpc out_colors.tif
+
+# compatibility hack for older compilers
+ifeq (,$(shell $(CC) -dM -E - < /dev/null | grep __STDC_VERSION__))
 CFLAGS := $(CFLAGS) -std=gnu99
 endif
 
-# default rule
-default: bin/colorize bin/get_corners bin/get_P_of_crop bin/colorize_with_shadows
-
-# rules to build each program
-
-bin/colorize: src/iio.o src/geographiclib_wrapper.o src/colorize.c
-	$(CC) $(CFLAGS) `gdal-config --cflags` $^ $(IIOLIBS) -lstdc++ -lGeographic `gdal-config --libs` -o $@
-
-bin/colorize_with_shadows: src/iio.o src/geographiclib_wrapper.o src/colorize_with_shadows.c
-	$(CC) $(CFLAGS) `gdal-config --cflags` $^ $(IIOLIBS) -lstdc++ -lGeographic `gdal-config --libs` -o $@
-
-bin/get_corners: src/iio.o src/geographiclib_wrapper.o src/get_corners.c
-	$(CC) $(CFLAGS) `gdal-config --cflags` $^ $(IIOLIBS) -lstdc++ -lGeographic `gdal-config --libs` -o $@
-
-bin/get_P_of_crop: src/iio.o src/geographiclib_wrapper.o src/get_P_of_crop.c
-	$(CC) $(CFLAGS) `gdal-config --cflags` $^ $(IIOLIBS) -lstdc++ -lGeographic `gdal-config --libs` -o $@
-
-clean:
-	$(RM) src/*.o bin/colorize out_colors.tif
-
-test: bin/colorize
-	./bin/colorize data/Challenge1_Lidar.tif -21 data/img_01.ntf data/img_01.rpc out_colors.tif
