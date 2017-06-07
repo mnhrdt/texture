@@ -7,8 +7,8 @@ IIOLIBS := -lz -ltiff -lpng -ljpeg -lm
 GEOLIBS := -lstdc++ -lGeographic
 
 # variables
-CFLAGS := $(CFLAGS) `gdal-config --cflags`
-LDLIBS := $(LDLIBS) `gdal-config --libs` $(IIOLIBS) $(GEOLIBS)
+override CFLAGS := $(CFLAGS) `gdal-config --cflags`
+override LDLIBS := $(LDLIBS) `gdal-config --libs` $(IIOLIBS) $(GEOLIBS)
 
 # binaries
 BIN := colorize get_corners get_P_of_crop colorize_with_shadows
