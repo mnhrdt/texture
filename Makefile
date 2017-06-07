@@ -23,7 +23,7 @@ $(BIN) : bin/% : src/%.o $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # bureaucracy
-clean: ; $(RM) $(BIN) $(OBJ)
+clean: ; $(RM) $(BIN) src/*.o
 .PHONY: clean default
 
 # unit test
