@@ -10,30 +10,35 @@
 #include <string>
 
 extern "C" {
-#include "src/iio.h"
+#include "iio.h"
 }
-#include "openMVS/libs/MVS/Interface.h"
+#include "../../openMVS/libs/MVS/Interface.h"
 bool export_to_openMVS(int argc, char *argv[])
 {
-        std::string exp_dir = "/Users/mariedautume/Documents/doctorat/iarpa_old/essai_iarpa/";
+        std::string exp_dir = argv[1];
+	char *filename_dsm = argv[2];
 
         MVS::Interface scene;
         size_t nPoses(0);
-        const uint32_t nViews(9);
+        const uint32_t nViews(5);
+	int im_first = 0;
 
-        for (int i=0; i<nViews; i++)
+        for (int i=im_first; i<im_first+nViews; i++)
         {
                 MVS::Interface::Platform platform;
                 MVS::Interface::Platform::Camera camera;
                 std::ifstream Kf;
                 std::string Kfilename = exp_dir + "data/proj/K_img_0" + std::to_string(i+1) + ".txt";
+                Kf.open(Kfilename);
                 double x;
                 for (int ci=0; ci<3; ci++)
                         for (int cj=0; cj<3; cj++)
                         {
                                 Kf >> x;
+                                std::cout << "impression de K :" << x << std::endl;
                                 camera.K(ci,cj)=x;
                         }
+                Kf.close();
                 for (int c=0; c<3; c++)
                         camera.R(c,c) = 1.;
                 platform.cameras.push_back(camera);
@@ -42,7 +47,7 @@ bool export_to_openMVS(int argc, char *argv[])
         std::cout << scene.platforms[0].cameras.size() << std::endl;
 
         scene.images.reserve(nViews);
-        for (int i=0; i<nViews; i++)
+        for (int i=im_first; i<im_first+nViews; i++)
         {
                 MVS::Interface::Image image;
                 image.name = exp_dir + "data/images/cropped_img_0" + std::to_string(i+1) + ".jpg";
@@ -53,6 +58,7 @@ bool export_to_openMVS(int argc, char *argv[])
                 image.poseID = platform.poses.size();
                 std::ifstream Rf;
                 std::string Rfilename = exp_dir + "data/proj/R_img_0" + std::to_string(i+1) + ".txt";
+                Rf.open(Rfilename);
                 double x;
                 for (int ci=0; ci<3; ci++)
                         for (int cj=0; cj<3; cj++)
@@ -60,14 +66,17 @@ bool export_to_openMVS(int argc, char *argv[])
                                 Rf >> x;
                                 pose.R(ci,cj)=x;
                         }
+                Rf.close();
                 std::ifstream Cf;
                 std::string Cfilename = exp_dir + "data/proj/R_img_0" + std::to_string(i+1) + ".txt";
+                Cf.open(Cfilename);
                 Cf >> x;
                 pose.C.x = x;
                 Cf >> x;
                 pose.C.y = x;
                 Cf >> x;
                 pose.C.z = x;
+                Cf.close();
 
                 platform.poses.push_back(pose);
                 std::cout << platform.poses.size() << std::endl;
@@ -77,7 +86,7 @@ bool export_to_openMVS(int argc, char *argv[])
         }
         std::cout << scene.platforms[0].poses.size() << std::endl;
         int w, h, pd;
-        float *lidar = iio_read_image_float_vec("data/Challenge1_Lidar.tif", &w, &h, &pd);
+        float *lidar = iio_read_image_float_vec(filename_dsm, &w, &h, &pd);
 
         int s = 10;
         scene.vertices.reserve(w*h/(s*s));
@@ -89,7 +98,7 @@ bool export_to_openMVS(int argc, char *argv[])
                         {
                                 MVS::Interface::Vertex vert;
                                 MVS::Interface::Vertex::ViewArr& views = vert.views;
-                                for (int c=0; c<nViews; c++)
+        			for (int c=im_first; c<im_first+nViews; c++)
                                 {
                                         std::string filename_match = exp_dir + "data/matches/matches_lidar_img_0" + std::to_string(c+1) + ".tif";
                                         const char * f_m = filename_match.c_str();
@@ -112,7 +121,8 @@ bool export_to_openMVS(int argc, char *argv[])
         }
         free(lidar);
 
-        if (!MVS::ARCHIVE::SerializeSave(scene, "essai_iarpa/scene_iarpa.mvs"))
+	std::string filename_out = exp_dir + "scene.mvs";
+        if (!MVS::ARCHIVE::SerializeSave(scene, filename_out))
                 return false;
 
         std::cout
