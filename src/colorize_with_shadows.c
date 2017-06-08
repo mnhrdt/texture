@@ -4,7 +4,7 @@
 #include <math.h>
 #include "iio.h"
 
-
+    
 static void matrix_product_mxn_nxp(double *ab, double *a, double *b, int m, 
                 int n, int p)
 {
@@ -45,12 +45,16 @@ int main_elevate_with_shadows(int c, char *v[])
         // read P projection matrix of lidar on cropped image
         FILE *proj;
         proj = fopen(filename_P,"r");
+        if (!proj)
+                return fprintf(stderr, "fopen(%s) failed\n", filename_P);
 
         double P[12];
 
         for (int i = 0; i < 12; i++)
         {
                 int r = fscanf(proj, "%lf", &P[i]);
+		if (r!=1)
+			return fprintf(stderr, "could not read element %d of P", i);
         }
         fclose(proj);
 
@@ -73,6 +77,10 @@ int main_elevate_with_shadows(int c, char *v[])
                                 ij_int[0]=wi-1;
                         if (ij_int[1]>hi-1)
                                 ij_int[1]=hi-1;
+                        if (ij_int[0]<0)
+                                ij_int[0]=0;
+                        if (ij_int[1]<0)
+                                ij_int[1]=0;
 
                         if (img_copy[ij_int[1]*wi+ij_int[0]] < z)
                                 img_copy[ij_int[1]*wi+ij_int[0]] = z;
@@ -101,6 +109,10 @@ int main_elevate_with_shadows(int c, char *v[])
                                 ij_int[0]=wi-1;
                         if (ij_int[1]>hi-1)
                                 ij_int[1]=hi-1;
+                        if (ij_int[0]<0)
+                                ij_int[0]=0;
+                        if (ij_int[1]<0)
+                                ij_int[1]=0;
 
                         if (img_copy[ij_int[1]*wi+ij_int[0]] == z)
                                 for (int k = 0; k < 2; k++)
