@@ -7,7 +7,7 @@ img_dir=$1
 exp_dir=$2
 lidar=$3
 
-IDX="01 02 03 04 05"
+IDX=`echo {01..05}`
 
 mkdir -p $exp_dir/
 mkdir -p $exp_dir/data/
@@ -25,10 +25,11 @@ mkdir -p $exp_dir/data/images/
 
 # quantifie les petites images tif et les convertit en jpg
 for i in $exp_dir/data/cropped/*tif; do
-    qeasy 100 1100 $i ${i/tif/png}
+    qeasy 100 1100 $i | plambda - "x 0.9 * x x join3" -o ${i/tif/png} 
     convert ${i/tif/png} ${i/tif/jpg}
 done
 mv $exp_dir/data/cropped/*jpg $exp_dir/data/images/
+
 
 
 mkdir -p $exp_dir/data/proj
