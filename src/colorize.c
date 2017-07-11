@@ -215,6 +215,7 @@ int main_elevate(int c, char *v[])
 //
 int main_colorize(int c, char *v[])
 {
+	char *out_ply = pick_option(&c, &v, "p", "");
 	double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
 	double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
@@ -299,6 +300,102 @@ int main_colorize(int c, char *v[])
 
 	// save and exit without cleanup
 	iio_save_image_float_vec(filename_out, out_x, w, h, pd);
+	
+        // if no ply file is requested, exit now
+	if ('\0' == *out_ply)
+		return 0;
+
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = fopen(out_ply, "w");
+	if (!f) return 1;
+
+	// assign comfortable pointers
+	float (*height)[w] = (void*)x;
+	int (*vid)[w] = malloc(w*h*sizeof(int));
+
+	// count number of valid vertices
+	int nvertices = 0;
+	for (int j = 0; j < h; j++)
+	for (int i = 0; i < w; i++)
+		if (isfinite(height[j][i]))
+			vid[j][i] = nvertices++;
+		else
+			vid[j][i] = -1;
+
+	// count number of valid faces
+	int nfaces = 0;
+	for (int j = 0; j < h-1; j++)
+	for (int i = 0; i < w-1; i++)
+	{
+		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
+		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
+			nfaces += 1;
+	}
+
+	// print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment created by cutrecombine\n");
+	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
+	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
+	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
+	fprintf(f, "element vertex %d\n", nvertices);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+	fprintf(f, "property uchar red\n");
+	fprintf(f, "property uchar green\n");
+	fprintf(f, "property uchar blue\n");
+	fprintf(f, "element face %d\n", nfaces);
+	fprintf(f, "property list uchar int vertex_index\n");
+	fprintf(f, "end_header\n");
+	int cx;
+
+	// output vertices
+	cx = 0;
+	for (int j = 0; j < h; j++)
+	for (int i = 0; i < w; i++)
+	{
+		if (!isfinite(height[j][i])) continue;
+		// compute lonlat from eastnorth = {p[0], p[1]}
+		double e = i * scale[0] + origin[0]; // easting
+		double n = j * scale[1] + origin[1]; // northing
+		double z = height[j][i];             // height
+		float color[3] = {200, 200, 200};
+		if (filename_img) {
+			double lonlat[3] = {0, 0, z};
+			lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+
+			// compute coordinates in huge image
+			double ij[2];
+			rpc_projection(ij, huge_rpc, lonlat);
+
+			// evaluate the color at this point
+			for (int k = 0; k < pd; k++)
+				color[k] = gdal_getpixel(huge_img[k], ij[0], ij[1]);
+			for (int k = pd; k < 3; k++) color[k] = color[k-1];
+		}
+		uint8_t rgb[3] = { color[0], color[1], color[2] };
+		double xyz[3] = {e - offset_x, n - offset_y, z - offset_z };
+		fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
+				xyz[0], xyz[1], xyz[2], rgb[0], rgb[1], rgb[2]);
+		cx += 1;
+	}
+	assert(cx == nvertices);
+
+	// output faces
+	cx = 0;
+	for (int j = 0; j < h-1; j++)
+	for (int i = 0; i < w-1; i++)
+	{
+		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
+		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
+		{
+			fprintf(f, "4 %d %d %d %d\n", q[0], q[1], q[2], q[3]);
+			cx += 1;
+		}
+	}
+	assert(cx == nfaces);
 	return 0;
 }
 
