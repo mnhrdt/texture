@@ -114,7 +114,7 @@ int main_colorsingle(int c, char *v[])
 	fprintf(f, "ply\n");
 	fprintf(f, "format ascii 1.0\n");
 	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile atlas.png\n");
+        fprintf(f, "comment TextureFile %s\n", filename_a);
 	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
 	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
 	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
