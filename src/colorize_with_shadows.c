@@ -4,14 +4,13 @@
 #include <math.h>
 #include "iio.h"
 
-// extrapolate by nearest value
-static float getpixel_f(float *I, int w, int h, int i, int j)
+// extrapolate by nearest neighbour
+static void keep_in_bounds(int w, int h, int *ij)
 {
-                if (i < 0) i = 0;
-                if (j < 0) j = 0;
-                if (i >= w) i = w-1;
-                if (j >= h) j = h-1;
-                return I[i+j*w];
+                if (ij[0] < 0) ij[0] = 0;
+                if (ij[1] < 0) ij[1] = 0;
+                if (ij[0] >= w) ij[0] = w-1;
+                if (ij[1] >= h) ij[1] = h-1;
 }
     
 static void matrix_product_mxn_nxp(double *ab, double *a, double *b, int m, 
@@ -84,7 +83,8 @@ int main_colorize_with_shadows(int c, char *v[])
                         for (int k = 0; k < 2; k++)
                                 ij_int[k] = (int) round(ij_approx[k]);
 
-                        if (getpixel_f(img_copy, wi, hi, ij_int[0], ij_int[1]) < z)
+                        keep_in_bounds(wi, hi, ij_int);
+                        if (img_copy[ij_int[1]*wi+ij_int[0]] < z)
                                 img_copy[ij_int[1]*wi+ij_int[0]] = z;
                 }
         
@@ -109,7 +109,8 @@ int main_colorize_with_shadows(int c, char *v[])
                         for (int k = 0; k < 2; k++)
                                 ij_int[k] = (int) round(ij_approx[k]);
 
-                        if (getpixel_f(img_copy, wi, hi, ij_int[0], ij_int[1]) == z)
+                        keep_in_bounds(wi, hi, ij_int);
+                        if (img_copy[ij_int[1]*wi + ij_int[0]] == z)
                                 for (int k = 0; k < 2; k++)
                                         out_x[2*(j*w+i)+k] = ij_approx[k];
                         else
