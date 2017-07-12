@@ -153,23 +153,34 @@ int main_colorsingle(int c, char *v[])
 		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
 		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
 		{
-//                        if (m[2*(i+j*w)] == NAN || m[2*(i+(j+1)*w)] == NAN || 
-//                                        m[2*(i+1+(j+1)*w)] == NAN || 
-//                                        m[2*(i+1+j*w)] == NAN)
-//                                fprintf(f, "4 %d %d %d %d 8 %.16lf %.16lf %.16lf %.16lf
-//                                                %.16lf %.16lf %.16lf %.16lf\n",
-//                                                q[0], q[1], q[2], q[3],
-//                                                m[2*(i+j*w)]+2*w*h);
-			fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[0], q[1], q[3], 
-                                        m[2*(i+   j   *w)], m[2*(i+   j   *w)+1],
-                                        m[2*(i+  (j+1)*w)], m[2*(i+  (j+1)*w)+1],
-                                        m[2*(i+1+ j   *w)], m[2*(i+1+ j   *w)+1]);
-			fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[1], q[2], q[3], 
-                                        m[2*(i+  (j+1)*w)], m[2*(i+  (j+1)*w)+1],
-                                        m[2*(i+1+(j+1)*w)], m[2*(i+1+(j+1)*w)+1],
-                                        m[2*(i+1+ j   *w)], m[2*(i+1+ j   *w)+1]);
+                        if (m[2*(i+j*w)] == NAN || m[2*(i+(j+1)*w)] == NAN || 
+                                        m[2*(i+1+(j+1)*w)] == NAN || 
+                                        m[2*(i+1+j*w)] == NAN)
+                        {
+                                fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                                        q[3], q[1], q[0], 
+                                        m[2*(i+1+ j   *w)]/wi, m[2*(i+1+ j   *w)+1]/(2*hi),
+                                        m[2*(i+  (j+1)*w)]/wi, m[2*(i+  (j+1)*w)+1]/(2*hi),
+                                        m[2*(i+   j   *w)]/wi, m[2*(i+   j   *w)+1]/(2*hi));
+			        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                                        q[3], q[2], q[1], 
+                                        m[2*(i+1+ j   *w)]/wi, m[2*(i+1+ j   *w)+1]/(2*hi),
+                                        m[2*(i+1+(j+1)*w)]/wi, m[2*(i+1+(j+1)*w)+1]/(2*hi),
+                                        m[2*(i+  (j+1)*w)]/wi, m[2*(i+  (j+1)*w)+1]/(2*hi));
+                        }
+                        else
+                        {
+                                fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                                        q[3], q[1], q[0], 
+                                        m[2*(i+1+ j   *w)]/wi, -m[2*(i+1+ j   *w)+1]/(2*hi),
+                                        m[2*(i+  (j+1)*w)]/wi, -m[2*(i+  (j+1)*w)+1]/(2*hi),
+                                        m[2*(i+   j   *w)]/wi, -m[2*(i+   j   *w)+1]/(2*hi));
+			        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                                        q[3], q[2], q[1], 
+                                        m[2*(i+1+ j   *w)]/wi, -m[2*(i+1+ j   *w)+1]/(2*hi),
+                                        m[2*(i+1+(j+1)*w)]/wi, -m[2*(i+1+(j+1)*w)+1]/(2*hi),
+                                        m[2*(i+  (j+1)*w)]/wi, -m[2*(i+  (j+1)*w)+1]/(2*hi));
+                        }
 			cx += 2;
 		}
 	}
