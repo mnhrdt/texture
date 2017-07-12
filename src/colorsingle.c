@@ -38,13 +38,17 @@ int main_colorsingle(int c, char *v[])
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
 	if (c != 6)
 		return fprintf(stderr, "usage:\n\t"
-			"%s dsm.tif zone img.ntf rpc out.tif\n",*v);
-			//0 1       2    3       4   5
+			"%s dsm.tif img.tif match.tif .ply atlas.tif\n",*v);
+			//0 1       2       3         4    5
 	char *filename_dsm = v[1];
 	char *filename_img = v[2];
 	char *filename_m = v[3];
 	char *filename_ply = v[4];
         char *filename_a = v[5];
+
+        // variables that will hold the local georeferencing transform
+        double origin[2] = {0, 0};
+        double scale[2] = {1, 1};
 
 	// read the whole input DSM (typically, rather small)
 	int w, h;
@@ -72,11 +76,11 @@ int main_colorsingle(int c, char *v[])
         for (int i = 0; i < wi; i++)
         for (int l = 0; l < 3; l++)
         {
-                a[(i+j*w)*3+l] = getpixel_f(img, wi, hi, i, j); 
-                a[(i+j*w)*3+l+w*h*3] = (l==2) ? 255 : 0;
+                a[(i+j*wi)*3+l] = getpixel_f(img, wi, hi, i, j); 
+                a[(i+j*wi)*3+l+wi*hi*3] = (l==1) ? 2055 : 0;
         }
 
-        iio_save_image_float_vec(filename_a, a, wi, hi, 3);
+        iio_save_image_float_vec(filename_a, a, wi, 2*hi, 3);
 
 
 	// dump the ply file (with dsm-inherited connectivity)
@@ -110,7 +114,7 @@ int main_colorsingle(int c, char *v[])
 	fprintf(f, "ply\n");
 	fprintf(f, "format ascii 1.0\n");
 	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile atlas.png"
+        fprintf(f, "comment TextureFile atlas.png\n");
 	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
 	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
 	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
@@ -134,21 +138,6 @@ int main_colorsingle(int c, char *v[])
 		double e = i * scale[0] + origin[0]; // easting
 		double n = j * scale[1] + origin[1]; // northing
 		double z = height[j][i];             // height
-		float color[3] = {200, 200, 200};
-		if (filename_img) {
-			double lonlat[3] = {0, 0, z};
-			lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
-
-			// compute coordinates in huge image
-			double ij[2];
-			rpc_projection(ij, huge_rpc, lonlat);
-
-			// evaluate the color at this point
-			for (int k = 0; k < pd; k++)
-				color[k] = gdal_getpixel(huge_img[k], ij[0], ij[1]);
-			for (int k = pd; k < 3; k++) color[k] = color[k-1];
-		}
-		uint8_t rgb[3] = { color[0], color[1], color[2] };
 		double xyz[3] = {e - offset_x, n - offset_y, z - offset_z };
 		fprintf(f, "%.16lf %.16lf %.16lf\n",
 				xyz[0], xyz[1], xyz[2]);
@@ -164,13 +153,19 @@ int main_colorsingle(int c, char *v[])
 		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
 		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
 		{
-                        if (m[2*(i+j*w)] == NAN || m[(i+(j+1)*w)] == NAN || 
-                                        m[(i+1+(j+1)*w)] == NAN || m[(i+1+j*w)] == NAN)
-                                fprintf(f, "4 %d %d %d %d 8 %.16lf %.16lf %.16lf %.16lf
-                                                %.16lf %.16lf %.16lf %.16lf\n",
-                                                q[0], q[1], q[2], q[3],
-                                                m[(i+j*w)]
-			fprintf(f, "4 %d %d %d %d\n", q[0], q[1], q[2], q[3]);
+//                        if (m[2*(i+j*w)] == NAN || m[2*(i+(j+1)*w)] == NAN || 
+//                                        m[2*(i+1+(j+1)*w)] == NAN || 
+//                                        m[2*(i+1+j*w)] == NAN)
+//                                fprintf(f, "4 %d %d %d %d 8 %.16lf %.16lf %.16lf %.16lf
+//                                                %.16lf %.16lf %.16lf %.16lf\n",
+//                                                q[0], q[1], q[2], q[3],
+//                                                m[2*(i+j*w)]+2*w*h);
+			fprintf(f, "4 %d %d %d %d 8 %f %f %f %f %f %f %f %f\n", 
+                                        q[0], q[1], q[2], q[3],
+                                        m[2*(i+   j   *w)], m[2*(i+   j   *w)+1],
+                                        m[2*(i+  (j+1)*w)], m[2*(i+  (j+1)*w)+1],
+                                        m[2*(i+1+(j+1)*w)], m[2*(i+1+(j+1)*w)+1],
+                                        m[2*(i+1+ j   *w)], m[2*(i+1+ j   *w)+1]);
 			cx += 1;
 		}
 	}
@@ -178,4 +173,4 @@ int main_colorsingle(int c, char *v[])
 	return 0;
 }
 
-int main(int c, char *v[]) { return main_colorize(c,v); }
+int main(int c, char *v[]) { return main_colorsingle(c,v); }
