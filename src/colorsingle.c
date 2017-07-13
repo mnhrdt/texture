@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <gdal.h>
 #include <cpl_conv.h>
+#include <libgen.h>
 
 #include "rpc.c"
 #include "fail.c"
@@ -116,7 +117,7 @@ int main_colorsingle(int c, char *v[])
 	fprintf(f, "ply\n");
 	fprintf(f, "format ascii 1.0\n");
 	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile %s.png\n", filename_a); // ici le plyfile note le nom de l'atlas avec le chemin d'accès. Je voudrais juste le nom de fichier, sans chemin d'accès avant.
+        fprintf(f, "comment TextureFile %s.png\n", basename(filename_a));
 	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
 	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
 	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
