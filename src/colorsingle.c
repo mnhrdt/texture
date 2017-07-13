@@ -38,7 +38,7 @@ int main_colorsingle(int c, char *v[])
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
 	if (c != 6)
 		return fprintf(stderr, "usage:\n\t"
-			"%s dsm.tif img.tif match.tif .ply atlas.tif\n",*v);
+			"%s dsm.tif img.tif match.tif .ply atlas\n",*v);
 			//0 1       2       3         4    5
 	char *filename_dsm = v[1];
 	char *filename_img = v[2];
@@ -80,7 +80,9 @@ int main_colorsingle(int c, char *v[])
                 a[(i+j*wi)*3+l+wi*hi*3] = (l==1) ? 2055 : 0;
         }
 
-        iio_save_image_float_vec(filename_a, a, wi, 2*hi, 3);
+        char n_a[1000];
+        sprintf(n_a,"%s.tif",filename_a);
+        iio_save_image_float_vec(n_a, a, wi, 2*hi, 3);
 
 
 	// dump the ply file (with dsm-inherited connectivity)
@@ -114,7 +116,7 @@ int main_colorsingle(int c, char *v[])
 	fprintf(f, "ply\n");
 	fprintf(f, "format ascii 1.0\n");
 	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile %s\n", filename_a);
+        fprintf(f, "comment TextureFile %s.png\n", filename_a);
 	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
 	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
 	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
