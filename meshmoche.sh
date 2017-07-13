@@ -1,13 +1,13 @@
 #!/bin/bash
 # auteur : mariedautume
 
-# exemple input bash crop.sh /home/coco/src/s2p-iarpa/input/ essai/ data/small_Challenge1_Lidar.tif
+# exemple input bash meshmoche.sh /home/coco/src/s2p-iarpa/input/ essai/ data/small_Challenge1_Lidar.tif
 set -e
 img_dir=$1
 exp_dir=$2
 lidar=$3
 
-IDX=`echo {01..05}`
+IDX=`echo {01..47}`
 
 mkdir -p $exp_dir/
 mkdir -p $exp_dir/data/
@@ -49,10 +49,15 @@ mkdir -p $exp_dir/data/matches
 
 # localise le lidar sur l'image puis reprojette sur lidar (donne les images avec grille)
 for i in $IDX; do
-    echo "bin/colorize_with_shadows data/Challenge1_Lidar.tif $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif"
-    bin/colorize_with_shadows data/Challenge1_Lidar.tif $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
+    bin/colorize_with_shadows $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
 done
 #
+# crée un atlas et un mesh texturé à partir du lidar et d'une image.
+mkdir -p $exp_dir/mesh
+for i in $IDX; do
+    bin/colorsingle $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/matches/matches_lidar_img_$i.tif $exp_dir/mesh/pil_$i.ply $exp_dir/mesh/atlas_$i
+#    qeasy 100 1100 $exp_dir/mesh/atlas_$i.png $exp_dir/mesh/atlas_$i.png
+done
 #
 #  Created by marie d'autume on 10/05/2017.
 #
