@@ -29,7 +29,7 @@ int main_get_corners(int c, char *v[])
         if (c != 4)
                 return fprintf(stderr, "usage:\n\t"
                                 "%s dsm_nan.tif zone rpc \n",*v);
-        //0 1          2    3
+                                //0 1           2    3
         char *filename_dsm = v[1];
         int signed_zone    = atoi(v[2]);
         char *filename_rpc = v[3];
@@ -64,14 +64,14 @@ int main_get_corners(int c, char *v[])
         read_rpc_file_xml(huge_rpc, filename_rpc);
 
         // get min and max height in lidar
-        int zm[2] = {0, 0};
+        float zm[2] = {0, 0};
 
         for (int i = 0; i < w; i++)
                 for (int j = 0; j < h; j++)
                 {
                         if (x[i+j*w]>zm[1])
                                 zm[1] = x[i+j*w];
-                        if (x[i+j*w]<zm[0])
+                        if (x[i+j*w]<zm[0] && x[i+j*w] > -9000)
                                 zm[0] = x[i+j*w];
                 }
         zm[0] -= 2;
@@ -94,23 +94,24 @@ int main_get_corners(int c, char *v[])
                 double z = zm[l]; // height estimation
                 float intensity = 0;
                 if (filename_rpc) {
-                // compute lonlat from eastnorth = {p[0], p[1]}
-                double lonlat[3] = {0, 0, z};
-                lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+                        // compute lonlat from eastnorth = {p[0], p[1]}
+                        double lonlat[3] = {0, 0, z};
+                        lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
 
-                // compute coordinates in huge image
-                double ij[2];
-                rpc_projection(ij, huge_rpc, lonlat);
+                        // compute coordinates in huge image
+                        double ij[2];
+                        rpc_projection(ij, huge_rpc, lonlat);
 
-                // compare to mins and maxs
-                if (ij[0]<xmin)
-                        xmin = ij[0];
-                if (ij[0]>xmax)
-                        xmax = ij[0];
-                if (ij[1]<ymin)
-                        ymin = ij[1];
-                if (ij[1]>ymax)
-                        ymax = ij[1];
+                        // compare to mins and maxs
+                        if (ij[0]<xmin)
+                                xmin = ij[0];
+                        if (ij[0]>xmax)
+                                xmax = ij[0];
+                        if (ij[1]<ymin)
+                                ymin = ij[1];
+                        if (ij[1]>ymax)
+                                ymax = ij[1];
+                }
 
         }
                         // TODO: decide whether the offset is added to the image or
@@ -119,7 +120,7 @@ int main_get_corners(int c, char *v[])
                         //n = n - offset_y;
                         //z = z - offset_z;
 
-                        }
+                        
         printf("%i %i %i %i\n", xmin-10, ymin-10, xmax-xmin+20, ymax-ymin+20);
 
         // save and exit without cleanup
