@@ -18,6 +18,106 @@ static float getpixel_f(float *I, int w, int h, int i, int j)
         return I[i+j*w];
 }
 
+bool xy_are_in_bounds(float *xy, // tableau de coords (x1, x2,..., y1,y2,..)
+                int l, // longueur des x/y
+                float xmin, float xmax, float ymin, float ymax)
+{       
+        bool a = true;
+        for (int i = 0; i < l; i++) 
+                a &= (xy[i] >= xmin && xy[i] <= xmax &&
+                                xy[i+l] >= ymin && xy[i+l] <=ymax);
+        return a;
+}
+
+
+struct image_coord{ // coordonnées de la projection du sommet sur l'image
+        float i; 
+        float j;
+};
+
+struct vertex{
+        float x; // x coord dans l'espace
+        float y; // y coord dans l'espace
+        float z; // z coord dans l'espace
+        struct image_coord *im; // liste coordonnées sommet dans chaque im 
+};
+
+struct face{
+        int v0; // 1er sommet
+        int v1; // 2ème sommet
+        int v2; // 3ème sommet
+        float n[3]; // vecteur normal à la face
+        int im; // référence de l'image la plus en face
+};
+
+struct mesh_t{
+        int ni; // nombre d'images
+        int nv; // nombre de sommets
+        int nf; // nombre de faces
+        struct vertex *v; // liste des sommets
+        struct face *f; // liste des faces
+};
+
+bool ith_face_is_visible(struct mesh_t mesh, int i)
+{
+        struct face mf = mesh.f[i];
+        return !isnan(mesh.v[mf.v0].im[mf.im].i) && 
+                !isnan(mesh.v[mf.v0].im[mf.im].j) && 
+                !isnan(mesh.v[mf.v1].im[mf.im].i) && 
+                !isnan(mesh.v[mf.v1].im[mf.im].j) && 
+                !isnan(mesh.v[mf.v2].im[mf.im].i) &&
+                !isnan(mesh.v[mf.v2].im[mf.im].j);
+}
+
+void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
+{
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = fopen(filename_ply, "w");
+	if (!f) printf("WARNING: couldn't open ply file.\n");
+        
+        // print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment created by cutrecombine\n");
+        fprintf(f, "comment TextureFile %s.png\n", basename(filename_a)); // ici le plyfile note le nom de l'atlas avec le chemin d'accès. Je voudrais juste le nom de fichier, sans chemin d'accès avant.
+	// if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
+	// if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
+	// if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
+	fprintf(f, "element vertex %d\n", mesh.nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+	fprintf(f, "element face %d\n", mesh.nf);
+	fprintf(f, "property list uchar int vertex_indices\n");
+        fprintf(f, "property list uchar float texcoord\n");
+	fprintf(f, "end_header\n");
+
+        // print vertices
+        for (int i = 0; i < mesh.nv; i++)
+		fprintf(f, "%.16lf %.16lf %.16lf\n", 
+                                mesh.v[i].x, mesh.v[i].y, mesh.v[i].z);
+
+        // print faces
+        for (int i = 0; i < mesh.nf; i++) {
+                struct face mf = mesh.f[i];
+                float a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
+                        mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
+                        mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
+                if (ith_face_is_visible(mesh, i))
+                {
+                        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                                mf.v0, mf.v1, mf.v2, 
+                                a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
+                        if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
+                                printf("WARNING: tries to access invalid texture\n");
+                }
+                else
+                        fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
+                                mf.v0, mf.v1, mf.v2);
+
+        }
+}
+
 // elevate a georeferenced DSM to an ascii point cloud
 // optionally, colorize the point cloud from a given reference image
 // optionally, create a ply file with the desired connectivity
@@ -85,10 +185,9 @@ int main_colorsingle(int c, char *v[])
         sprintf(n_a,"%s.tif",filename_a);
         iio_save_image_float_vec(n_a, a, wi, 2*hi, 3);
 
-
-	// dump the ply file (with dsm-inherited connectivity)
-	FILE *f = fopen(filename_ply, "w");
-	if (!f) return 1;
+        // create mesh
+        struct mesh_t mesh;
+        mesh.ni = 1;
 
 	// assign comfortable pointers
 	float (*height)[w] = (void*)x;
@@ -102,6 +201,7 @@ int main_colorsingle(int c, char *v[])
 			vid[j][i] = nvertices++;
 		else
 			vid[j][i] = -1;
+        mesh.nv = nvertices;
 
 	// count number of valid square faces
 	int nfaces = 0;
@@ -112,27 +212,11 @@ int main_colorsingle(int c, char *v[])
 		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
 			nfaces += 2;
 	}
-
-	// print header
-	fprintf(f, "ply\n");
-	fprintf(f, "format ascii 1.0\n");
-	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile %s.png\n", basename(filename_a));
-	if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
-	if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
-	if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
-	fprintf(f, "element vertex %d\n", nvertices);
-	fprintf(f, "property float x\n");
-	fprintf(f, "property float y\n");
-	fprintf(f, "property float z\n");
-	fprintf(f, "element face %d\n", nfaces);
-	fprintf(f, "property list uchar int vertex_indices\n");
-        fprintf(f, "property list uchar float texcoord\n");
-	fprintf(f, "end_header\n");
-	int cx;
+        mesh.nf = nfaces;
 
 	// output vertices
-	cx = 0;
+        mesh.v = malloc(mesh.nv*sizeof(struct vertex));
+	int cx = 0;
 	for (int j = 0; j < h; j++)
 	for (int i = 0; i < w; i++)
 	{
@@ -141,14 +225,19 @@ int main_colorsingle(int c, char *v[])
 		double e = i * scale[0] + origin[0]; // easting
 		double n = j * scale[1] + origin[1]; // northing
 		double z = height[j][i];             // height
-		double xyz[3] = {e - offset_x, n - offset_y, z - offset_z };
-		fprintf(f, "%.16lf %.16lf %.16lf\n",
-				xyz[0], xyz[1], xyz[2]);
+                mesh.v[cx].x = e - offset_x;
+                mesh.v[cx].y = n - offset_y;
+                mesh.v[cx].z = z - offset_z;
+
+                mesh.v[cx].im = malloc((mesh.ni-1)*sizeof(struct image_coord));
+                mesh.v[cx].im[0].i = m[2*(i+j*w)]  /wi;
+                mesh.v[cx].im[0].j = m[2*(i+j*w)+1]/hi;
 		cx += 1;
 	}
 	assert(cx == nvertices);
 
 	// output faces
+        mesh.f = malloc(mesh.nf*sizeof(struct face));
 	cx = 0;
 	for (int j = 0; j < h-1; j++)
 	for (int i = 0; i < w-1; i++)
@@ -156,38 +245,17 @@ int main_colorsingle(int c, char *v[])
 		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
 		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
 		{
-                        if (m[2*(i+j*w)] == NAN || m[2*(i+(j+1)*w)] == NAN || 
-                                        m[2*(i+1+(j+1)*w)] == NAN || 
-                                        m[2*(i+1+j*w)] == NAN)
-                        {
-                                fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[3], q[1], q[0], 
-                                        m[2*(i+1+ j   *w)]/wi, m[2*(i+1+ j   *w)+1]/(2*hi),
-                                        m[2*(i+  (j+1)*w)]/wi, m[2*(i+  (j+1)*w)+1]/(2*hi),
-                                        m[2*(i+   j   *w)]/wi, m[2*(i+   j   *w)+1]/(2*hi));
-			        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[3], q[2], q[1], 
-                                        m[2*(i+1+ j   *w)]/wi, m[2*(i+1+ j   *w)+1]/(2*hi),
-                                        m[2*(i+1+(j+1)*w)]/wi, m[2*(i+1+(j+1)*w)+1]/(2*hi),
-                                        m[2*(i+  (j+1)*w)]/wi, m[2*(i+  (j+1)*w)+1]/(2*hi));
-                        }
-                        else
-                        {
-                                fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[3], q[1], q[0], 
-                                        m[2*(i+1+ j   *w)]/wi, -m[2*(i+1+ j   *w)+1]/(2*hi),
-                                        m[2*(i+  (j+1)*w)]/wi, -m[2*(i+  (j+1)*w)+1]/(2*hi),
-                                        m[2*(i+   j   *w)]/wi, -m[2*(i+   j   *w)+1]/(2*hi));
-			        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
-                                        q[3], q[2], q[1], 
-                                        m[2*(i+1+ j   *w)]/wi, -m[2*(i+1+ j   *w)+1]/(2*hi),
-                                        m[2*(i+1+(j+1)*w)]/wi, -m[2*(i+1+(j+1)*w)+1]/(2*hi),
-                                        m[2*(i+  (j+1)*w)]/wi, -m[2*(i+  (j+1)*w)+1]/(2*hi));
-                        }
+                        mesh.f[cx].im = 0;
+                        mesh.f[cx] = (struct face) {.v0 = q[3], 
+                                .v1 = q[1], .v2 = q[0]};
+                        mesh.f[cx+1] = (struct face) {.v0 = q[3], 
+                                .v1 = q[2], .v2 = q[1]};
 			cx += 2;
 		}
 	}
 	assert(cx == nfaces);
+
+        write_ply_t(filename_ply, filename_a, mesh);
 	return 0;
 }
 
