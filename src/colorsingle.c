@@ -151,6 +151,19 @@ int main_colorsingle(int c, char *v[])
         double origin[2] = {0, 0};
         double scale[2] = {1, 1};
 
+        // read georeferencing transform using GDAL
+        GDALAllRegister();
+        GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
+        if (gdal_dataset == NULL)
+                return fprintf(stderr, "GDALOpen(%s) failed\n", filename_dsm);
+        double tmp[6];
+        if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
+                origin[0] = tmp[0], origin[1] = tmp[3];
+                scale[0] = tmp[1], scale[1] = tmp[5];
+        } else {
+                fprintf(stderr, "WARNING: not found origin and scale info\n");
+        }
+
 	// read the whole input DSM (typically, rather small)
 	int w, h;
 	float *x = iio_read_image_float(filename_dsm, &w, &h);
