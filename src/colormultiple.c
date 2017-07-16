@@ -332,8 +332,8 @@ int main_colormultiple(int c, char *v[])
 	{
 		if (!isfinite(height[j][i])) continue;
 		// compute lonlat from eastnorth = {p[0], p[1]}
-		double e = i * scale[0] + origin[0]; // easting
-		double n = j * scale[1] + origin[1]; // northing
+		double e = i; //* scale[0] + origin[0]; // easting
+		double n = j; //* scale[1] + origin[1]; // northing
 		double z = height[j][i];             // height
                 mesh.v[cx].xyz[0] = e - offset_x;
                 mesh.v[cx].xyz[1] = n - offset_y;
