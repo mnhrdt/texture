@@ -294,19 +294,6 @@ int main_colormultiple(int c, char *v[])
 	if (!x)
 		return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
 
-        // read lidar projections from colorize_with_shadows
-        int wm, hm, pdm;
-        float *m;
-        for (int ni = 0; ni < nimages; ni++)
-        {
-                char *filename_m = v[2*nimages+ni+2];
-                m = iio_read_image_float_vec(filename_m, &wm, &hm, &pdm);
-                if (!m)
-                        return fprintf(stderr, "iio_read(%s) failed\n", filename_m);
-                if (w != wm || h != hm || pdm != 2)
-                        return fprintf(stderr, "input sizes mismatch (%s)\n", filename_m);
-        }
-
 
         // create mesh
         struct mesh_t mesh;
@@ -356,8 +343,6 @@ int main_colormultiple(int c, char *v[])
                 mesh.v[cx].ij[1] = j;
 
                 mesh.v[cx].im = malloc((mesh.ni)*sizeof(struct image_coord));
-                mesh.v[cx].im[0].i = m[2*(i+j*w)]  /wi;
-                mesh.v[cx].im[0].j = m[2*(i+j*w)+1]/hi;
 		cx += 1;
 	}
 	assert(cx == nvertices);
@@ -376,8 +361,8 @@ int main_colormultiple(int c, char *v[])
                {
                        int i = mesh.v[cx].ij[0];
                        int j = mesh.v[cx].ij[1];
-                       mesh.v[cx].im[ni].i = m[2*(i+j*w)]  /wi;
-                       mesh.v[cx].im[ni].j = m[2*(i+j*w)+1]/hi;
+                       mesh.v[cx].im[ni].i = m[2*(i+j*w)]  /wimax + (float) ni/nimages;
+                       mesh.v[cx].im[ni].j = m[2*(i+j*w)+1]/himax;
                }
                free(m);
        }
