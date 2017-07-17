@@ -31,27 +31,35 @@ double scalar_product(double *u, double *v, int dim)
         return sp;
 }
 
+void cross_product(double axb[3], double a[3], double b[3])
+{
+	// a0 a1 a2
+	// b0 b1 b2
+	axb[0] = a[1]*b[2] - a[2]*b[1];
+	axb[1] = a[2]*b[0] - a[0]*b[2];
+	axb[2] = a[0]*b[1] - a[1]*b[0];
+}
+
+double euclidean_norm(double *x, int n)
+{
+	return n > 0 ? hypot(*x, euclidean_norm(x+1, n-1)) : 0;
+}
+
+
 void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les sommets sont donnés dans le sens direct
 {
         double u[3];
         double v[3];
-        for (int i = 0; i < 3; i++)
-        {
-                u[i] = b[i] - a[i];
-                v[i] = c[i] - a[i];
-        }
-        for (int i = 0; i < 3; i++)
-                n[i] = u[(i+1)%3]*v[(i+2)%3]-u[(i+2)%3]*v[(i+1)%3];
-        n[1] = -n[1];
-       
-        // normalize n
-        double norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
-        for (int i = 0; i < 3; i++)
-                n[i] /= norm;
-        norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
+        for (int i = 0; i < 3; i++) u[i] = b[i] - a[i];
+        for (int i = 0; i < 3; i++) v[i] = c[i] - a[i];
+	cross_product(n, u, v);
+
+        double norm = euclidean_norm(n, 3);
+        for (int i = 0; i < 3; i++) n[i] /= norm;
+
+        norm = euclidean_norm(n, 3);
         if (norm < 0.9999 || norm > 1.0000001)
                 printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
-
 }
 
 bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
