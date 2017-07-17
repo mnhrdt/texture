@@ -192,7 +192,6 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 	// dump the ply file (with dsm-inherited connectivity)
         char filename_map[1000];
         sprintf(filename_map, "%s/map.ply", dirname(filename_ply));
-        printf("%s\n", filename_map);
 	FILE *f = fopen(filename_map, "w");
 	if (!f) printf("WARNING: couldn't open ply file.\n");
         
@@ -446,21 +445,19 @@ int main_colormultiple(int c, char *v[])
         {
                 struct face mf = mesh.f[i];
                 triangle_normal(mesh.f[i].n, mesh.v[mf.v0].xyz, mesh.v[mf.v1].xyz, mesh.v[mf.v2].xyz);
+                printf("n0 %lf n1 %lf n2 %lf\n", mesh.f[i].n[0], mesh.f[i].n[1], mesh.f[i].n[2]);
                 double sp = -1;
                 double c_n[3];
                 for (int ni = 0; ni < nimages; ni++)
                 {
                         for (int l = 0; l < 3; l++)
                                 c_n[l] = cam_n[3*ni+l];
-                        printf("cn0 %lf cn1 %lf cn2 %lf\n", c_n[0], c_n[1], c_n[2]);
-                        printf("n0 %lf n1 %lf n2 %lf\n", mf.n[0], mf.n[1], mf.n[2]);
-                        if (fabs(scalar_product(c_n, mf.n, 3)) > 1)
+                        printf("face %d image %d produit scalaire %.16lf\n", i, ni, scalar_product(c_n, mesh.f[i].n, 3));
+                        if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
                                 printf("wARNING: scalar product error\n");
-                        if (scalar_product(c_n, mf.n, 3) >= sp)
+                        if (scalar_product(c_n, mesh.f[i].n, 3) >= sp)
                         {
-                                sp = scalar_product(c_n, mf.n, 3);
-                                printf("face %d image %d produit scalaire %.16lf\n", 
-                                                i, ni, sp);
+                                sp = scalar_product(c_n, mesh.f[i].n, 3);
                                 mesh.f[i].im = ni;
                         }
                 }
