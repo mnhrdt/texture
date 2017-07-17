@@ -62,6 +62,7 @@ void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les 
                 printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
 }
 
+// check if (xmin < x < xmax) && (ymin < y < ymax)
 bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
                 int l, // longueur des x/y
                 double xmin, double xmax, double ymin, double ymax)
@@ -354,6 +355,8 @@ int main_colormultiple(int c, char *v[])
                 fprintf(stderr, "WARNING: not found origin and scale info\n");
         }
 
+        printf("scale %lf %lf\n", scale[0], scale[1]);
+
 	// read the whole input DSM (typically, rather small)
 	int w, h;
 	float *x = iio_read_image_float(filename_dsm, &w, &h);
@@ -398,8 +401,8 @@ int main_colormultiple(int c, char *v[])
 	{
 		if (!isfinite(height[j][i])) continue;
 		// compute lonlat from eastnorth = {p[0], p[1]}
-		double e = i; //* scale[0] + origin[0]; // easting
-		double n = j; //* scale[1] + origin[1]; // northing
+		double e = i* scale[0];// + origin[0]; // easting
+		double n = j* scale[1];// + origin[1]; // northing
 		double z = height[j][i];             // height
                 mesh.v[cx].xyz[0] = e - offset_x;
                 mesh.v[cx].xyz[1] = n - offset_y;
@@ -445,9 +448,9 @@ int main_colormultiple(int c, char *v[])
 		{
                         mesh.f[cx].im = 0;
                         mesh.f[cx] = (struct face) {.v0 = q[3], 
-                                .v1 = q[1], .v2 = q[0]};
+                                .v1 = q[0], .v2 = q[1]};
                         mesh.f[cx+1] = (struct face) {.v0 = q[3], 
-                                .v1 = q[2], .v2 = q[1]};
+                                .v1 = q[1], .v2 = q[2]};
 			cx += 2;
 		}
 	}
