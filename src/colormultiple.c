@@ -174,7 +174,7 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                         mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
                 if (ith_face_is_visible(mesh, i))
                 {
-                        fprintf(f, "3 %d %d %d 6 %f %f %f %f %f %f \n", 
+                        fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
                                 mf.v0, mf.v1, mf.v2, 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
                         if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
@@ -186,6 +186,59 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 
         }
 }
+
+void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
+{
+	// dump the ply file (with dsm-inherited connectivity)
+        char filename_map[1000];
+        sprintf(filename_map, "%s/map.ply", dirname(filename_ply));
+	FILE *f = fopen(filename_map, "w");
+	if (!f) printf("WARNING: couldn't open ply file.\n");
+        
+        // print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment created by cutrecombine\n");
+        fprintf(f, "comment TextureFile %s_map.png\n", basename(filename_a));
+	// if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
+	// if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
+	// if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
+	fprintf(f, "element vertex %d\n", mesh.nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+	fprintf(f, "element face %d\n", mesh.nf);
+	fprintf(f, "property list uchar int vertex_indices\n");
+        fprintf(f, "property list uchar float texcoord\n");
+	fprintf(f, "end_header\n");
+
+        // print vertices
+        for (int i = 0; i < mesh.nv; i++)
+		fprintf(f, "%.16lf %.16lf %.16lf\n", 
+                                mesh.v[i].xyz[0], mesh.v[i].xyz[1], mesh.v[i].xyz[2]);
+
+        // print faces
+        for (int i = 0; i < mesh.nf; i++) {
+                struct face mf = mesh.f[i];
+                double a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
+                        mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
+                        mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
+                if (ith_face_is_visible(mesh, i))
+                {
+                        fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
+                                mf.v0, mf.v1, mf.v2, 
+                                a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
+                        if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
+                                printf("WARNING: tries to access invalid texture\n");
+                }
+                else
+                        fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
+                                mf.v0, mf.v1, mf.v2);
+
+        }
+}
+
+// elevate a georeferenced DSM to an ascii point cloud
 
 // elevate a georeferenced DSM to an ascii point cloud
 // optionally, colorize the point cloud from a given reference image
@@ -361,7 +414,8 @@ int main_colormultiple(int c, char *v[])
                {
                        int i = mesh.v[cx].ij[0];
                        int j = mesh.v[cx].ij[1];
-                       mesh.v[cx].im[ni].i = m[2*(i+j*w)]  /wimax + (float) ni/nimages;
+                       mesh.v[cx].im[ni].i = (m[2*(i+j*w)]  /wimax + ni)/nimages;
+                       // abscisse dans l'atlas : située pour l'image ni dans [ni/nimages; (ni+1)/nimages]. On ajoute donc à ni/nimages, la coordonnée dans l'image (m[2*(i+j*w)]) multiplié par la part attribué à chaque pixel : (1/(wimax*nimages)).
                        mesh.v[cx].im[ni].j = m[2*(i+j*w)+1]/himax;
                }
                free(m);
@@ -397,14 +451,19 @@ int main_colormultiple(int c, char *v[])
                 {
                         for (int l = 0; l < 3; l++)
                                 c_n[l] = cam_n[3*ni+l];
+                        printf("cn0 %lf cn1 %lf cn2 %lf\n", c_n[0], c_n[1], c_n[2]);
+                        printf("n0 %lf n1 %lf n2 %lf\n", mf.n[0], mf.n[1], mf.n[2]);
                         if (fabs(scalar_product(c_n, mf.n, 3)) > 1)
                                 printf("wARNING: scalar product error\n");
-                        if (scalar_product(c_n, mf.n, 3) > sp)
+                        if (scalar_product(c_n, mf.n, 3) >= sp)
                         {
                                 sp = scalar_product(c_n, mf.n, 3);
+                                printf("face %d image %d produit scalaire %.16lf\n", 
+                                                i, ni, sp);
                                 mesh.f[i].im = ni;
                         }
                 }
+                printf("face %d image %d\n", i, mesh.f[i].im);
         }
 
         write_ply_t(filename_ply, filename_a, mesh);
