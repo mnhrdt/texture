@@ -83,25 +83,26 @@ struct face{
         int v2; // 3ème sommet
         double n[3]; // vecteur normal à la face
         int im; // référence de l'image la plus en face
+        bool *isvisible; // 1 si visible dans l'image i, 0 sinon
 };
 
 struct mesh_t{
-        int ni; // nombre d'images
+        int nimages; // nombre d'images
         int nv; // nombre de sommets
         int nf; // nombre de faces
         struct vertex *v; // liste des sommets
         struct face *f; // liste des faces
 };
 
-bool ith_face_is_visible(struct mesh_t mesh, int i)
+bool ith_face_is_visible_in_image(struct mesh_t mesh, int i, int j)
 {
         struct face mf = mesh.f[i];
-        return !isnan(mesh.v[mf.v0].im[mf.im].i) && 
-                !isnan(mesh.v[mf.v0].im[mf.im].j) && 
-                !isnan(mesh.v[mf.v1].im[mf.im].i) && 
-                !isnan(mesh.v[mf.v1].im[mf.im].j) && 
-                !isnan(mesh.v[mf.v2].im[mf.im].i) &&
-                !isnan(mesh.v[mf.v2].im[mf.im].j);
+        return !isnan(mesh.v[mf.v0].im[j].i) && 
+                !isnan(mesh.v[mf.v0].im[j].j) && 
+                !isnan(mesh.v[mf.v1].im[j].i) && 
+                !isnan(mesh.v[mf.v1].im[j].j) && 
+                !isnan(mesh.v[mf.v2].im[j].i) &&
+                !isnan(mesh.v[mf.v2].im[j].j);
 }
 
 void camera_direction(double n[3], struct rpc *r)
@@ -172,7 +173,7 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                 double a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
                         mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
                         mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
-                if (ith_face_is_visible(mesh, i))
+                if (ith_face_is_visible_in_image(mesh, i, mf.im))
                 {
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
                                 mf.v0, mf.v1, mf.v2, 
@@ -223,7 +224,7 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                 double a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
                         mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
                         mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
-                if (ith_face_is_visible(mesh, i))
+                if (ith_face_is_visible_in_image(mesh, i, mf.im))
                 {
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
                                 mf.v0, mf.v1, mf.v2, 
@@ -350,7 +351,7 @@ int main_colormultiple(int c, char *v[])
 
         // create mesh
         struct mesh_t mesh;
-        mesh.ni = nimages;
+        mesh.nimages = nimages;
 
 	// assign comfortable pointers
 	float (*height)[w] = (void*)x;
@@ -395,7 +396,7 @@ int main_colormultiple(int c, char *v[])
                 mesh.v[cx].ij[0] = i;
                 mesh.v[cx].ij[1] = j;
 
-                mesh.v[cx].im = malloc((mesh.ni)*sizeof(struct image_coord));
+                mesh.v[cx].im = malloc((mesh.nimages)*sizeof(struct image_coord));
 		cx += 1;
 	}
 	assert(cx == nvertices);
@@ -443,22 +444,25 @@ int main_colormultiple(int c, char *v[])
         // pour chaque face, calculer la normale et choisir la meilleure image
         for (int i = 0; i < nfaces; i++)
         {
+                mesh.f[i].isvisible = malloc(mesh.nimages * sizeof(bool));
                 struct face mf = mesh.f[i];
                 triangle_normal(mesh.f[i].n, mesh.v[mf.v0].xyz, mesh.v[mf.v1].xyz, mesh.v[mf.v2].xyz);
-                printf("n0 %lf n1 %lf n2 %lf\n", mesh.f[i].n[0], mesh.f[i].n[1], mesh.f[i].n[2]);
                 double sp = -1;
                 double c_n[3];
                 for (int ni = 0; ni < nimages; ni++)
                 {
-                        for (int l = 0; l < 3; l++)
-                                c_n[l] = cam_n[3*ni+l];
-                        printf("face %d image %d produit scalaire %.16lf\n", i, ni, scalar_product(c_n, mesh.f[i].n, 3));
-                        if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
-                                printf("wARNING: scalar product error\n");
-                        if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
+                        mesh.f[i].isvisible[ni] = ith_face_is_visible_in_image(mesh, i, ni);
+                        if (ith_face_is_visible_in_image(mesh, i, ni))
                         {
-                                sp = fabs(scalar_product(c_n, mesh.f[i].n, 3));
-                                mesh.f[i].im = ni;
+                                for (int l = 0; l < 3; l++)
+                                        c_n[l] = cam_n[3*ni+l];
+                                if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
+                                        printf("wARNING: scalar product error\n");
+                                if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
+                                {
+                                        sp = fabs(scalar_product(c_n, mesh.f[i].n, 3));
+                                        mesh.f[i].im = ni;
+                                }
                         }
                 }
                 printf("face %d image %d\n", i, mesh.f[i].im);
