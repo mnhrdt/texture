@@ -11,7 +11,7 @@ override CFLAGS := $(CFLAGS) `gdal-config --cflags`
 override LDLIBS := $(LDLIBS) `gdal-config --libs` $(IIOLIBS) $(GEOLIBS)
 
 # binaries
-BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle triangles
+BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle colormultiple triangles
 BIN := $(addprefix bin/,$(BIN))
 OBJ := src/iio.o src/geographiclib_wrapper.o
 
