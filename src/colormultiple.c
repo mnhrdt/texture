@@ -192,6 +192,7 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 	// dump the ply file (with dsm-inherited connectivity)
         char filename_map[1000];
         sprintf(filename_map, "%s/map.ply", dirname(filename_ply));
+        printf("%s\n", filename_map);
 	FILE *f = fopen(filename_map, "w");
 	if (!f) printf("WARNING: couldn't open ply file.\n");
         
@@ -467,6 +468,7 @@ int main_colormultiple(int c, char *v[])
         }
 
         write_ply_t(filename_ply, filename_a, mesh);
+        write_ply_map_t(filename_ply, filename_a, mesh);
 	return 0;
 }
 
