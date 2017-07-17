@@ -455,14 +455,15 @@ int main_colormultiple(int c, char *v[])
                         printf("face %d image %d produit scalaire %.16lf\n", i, ni, scalar_product(c_n, mesh.f[i].n, 3));
                         if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
                                 printf("wARNING: scalar product error\n");
-                        if (scalar_product(c_n, mesh.f[i].n, 3) >= sp)
+                        if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
                         {
-                                sp = scalar_product(c_n, mesh.f[i].n, 3);
+                                sp = fabs(scalar_product(c_n, mesh.f[i].n, 3));
                                 mesh.f[i].im = ni;
                         }
                 }
                 printf("face %d image %d\n", i, mesh.f[i].im);
         }
+        // problème, on choisit la vue qui est la plus en face de la face. Cependant cette face peut être cachée sur cette vue. Il faut donc rafiner le choix et commencer par déterminer sur quelles vues la face est visible.
 
         write_ply_t(filename_ply, filename_a, mesh);
         write_ply_map_t(filename_ply, filename_a, mesh);
