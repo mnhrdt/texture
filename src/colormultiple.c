@@ -463,9 +463,6 @@ int main_colormultiple(int c, char *v[])
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
                                 {
                                         printf("wARNING: scalar product error.\n");
-                                        printf("face %d image %d produit scalaire %.16lf\n", i, ni, scalar_product(c_n, mesh.f[i].n, 3));
-                                        printf("n0 %lf n1 %lf n2 %lf\n", mesh.f[i].n[0], mesh.f[i].n[1], mesh.f[i].n[2]);
-                                        printf("cn0 %lf cn1 %lf cn2 %lf\n", c_n[0], c_n[1], c_n[2]);
                                 }
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
                                 {
