@@ -135,8 +135,12 @@ void camera_direction(double n[3], struct rpc *r)
                 n[i] -= en[i];
 
         // normalise direction vector
+        double norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
         for (int i = 0; i < 3; i++)
-                n[i] /= sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
+                n[i] /= norm;
+        norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
+        if (norm < 0.9999 || norm > 1.0000001)
+                printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
 }
 
 void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
@@ -457,7 +461,12 @@ int main_colormultiple(int c, char *v[])
                                 for (int l = 0; l < 3; l++)
                                         c_n[l] = cam_n[3*ni+l];
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
-                                        printf("wARNING: scalar product error\n");
+                                {
+                                        printf("wARNING: scalar product error.\n");
+                                        printf("face %d image %d produit scalaire %.16lf\n", i, ni, scalar_product(c_n, mesh.f[i].n, 3));
+                                        printf("n0 %lf n1 %lf n2 %lf\n", mesh.f[i].n[0], mesh.f[i].n[1], mesh.f[i].n[2]);
+                                        printf("cn0 %lf cn1 %lf cn2 %lf\n", c_n[0], c_n[1], c_n[2]);
+                                }
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
                                 {
                                         sp = fabs(scalar_product(c_n, mesh.f[i].n, 3));
@@ -465,7 +474,6 @@ int main_colormultiple(int c, char *v[])
                                 }
                         }
                 }
-                printf("face %d image %d\n", i, mesh.f[i].im);
         }
         // problème, on choisit la vue qui est la plus en face de la face. Cependant cette face peut être cachée sur cette vue. Il faut donc rafiner le choix et commencer par déterminer sur quelles vues la face est visible.
 
