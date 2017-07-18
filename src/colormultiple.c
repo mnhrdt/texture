@@ -74,6 +74,51 @@ bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
         return a;
 }
 
+void hsv2rgb(double hsv[3], double rgb[3])
+{
+        int hi = (int) floor(hsv[0]/60) % 6;
+        double f = hsv[0]/60 - hi;
+        double l = hsv[2] * (1 - hsv[1]);
+        double m = hsv[2] * (1 - f * hsv[1]);
+        double n = hsv[2] * (1 - (1 - f) * hsv[1]);
+        if (hi == 0)
+        {
+                rgb[0] = hsv[2];
+                rgb[1] = n;
+                rgb[2] = l;
+        }
+        if (hi == 1)
+        {
+                rgb[0] = m;
+                rgb[1] = hsv[2];
+                rgb[2] = l;
+        }
+        if (hi == 2)
+        {
+                rgb[0] = l;
+                rgb[1] = hsv[2];
+                rgb[2] = n;
+        }
+        if (hi == 3)
+        {
+                rgb[0] = l;
+                rgb[1] = m;
+                rgb[2] = hsv[2];
+        }
+        if (hi == 4)
+        {
+                rgb[0] = n;
+                rgb[1] = l;
+                rgb[2] = hsv[2];
+        }
+        if (hi == 5)
+        {
+                rgb[0] = hsv[2];
+                rgb[1] = l;
+                rgb[2] = m;
+        }
+}
+
 
 struct image_coord{ // coordonnées de la projection du sommet sur l'image
         double i; 
@@ -213,7 +258,7 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 	fprintf(f, "ply\n");
 	fprintf(f, "format ascii 1.0\n");
 	fprintf(f, "comment created by cutrecombine\n");
-        fprintf(f, "comment TextureFile %s_map.png\n", basename(filename_a));
+        fprintf(f, "comment TextureFile map.png\n");
 	// if (offset_x) fprintf(f, "comment offset_x = %lf\n", offset_x);
 	// if (offset_y) fprintf(f, "comment offset_y = %lf\n", offset_y);
 	// if (offset_z) fprintf(f, "comment offset_z = %lf\n", offset_z);
@@ -322,6 +367,28 @@ int main_colormultiple(int c, char *v[])
         iio_save_image_float_vec(n_a, a, nimages*wimax, 2*himax, pda);
         free(a);
 
+        // create colormap
+        float *map = malloc(6 * wimax * himax * nimages * sizeof(float));
+        double Hsv[8] = {0, 45, 60, 120, 180, 225, 270, 315};
+        double hSv[3] = {1, 0.33, 0.67};
+        double hsV[2] = {1, 0.7};
+        for (int ni = 0; ni < nimages; ni++)
+        {
+                double hsv[3] = {Hsv[ni%8], hSv[(ni/16)%3], hsV[(ni/8)%2]};
+                double rgb[3];
+                hsv2rgb(hsv, rgb);
+        for (int i = ni*wimax; i < (ni+1)*wimax; i++)
+        for (int j = 0; j < himax; j++)
+        for (int l = 0; l < 3; l++)
+                        map[3*(i+j*nimages*wimax)+l] = 255*rgb[l];
+        }
+        for (int i = 3*wimax*himax*nimages; i < 6*wimax*himax*nimages; i++)
+                map[i] = 0;
+        char n_map[1000];
+        sprintf(n_map, "%s/map.png", dirname(filename_ply));
+        iio_save_image_float_vec(n_map, map, nimages*wimax, 2*himax, 3);
+
+
         // get camera directions
         double *cam_n = malloc(3 * nimages * sizeof(double));
         double c_n[3] = {0};
@@ -355,7 +422,6 @@ int main_colormultiple(int c, char *v[])
                 fprintf(stderr, "WARNING: not found origin and scale info\n");
         }
 
-        printf("scale %lf %lf\n", scale[0], scale[1]);
 
 	// read the whole input DSM (typically, rather small)
 	int w, h;
