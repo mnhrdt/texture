@@ -1,6 +1,5 @@
 #####
 ##### 3.5 Extract the internal parameters, rotation and center of the camera from the projection matrix
-print "3.5 Extract the internal parameters, rotation and center of the camera from the projection matrix"
 #####
 
 # rq decomposition of M gives rotation and calibration
