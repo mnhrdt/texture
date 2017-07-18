@@ -23,6 +23,7 @@ static float getpixel_f(float *I, int w, int h, int i, int j)
         return I[i+j*w];
 }
 
+// some useful functions
 double scalar_product(double *u, double *v, int dim)
 {
         double sp = 0;
@@ -45,7 +46,7 @@ double euclidean_norm(double *x, int n)
 	return n > 0 ? hypot(*x, euclidean_norm(x+1, n-1)) : 0;
 }
 
-
+// coordinates of the normal to a triangle in a 3D space
 void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les sommets sont donnés dans le sens direct
 {
         double u[3];
@@ -74,6 +75,7 @@ bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
         return a;
 }
 
+// conversion from hsv to rgb (h in [0, 360], s v r g b in [0, 1])
 void hsv2rgb(double hsv[3], double rgb[3])
 {
         int hi = (int) floor(hsv[0]/60) % 6;
@@ -119,6 +121,7 @@ void hsv2rgb(double hsv[3], double rgb[3])
         }
 }
 
+// Création d'une structure pour le mesh. À optimiser
 
 struct image_coord{ // coordonnées de la projection du sommet sur l'image
         double i; 
@@ -148,6 +151,8 @@ struct mesh_t{
         struct face *f; // liste des faces
 };
 
+
+// true if the ith face in mesh is visible in image j
 bool ith_face_is_visible_in_image(struct mesh_t mesh, int i, int j)
 {
         struct face mf = mesh.f[i];
@@ -159,6 +164,7 @@ bool ith_face_is_visible_in_image(struct mesh_t mesh, int i, int j)
                 !isnan(mesh.v[mf.v2].im[j].j);
 }
 
+// get the satellite direction using only the rpc data
 void camera_direction(double n[3], struct rpc *r)
 {
         // initialise height and fill 3rd vector coordinate
@@ -189,12 +195,12 @@ void camera_direction(double n[3], struct rpc *r)
                 n[i] -= en[i];
 
         // normalise direction vector
-        double norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
-        for (int i = 0; i < 3; i++)
-                n[i] /= norm;
-        norm = sqrt((pow(n[0],2) + pow(n[1],2) + pow(n[2],2)));
+        double norm = euclidean_norm(n, 3);
+        for (int i = 0; i < 3; i++) n[i] /= norm;
+
+        norm = euclidean_norm(n, 3);
         if (norm < 0.9999 || norm > 1.0000001)
-                printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
+                printf("WARNING: normalisation error in camera_direction, norme = %.16lf\n", norm);
 }
 
 void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
@@ -459,7 +465,7 @@ int main_colormultiple(int c, char *v[])
 	}
         mesh.nf = nfaces;
 
-	// output vertices
+	// initialize vertices with their coordinates in space and in the lidar
         mesh.v = malloc(mesh.nv*sizeof(struct vertex));
 	int cx = 0;
 	for (int j = 0; j < h; j++)
@@ -482,7 +488,7 @@ int main_colormultiple(int c, char *v[])
 	}
 	assert(cx == nvertices);
 
-        // for each vertex, get texture coordinates
+        // for each vertex, get texture coordinate for each image
        int wm, hm, pdm;
        for (int ni = 0; ni < nimages; ni++)
        {
@@ -503,7 +509,8 @@ int main_colormultiple(int c, char *v[])
                free(m);
        }
 
-	// output faces
+	// for each square in lidar, create two triangular faces.
+        // Vertices order is such that the face is oriented towards the outside.
         mesh.f = malloc(mesh.nf*sizeof(struct face));
 	cx = 0;
 	for (int j = 0; j < h-1; j++)
@@ -512,7 +519,6 @@ int main_colormultiple(int c, char *v[])
 		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
 		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
 		{
-                        mesh.f[cx].im = 0;
                         mesh.f[cx] = (struct face) {.v0 = q[3], 
                                 .v1 = q[0], .v2 = q[1]};
                         mesh.f[cx+1] = (struct face) {.v0 = q[3], 
@@ -522,7 +528,9 @@ int main_colormultiple(int c, char *v[])
 	}
 	assert(cx == nfaces);
 
-        // pour chaque face, calculer la normale et choisir la meilleure image
+        // pour chaque face : - calcule la normale
+        //                    - voit sur quelles images la face est visible
+        //                    - choisit parmi celles-ci la plus en face
         for (int i = 0; i < nfaces; i++)
         {
                 mesh.f[i].isvisible = malloc(mesh.nimages * sizeof(bool));
