@@ -56,11 +56,11 @@ done
 mkdir -p $exp_dir/mesh
 for i in $IDX; do
     bin/colorsingle $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/matches/matches_lidar_img_$i.tif $exp_dir/mesh/pil_$i.ply $exp_dir/mesh/atlas_$i
-    qeasy 100 1100 $exp_dir/mesh/atlas_$i.png $exp_dir/mesh/atlas_$i.png
+    qeasy 100 1100 $exp_dir/mesh/atlas_$i.tif $exp_dir/mesh/atlas_$i.png
 done
 #
 # création d'un mesh à partir des 9 premières images
-bin/colormultiple $lidar $exp_dir/data/cropped/cropped_img_0*.tif $im_dir/img_0*.rpc $exp_dir/data/matches/matches_lidar_img_0*.tif $exp_dir/mesh/pil_multi.ply $exp_dir/mesh/atlas_multi 
+bin/colormultiple $lidar $exp_dir/data/cropped/cropped_img_0*.tif data/rpc/img_0*.rpc $exp_dir/data/matches/matches_lidar_img_0*.tif $exp_dir/mesh/pil_multi.ply $exp_dir/mesh/atlas_multi 
 
 qeasy 100 1100 $exp_dir/mesh/atlas_multi.tif $exp_dir/mesh/atlas_multi.png
 #
