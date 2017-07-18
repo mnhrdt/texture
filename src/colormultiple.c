@@ -201,7 +201,7 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 {
 	// dump the ply file (with dsm-inherited connectivity)
 	FILE *f = fopen(filename_ply, "w");
-	if (!f) printf("WARNING: couldn't open ply file.\n");
+	if (!f) printf("WARNING: couldn't open ply file (%s).\n", filename_ply);
         
         // print header
 	fprintf(f, "ply\n");
@@ -384,9 +384,9 @@ int main_colormultiple(int c, char *v[])
         }
         for (int i = 3*wimax*himax*nimages; i < 6*wimax*himax*nimages; i++)
                 map[i] = 0;
-        char n_map[1000];
-        sprintf(n_map, "%s/map.png", dirname(filename_ply));
-        iio_save_image_float_vec(n_map, map, nimages*wimax, 2*himax, 3);
+        // char n_map[1000];
+        // sprintf(n_map, "%s/map.png", dirname(filename_ply));
+        iio_save_image_float_vec("essai_small/mesh/map.png", map, nimages*wimax, 2*himax, 3);
 
 
         // get camera directions
