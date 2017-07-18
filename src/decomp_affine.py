@@ -8,7 +8,6 @@ import sys
 import numpy as np
 import os.path
 
-print sys.argv[1]
 P = np.loadtxt(sys.argv[1])
 M = P[:,:-1]
 M[-1,-1]=1.0
