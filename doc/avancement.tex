@@ -1,135 +1,140 @@
-\documentclass[12pt]{article}
+\documentclass{article}
+\usepackage[utf8]{inputenc}    % to type accents
+\usepackage[T1]{fontenc}       % for automatic french-style guillemets
+\usepackage[french]{babel}     % french typographical conventions
+\usepackage{amssymb}           % fancy symbols like \checkmark
+\usepackage{color}             % colorized text
+\usepackage{url,hyperref}      % to make clickable hyperlinks
+\usepackage{mathptmx}          % times new roman font
 
-%% Language and font encodings
-\usepackage[latin1]{inputenc}
-\usepackage{nicefrac}
-\usepackage{color}
-\usepackage{bm}
-\usepackage{amssymb}
-\usepackage{amsmath}
-\usepackage{graphicx}
-\usepackage{dsfont}
-\usepackage{siunitx}
-\usepackage[vlined,algoruled,linesnumbered]{algorithm2e}
-\usepackage{breqn}
-\usepackage{pdfsync}
-\usepackage{multirow}
-\usepackage{subfigure}
-\usepackage{float}
-\usepackage{chngcntr}
-\usepackage{apptools}
-\usepackage{algpseudocode}
-\AtAppendix{\counterwithin{theorem}{section}}
+% macros for colorized comments
+\newcommand{\mnhrdt}[1]{{\footnotesize\textcolor[rgb]{0.8,0.5,0.5}{eml: #1}}}
 
-% comments
-\newcommand{\nota}[1]{\textcolor{blue}{\textbf{#1}}}
-\newcommand{\add}[1]{\textcolor{blue}{\textit{#1}}}
-\newcommand{\remove}[1]{\textcolor{red}{\textit{#1}}}
-
-
-% algorithm
-\algnewcommand\algorithmicswitch{\textbf{switch}}
-\algnewcommand\algorithmiccase{\textbf{case}}
-\algnewcommand\algorithmicassert{\texttt{assert}}
-\algnewcommand\Assert[1]{\State \algorithmicassert(#1)}%
-\SetKwComment{Comment}{}{}
-\newcommand{\mycmtsty}[1]{\color{blue}\small\tt #1}
-\SetCommentSty{mycmtsty}
-
-% New "environments"
-\algdef{SE}[SWITCH]{Switch}{EndSwitch}[1]{\algorithmicswitch\ #1\ \algorithmicdo}{\algorithmicend\ \algorithmicswitch}%
-\algdef{SE}[CASE]{Case}{EndCase}[1]{\algorithmiccase\ #1}{\algorithmicend\ \algorithmiccase}%
-\algtext*{EndSwitch}%
-\algtext*{EndCase}%
-
-
-% notations
-\def\b{\textnormal{\bf{b}}}
-\def\p{\textnormal{\bf{p}}}
-\def\x{\textnormal{\bf{x}}}
-\def\u{\textnormal{\bf{u}}}
-\def\d{\textnormal{\bf{d}}}
-\def\f{\mathbf{f}}
-\def\X{\textnormal{\bf{\small X}}}
-\def\C{\textnormal{\bf{\small C}}}
-\def\S{\textnormal{\bf{\small S}}}
-\def\E{\textnormal{\bf{\small E}}}
-\def\Xc{\textnormal{\small X}}
-\def\Yc{\textnormal{\small Y}}
-\def\Zc{\textnormal{\small Z}}
-\def\A{\mathbf{A}}
-\def\P{\texttt{P}}
-\def\F{\texttt{F}}
-\def\H{\texttt{H}}
-\def\ie{\textit{i.e.} }
-\def\eg{\textit{e.g.} }
-\def\etal{\textit{et al}. }
-\DeclareMathOperator*{\argmin}{arg\,min}
-\def\R{\mathbb{R}}
-\def\N{\mathbf{N}}
-\def\Z{\mathbf{Z}}
-\def\div{\mathrm{div}}
-\def\ind{\mathds{1}}
-
-
+% smaller margins
+\addtolength{\hoffset}{-2em}
+\addtolength{\voffset}{-2em}
+\addtolength{\textwidth}{4em}
+\addtolength{\textheight}{4em}
 
 \title{Avancement sur la texturation}
 \author{Marie d'Autume}
 
+
 \begin{document}
 \maketitle
+
 %%%%%%%%%%%%%%%%%
 %%%%TO DO LIST%%%%
 %%%%%%%%%%%%%%%%%
-\section{Liste de travaux � faire}
+\section{Liste de travaux à faire}
 \label{sec:todolist}
+
 \begin{itemize}
-\item[\checkmark] Cr�ation d'un mesh grossier � partir du lidar, color� � l'aide d'une image : \verb"colorsingle.c"
-\item[\checkmark] Cr�ation d'un mesh grossier � partir du lidar, color� � partir de plusieurs images, choix de l'image la plus en face :\verb"colormultiple.c"
+\item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à l'aide d'une image : \verb"colorsingle.c"
+\item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à partir de plusieurs images, choix de l'image la plus en face : \verb"colormultiple.c"
 \item z-buffer prenant en comptes les triangles, pas simplement les points du lidar
-\item cr�ation d'un mesh le plus propre possible
+\item création d'un mesh le plus propre possible
+	\mnhrdt{C'est important, mais il ne faut pas y perdre trop de temps
+		maintenant, car c'est un sujet qui commute avec la
+		texturisation.  Si le filtrage par courbure fonctionne, on le
+		laisse pour l'instant.}
 \begin{itemize}
-\item[\checkmark] r�gulariser le lidar (fait � l'aide du curvature microscope sur ipol)
-\item (19/07) cr�er les faces triangulaires selon la hauteur des sommets et non toujours pareil
-\item (19/07) regarder ``smoothing ... bilateral'' de Julie Digne sur ipol pour r�gulariser les normales des fa\c cades.
+\item[\checkmark] régulariser le lidar (fait à l'aide du curvature microscope
+sur ipol~\footnote{\url{http://www.ipol.im/pub/pre/212/}})
+\item (19/07) créer les faces triangulaires selon la hauteur des sommets et
+	non toujours pareil
+		\mnhrdt{C'est un critère facile à implementer (il faut
+		simplement choisir l'arête diagonale la plus courte).
+		Cependant, ceci ne va pas résoudre le problème des façades
+		non-verticales.}
+\item (19/07) regarder ``smoothing ... bilateral'' de Julie Digne sur ipol pour
+régulariser les normales des façades.
+		\mnhrdt{Pourquoi? C'est un algorithme qui travaille avec des
+		nuages de points, pas avec des maillages.  Je ne vois pas
+		comment l'utiliser ici...}
 \end{itemize}
-\item (19/07) recaler les images en utilisant les donn�es de gabriele sur menthe (menthe:/home/facciolo/iarpa/all_pairs/outdir_from_19_32/ncc_transform.txt)
+\item (19/07) recaler les images en utilisant les données de gabriele sur menthe \url{menthe:/home/facciolo/iarpa/all_pairs/outdir_from_19_32/ncc_transform.txt"}
+	\mnhrdt{Très important!  Il suffit de passer les vecteurs de recalage
+		comme offset à appliquer à chaque image avant d'évaluer ses
+		RPC.  Mais, comme la filtrage du lidar, l'implementation de
+		cette opération commute avec la texturisation, et on peut la
+		laisser pour la fin.}
+		\mnhrdt{
+\item STRUCTURES DE DONNÉES POUR LA FUSION DE TEXTURES.  L'objectif de ce
+travail est avoir un maillage avec une texture nouvelle qui n'existe
+pas encore (donc, l'atlas avec toutes les images d'entrée est
+juste une étape intermédiaire qui ne fait pas partie de la
+sortie).  Il faut d'ores et déjà avoir un algorithme (même
+naïf) qui crée un mesh de sortie avec une seule texture
+obtenue par fusion des toutes les images d'entrée.  On devra
+essayer plusieurs critères de fusion, et pouvoir les comparer
+facilement sur des nouvelles donnés d'entrée.  Notamment
+\begin{itemize}
+	\item À chaque triangle, la texture de l'image visible la plus frontale
+	\item À chaque triangle, la texture de l'image visible de plus haute
+		résolution une fois projetée sur le triangle.
+	\item À chaque triangle, la moyenne arithmétique de toutes les
+		images visibles.
+	\item À chaque triangle, la médiane de toutes les images visibles.
+	\item À chaque triangle, la moyenne de toutes les images pondérée par
+		une fonction monotone de l'angle de visibilité de chacune.
+	\item Comme avant, mais avec médiane pondérée
+	\item Autres critère de fusion de couleurs, ou fusion pondérée (e.g.,
+		modes, k-medians, etc).
+	\item À chaque triangle, la moyenne des gradients de toutes les
+		images visibles.  Puis résoudre l'équation de Poisson sur la
+		surface entière pour récuperer une texture.
+	\item À chaque triangle, la médiane (ou d'autres fonctions robustes,
+		pondérées ou non,  des gradients de toutes les images
+		visibles).  Puis résoudre l'équation de Poisson.
+	\item Comme avant, mais en combinant drift-fields et utilisant
+		l'équation d'Osmose sur la surface.
+	\item Tous les critères antérieurs, mais utilisant un changement de
+		contraste~$I_i\mapsto\alpha_i I_i+\beta_i$ sur chaque image,
+		où les champs de coefficients $\alpha$ et $\beta$ sont très
+		lisses et utilisées pour harmoniser les couleurs le plus
+		possible avant de la fusion.  (Ce critère est nouveau, par
+		rapport aux articles antérieurs, il me parait)
 \end{itemize}
- 
+Il me parait que ce point est le plus important.  Avant de corriger des
+résultats qui ne sont pas ``satisfaisants'' (c'est un peu subjectif), il faut
+avoir un programme qui résout le problème de bout à bout, même s'il le fait
+très mal.  Au moins, il faut implémenter deux ou trois critères de fusion de
+textures et pouvoir comparer les ply texturisées de sortie.  Ceci est le plus
+urgent.  Ensuite, on pourra améliorer la qualités des maillages, du recalage
+des images, etc.
+}
+\end{itemize}
+
  %%%%%%%%%%%%%%%%%
 %%%%%%%REMARQUES%%%%%%%
  %%%%%%%%%%%%%%%%%
 \section{Remarque}
-\subsection{Cr�ation de mesh � partir de lidar}
-Le lidar est bruit�, le bord des immeubles n'est pas lisse. Le mesh na�f obtenu en reliant les points du lidar n'est donc pas satisfaisant.
-L'utilisation de ``The Image Curvature Microscope'' sur ipol permet d'obtenir un lidar plus lisse � partir duquel on obtient un mesh plus propre. Plut�t que de cr�er les triangles toujours dans le m�me ordre il faudrait aussi que cela d�pende de la hauteur des quatre points utilis�s. Cela donnerait des surfaces plus lisses pour les immeubles en diagonal sur le lidar.
+\subsection{Création de mesh à partir de lidar}
+Le lidar est bruité, le bord des immeubles n'est pas lisse. Le mesh naïf
+obtenu en reliant les points du lidar n'est donc pas satisfaisant.
+L'utilisation de ``The Image Curvature Microscope'' sur ipol permet d'obtenir
+un lidar plus lisse à partir duquel on obtient un mesh plus propre. Plutôt
+que de créer les triangles toujours dans le même ordre il faudrait aussi que
+cela dépende de la hauteur des quatre points utilisés. Cela donnerait des
+surfaces plus lisses pour les immeubles en diagonal sur le lidar.
+\mnhrdt{Je ne suis pas d'accord que le mesh naïf n'est pas satisfaisant, le
+problème est que on le regarde de trop près.  On peut le filtrer sans soucis
+pour obtenir des maillages un peu plus faciles à voir.}
 
 
  %%%%%%%%%%%%%%%%%
 %%%%%%%AVANCEMENT%%%%%%%
  %%%%%%%%%%%%%%%%%
-\section{R�sum� des activit�s de la journ�e}
-\paragraph{19/07/2017} cr�ation de ce pdf, essai de \verb"colormultiple.c" sur le lidar r�gularis�
+\section{Résumé des activités de la journée}
+\paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé
 
 
 
-
-%------------------------------------------------------------------------------
-%\section*{Acknowledgment}
-%This work was partly founded by  Centre National d'Etudes Spatiales (CNES, MISS
-%Project), European Research Council (advanced grant Twelve Labours), Office of
-%Naval research (ONR grant N00014-14-1-0023), DGA St�r�o project,  ANR-DGA
-%(project ANR-12-ASTR-0035), FUI (project Plein Phare) and Institut
-%Universitaire de France.
-
-%------------------------------------------------------------------------------
-\bibliographystyle{siam}
-\bibliography{biblio}
-
-%\appendix
 
 
 
 
 \end{document}
+% vim: set tw=77 spell spelllang=fr:
 
