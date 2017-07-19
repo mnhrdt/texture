@@ -1,0 +1,135 @@
+\documentclass[12pt]{article}
+
+%% Language and font encodings
+\usepackage[latin1]{inputenc}
+\usepackage{nicefrac}
+\usepackage{color}
+\usepackage{bm}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{dsfont}
+\usepackage{siunitx}
+\usepackage[vlined,algoruled,linesnumbered]{algorithm2e}
+\usepackage{breqn}
+\usepackage{pdfsync}
+\usepackage{multirow}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{chngcntr}
+\usepackage{apptools}
+\usepackage{algpseudocode}
+\AtAppendix{\counterwithin{theorem}{section}}
+
+% comments
+\newcommand{\nota}[1]{\textcolor{blue}{\textbf{#1}}}
+\newcommand{\add}[1]{\textcolor{blue}{\textit{#1}}}
+\newcommand{\remove}[1]{\textcolor{red}{\textit{#1}}}
+
+
+% algorithm
+\algnewcommand\algorithmicswitch{\textbf{switch}}
+\algnewcommand\algorithmiccase{\textbf{case}}
+\algnewcommand\algorithmicassert{\texttt{assert}}
+\algnewcommand\Assert[1]{\State \algorithmicassert(#1)}%
+\SetKwComment{Comment}{}{}
+\newcommand{\mycmtsty}[1]{\color{blue}\small\tt #1}
+\SetCommentSty{mycmtsty}
+
+% New "environments"
+\algdef{SE}[SWITCH]{Switch}{EndSwitch}[1]{\algorithmicswitch\ #1\ \algorithmicdo}{\algorithmicend\ \algorithmicswitch}%
+\algdef{SE}[CASE]{Case}{EndCase}[1]{\algorithmiccase\ #1}{\algorithmicend\ \algorithmiccase}%
+\algtext*{EndSwitch}%
+\algtext*{EndCase}%
+
+
+% notations
+\def\b{\textnormal{\bf{b}}}
+\def\p{\textnormal{\bf{p}}}
+\def\x{\textnormal{\bf{x}}}
+\def\u{\textnormal{\bf{u}}}
+\def\d{\textnormal{\bf{d}}}
+\def\f{\mathbf{f}}
+\def\X{\textnormal{\bf{\small X}}}
+\def\C{\textnormal{\bf{\small C}}}
+\def\S{\textnormal{\bf{\small S}}}
+\def\E{\textnormal{\bf{\small E}}}
+\def\Xc{\textnormal{\small X}}
+\def\Yc{\textnormal{\small Y}}
+\def\Zc{\textnormal{\small Z}}
+\def\A{\mathbf{A}}
+\def\P{\texttt{P}}
+\def\F{\texttt{F}}
+\def\H{\texttt{H}}
+\def\ie{\textit{i.e.} }
+\def\eg{\textit{e.g.} }
+\def\etal{\textit{et al}. }
+\DeclareMathOperator*{\argmin}{arg\,min}
+\def\R{\mathbb{R}}
+\def\N{\mathbf{N}}
+\def\Z{\mathbf{Z}}
+\def\div{\mathrm{div}}
+\def\ind{\mathds{1}}
+
+
+
+\title{Avancement sur la texturation}
+\author{Marie d'Autume}
+
+\begin{document}
+\maketitle
+%%%%%%%%%%%%%%%%%
+%%%%TO DO LIST%%%%
+%%%%%%%%%%%%%%%%%
+\section{Liste de travaux à faire}
+\label{sec:todolist}
+\begin{itemize}
+\item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à l'aide d'une image : \verb"colorsingle.c"
+\item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à partir de plusieurs images, choix de l'image la plus en face :\verb"colormultiple.c"
+\item z-buffer prenant en comptes les triangles, pas simplement les points du lidar
+\item création d'un mesh le plus propre possible
+\begin{itemize}
+\item[\checkmark] régulariser le lidar (fait à l'aide du curvature microscope sur ipol)
+\item (19/07) créer les faces triangulaires selon la hauteur des sommets et non toujours pareil
+\item (19/07) regarder ``smoothing ... bilateral'' de Julie Digne sur ipol pour régulariser les normales des fa\c cades.
+\end{itemize}
+\item (19/07) recaler les images en utilisant les données de gabriele sur menthe (menthe:/home/facciolo/iarpa/all_pairs/outdir_from_19_32/ncc_transform.txt)
+\end{itemize}
+ 
+ %%%%%%%%%%%%%%%%%
+%%%%%%%REMARQUES%%%%%%%
+ %%%%%%%%%%%%%%%%%
+\section{Remarque}
+\subsection{Création de mesh à partir de lidar}
+Le lidar est bruité, le bord des immeubles n'est pas lisse. Le mesh naïf obtenu en reliant les points du lidar n'est donc pas satisfaisant.
+L'utilisation de ``The Image Curvature Microscope'' sur ipol permet d'obtenir un lidar plus lisse à partir duquel on obtient un mesh plus propre. Plutôt que de créer les triangles toujours dans le même ordre il faudrait aussi que cela dépende de la hauteur des quatre points utilisés. Cela donnerait des surfaces plus lisses pour les immeubles en diagonal sur le lidar.
+
+
+ %%%%%%%%%%%%%%%%%
+%%%%%%%AVANCEMENT%%%%%%%
+ %%%%%%%%%%%%%%%%%
+\section{Résumé des activités de la journée}
+\paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé
+
+
+
+
+%------------------------------------------------------------------------------
+%\section*{Acknowledgment}
+%This work was partly founded by  Centre National d'Etudes Spatiales (CNES, MISS
+%Project), European Research Council (advanced grant Twelve Labours), Office of
+%Naval research (ONR grant N00014-14-1-0023), DGA Stéréo project,  ANR-DGA
+%(project ANR-12-ASTR-0035), FUI (project Plein Phare) and Institut
+%Universitaire de France.
+
+%------------------------------------------------------------------------------
+\bibliographystyle{siam}
+\bibliography{biblio}
+
+%\appendix
+
+
+
+
+\end{document}
+
