@@ -390,9 +390,10 @@ int main_colormultiple(int c, char *v[])
         }
         for (int i = 3*wimax*himax*nimages; i < 6*wimax*himax*nimages; i++)
                 map[i] = 0;
-        // char n_map[1000];
-        // sprintf(n_map, "%s/map.png", dirname(filename_ply));
-        iio_save_image_float_vec("essai_small/mesh/map.png", map, nimages*wimax, 2*himax, 3);
+        char n_map[1000];
+        char *dir_name = filename_ply;
+        sprintf(n_map, "%s/map.png", dirname(dir_name));
+        iio_save_image_float_vec(n_map, map, nimages*wimax, 2*himax, 3);
 
 
         // get camera directions
@@ -516,15 +517,26 @@ int main_colormultiple(int c, char *v[])
 	for (int j = 0; j < h-1; j++)
 	for (int i = 0; i < w-1; i++)
 	{
-		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
-		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
-		{
-                        mesh.f[cx] = (struct face) {.v0 = q[3], 
-                                .v1 = q[0], .v2 = q[1]};
-                        mesh.f[cx+1] = (struct face) {.v0 = q[3], 
-                                .v1 = q[1], .v2 = q[2]};
-			cx += 2;
-		}
+                int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
+                if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
+                {
+                        if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1    )*w]))
+                        {
+                                mesh.f[cx] = (struct face) {.v0 = q[3],
+                                        .v1 = q[0], .v2 = q[1]};
+                                mesh.f[cx+1] = (struct face) {.v0 = q[3],
+                                        .v1 = q[1], .v2 = q[2]};
+                                cx += 2;
+                        }
+                        else
+                        {
+                                mesh.f[cx] = (struct face) {.v0 = q[0],
+                                        .v1 = q[1], .v2 = q[2]};
+                                mesh.f[cx+1] = (struct face) {.v0 = q[0],
+                                        .v1 = q[2], .v2 = q[3]};
+                                cx += 2;
+                        }
+                }
 	}
 	assert(cx == nfaces);
 
