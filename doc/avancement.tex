@@ -1,20 +1,24 @@
 \documentclass{article}
-\usepackage[utf8]{inputenc}    % to type accents
-\usepackage[T1]{fontenc}       % for automatic french-style guillemets
-\usepackage[french]{babel}     % french typographical conventions
-\usepackage{amssymb}           % fancy symbols like \checkmark
-\usepackage{color}             % colorized text
-\usepackage{url,hyperref}      % to make clickable hyperlinks
-\usepackage{mathptmx}          % times new roman font
+\usepackage[utf8]{inputenc}         % to type accents
+\usepackage[T1]{fontenc}            % for automatic french-style guillemets
+\usepackage[british,french]{babel}  % french, english typographical conventions
+\usepackage{amssymb}                % fancy symbols like \checkmark
+\usepackage{color}                  % colorized text
+\usepackage{url,hyperref}           % to make clickable hyperlinks
+\usepackage{mathptmx}               % times new roman font
+
+% macros for math
+\def\R{\mathbf{R}} % real numbers
+\def\N{\mathbf{N}} % natural numbers
 
 % macros for colorized comments
 \newcommand{\mnhrdt}[1]{{\footnotesize\textcolor[rgb]{0.8,0.5,0.5}{eml: #1}}}
 
 % smaller margins
-\addtolength{\hoffset}{-2em}
-\addtolength{\voffset}{-2em}
-\addtolength{\textwidth}{4em}
-\addtolength{\textheight}{4em}
+\addtolength{\hoffset}{-3em}
+\addtolength{\voffset}{-3em}
+\addtolength{\textwidth}{6em}
+\addtolength{\textheight}{6em}
 
 \title{Avancement sur la texturation}
 \author{Marie d'Autume}
@@ -134,6 +138,293 @@ Je t'ai mis les r\'esultats sur menthe dans essai\_small pour lidar non filtr\'e
 \section{Résumé des activités de la journée}
 \paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé, d\'ecoupage plus intelligent de face triangulaire. \c Ca marche, on devine des fen\^etres ! travail en cours sur zbuffer.c (aml\'elioration du z-buffer de colorize\_with\_shadows.c)
 
+
+\clearpage
+\begin{otherlanguage}{british}
+\section{Data structures for surfaces, and for functions on surfaces}
+
+\subsection{Continuous setting}
+
+A surface is a smooth 2-dimensional sub-manifold of~$\R^3$.
+There are three common ways to define a surface~$S$:
+\begin{itemize}
+	\item \emph{Implicit} representation by a function~$f:\R^3\to\R$,
+		so that~$S=f^{-1}(\{0\})$.
+	\item \emph{Parametric} representation by a function~$s:\R^2\to\R$,
+		so that~$S=s(\R^2)$.
+
+	\item By a set of \emph{coordinate charts} $(U_i,\varphi_i)$,
+		where~$S=\bigcup U_i$, $\varphi_i:U_i\to\R^2$ and the transition
+		functions~$\varphi_i\circ\varphi_j^{-1}:\R^2\to\R^2$ are
+		smooth.  A set of coordinate charts is called
+		an~\emph{atlas}.
+\end{itemize}
+The implicit and atlas representations allow for arbitrary topologies.  The
+parametric representation is the simplest one, but it can only represent
+surfaces homeomorphic to a square.  An even more restricted parametric
+representation is the 2.5D representation, where the parametrization $s(x,y)$
+is of the form~$s(x,y)=(x,y,z(x,y))$ where~$z:\R^2\to\R$.
+
+When working with surfaces, we usually work with functions~$f:S\to\R$.
+There are different ways to define a function~$f:S\to\R$.  One possibility is
+to define a function $g:\R^3\to\R$, and then set~$f=g|_S$.  However, this
+representation is non-unique, since many different~$g$ can give the same~$f$.
+Another possibility, if~$S$ is defined by an atlas~$\{U_i,\varphi_i\}$, is to
+give the functions~$f_i=f\circ\varphi_i^{-1}:\R^2\to\R$.
+%If~$S\subset\R^3$ is a surface, a function~$f:S\to\R$ is said to be smooth
+%when it is the restriction to~$S$ of a smooth function of~$\R^3$.  To check
+%that a function is smooth (or other properties of the function), it depends
+%on how the surface is defined (by parametrization or by atlas).
+%\begin{itemize}
+%	\item If~$S$ is defined by a parametrization~$s:\R^2\to\R^3$, we need
+%		to check that the function~$f\circ s:\R^2\to\R$ is smooth.
+%	\item If~$S$ is defined by an atlas~$\{U_i,\varphi_i\}$, we need to
+%		check that the functions~$f\circ\varphi_i^{-1}:\R^2\to\R$ are
+%		smooth.
+%\end{itemixe}
+Notice, however, that an arbitrary collection of functions~$f_i:\R^2\to\R$
+does~\emph{not} in general define a function on~$S$ via this atlas.  A
+compatibility criterion is required, whereby
+\begin{equation}\label{eq:compat}
+f_i\circ\varphi_i=f_j\circ\varphi_j\quad\textrm{when}\quad U_i\cap U_j\neq\emptyset
+\end{equation}
+		(the
+local definitions the function must be compatible on overlapping charts).
+
+A standard construction in differential geometry is the Laplace-Beltrami
+operator~$\Delta_g$ on a surface~$S$, which is a generalization of the Laplacian
+operator~$\Delta=\frac{\partial^2}{\partial x^2}+\frac{\partial^2}{\partial
+y^2}$ in the euclidean plane.  It allows to state, for example, Poisson
+equation on the surface
+\[
+	\Delta_g u = f
+\]
+that has a unique solution up to an additive constant.
+
+In a coordinate chart, the Laplace-Beltrami operator has the
+form~$\alpha\mathrm{div}\left(A\nabla u\right)$.  This is an anisotropic
+diffusion operator where the matrix field~$A$ and scalar field~$\alpha$ are
+formed by the coefficients of the first fundamental form of the surface
+(derivatives of the parametrization).
+
+Similarly, you can define gradients and divergences for functions defined on
+the surface, and state Osmosis equation, and so on.
+
+
+\subsection{Discretization of a surface}
+
+The standard way to discretize a surface is to use a mesh of
+triangles~\footnote{simple or low-resolution surfaces can also be represented
+very efficiently by implicit functions, and this allows for very fast
+computer graphics operations.  However, it does not scale well when you need a
+lot of geometric detail, so we will ignore this technique here}.
+A mesh of~$n$ vertices and~$m$ triangles is represented by two lists:
+\begin{enumerate}
+	\item A list of~$n$ points~$P=\{(x_i,y_i,z_i)\}_{i=1,\ldots,
+		n}\subset\R^3$ giving the spatial positions of the vertices.
+	\item A list of~$m$ triangles~$T=\{(a_j,b_j,c_j)\}_{j=1,\ldots,
+		m}\subset\N^3$ giving the indices of the vertices of each
+		triangle (as positions inside the list~$P$).
+\end{enumerate}
+
+There are also other, fancier data structures, for example~\emph{triangle
+strips}, where instead of a list of independent triangles, you give a list of
+consecutive triangles.  This needs much less space since (except for the
+first triangle in the strip), you only need to specify one vertex per
+triangle instead of three.  However, since converting between each
+representation is straightforward (but somewhat cumbersome), we will use only
+the simplest representation of meshes.
+
+Besides the lists~$P$ and ~$T$ described above, some other lists can also be
+computed.  For example, a list~$E$ of edges~$E=\{(p_i,q_i)\}\subset\N^2$
+indicating which pairs of vertices are connected by an edge of a triangle.
+Other lists that are sometimes useful and that can be easily computed on the
+spot:
+\begin{itemize}
+	\item For each triangle, the list of its three edges
+	\item For each edge, the list of its two neighboring triangles
+	\item For each vertex, a list of its neighboring edges, traversed in
+		anti-clockwise order.
+	\item For each vertex, a list of its neighboring triangles, traversed in
+		anti-clockwise order.
+\end{itemize}
+The information of all these lists is redundant with basic representation
+using only~$P$ and~$T$, so they are almost never stocked in a file.  However,
+sometimes we need to compute them because they allow for faster access (for
+example, to compute the gradient of a function, you will need to know
+neighboring points).
+
+\subsection{Functions on discrete surfaces}
+
+A function~$f:S\to\R$ defined on a surface is called a \emph{texture}.
+
+Given a discretized surface, there are three straightforward ways to
+associate a texture to it.
+
+\begin{enumerate}
+	\item Assign a number to each triangle ($f:T\to\R$)
+	\item Assign a number to each vertex ($f:P\to\R$)
+	\item Build an atlas of the surface, and define a regular 2D image
+		over each chart in the atlas.  Check that the compatibility
+		condition~\ref{eq:compat} is verified.
+\end{enumerate}
+
+The first two options are immediate to implement: just enlarge the list~$T$
+or~$P$ with an additional column saying the value of each element (triangle
+or vertex).  To implement the third option, we first need a way to represent
+an atlas.  An easy way is to make a non-overlapping atlas: to each triangle,
+we assign a single position in the plane.  This is achieved by enlarging the
+list~$T$ with six additional columns, giving the position in the euclidean
+plane of each of the vertices of the triangle.  Then, to define the
+function~$f$ you simply give a 2D image in the euclidean plane.
+
+Once you have defined a function in such a way, how do you evaluate it at a
+point~$p\in S$?  On each of the three cases above:
+\begin{enumerate}
+	\item If~$p$ is in the interior of the triangle, give the value of
+		this triangle.  If~$p$ is on an edge between two triangles,
+		give the average of the values of each.  If~$p$ is a vertex,
+		give a weighted combination of the neighboring triangles.
+	\item $f(p)$ is a linear combination of the values of~$p$ on
+		neighboring vertices, where the coefficients are the
+		barycentric coordinates.
+	\item To evaluate $f(p)$, project the point to the euclidean plane
+		using the corresponding chart, and interpolate the discrete
+		image that defines the texture: $f(p)=I_i(\varphi_i(p))$,
+		where~$I_i$ is the discrete image on the euclidean plane of
+		chart~$i$.
+\end{enumerate}
+
+In the third case, if~$p$ is on an edge between two triangles, the charts may
+be different; but thanks to the compatibility condition the result will be
+the same if we chose the triangle at either side of the edge.
+
+
+This is the story for evaluating functions... but typically we want to do
+other things with functions: combine them, differentiate them, solve PDE,
+etc.  For the first two cases, discrete derivatives can be defined using
+discrete exterior calculus (for example).  In the third case, they are
+defined using the coordinate expressions applied to the textures of each
+chart.  However, {\bf after each operation the compatibility condition must be
+re-imposed so that the texture is consistent.}
+
+\subsection{Charted versus pointwise functions}
+
+It seems that all required operations are possible with either
+representation.  So the choice of which one to use is mostly a matter of
+convenience (runtime speed, stockage requirements, ease of implementation).
+Bear in mind that our goal is to solve different PDE and optimisation on the
+surface.
+
+First of all, we discard the first representation of assigning a constant
+value to each triangle.
+
+Now, we compare the compromises between the other options: representing a
+function as values on the vertices, or as a discrete image for each chart of
+an atlas.
+
+{\bf Advantages of atlases:}
+
+\begin{itemize}
+	\item It is the standard in modern computer graphics
+	\item You can represent high-resolution textures with very few
+		triangles (useful for flat areas)
+	\item The textures of each chart are stored in regular png or tiff
+		images
+	\item There is a very clear separation between geometry and texture
+		(once the atlas is computed)
+	\item The same atlas may be used for different textures
+	\item A bad mesh with a good texture will look god.  Thus, we can
+		start working right away with watever mesh and see \emph{the
+		windows in the façades of the buildings}.
+\end{itemize}
+
+{\bf Disadvantages of atlases:}
+
+\begin{itemize}
+	\item You have to build the atlas from the mesh, which is a non-trivial
+		operation
+	\item For complex meshes, you may need an arbitrarily large number
+		of different charts.  The number of required charts increases
+		with the resolution of the geometry.
+	\item If you produce a new texture, you have to enforce the
+		compatibility conditions between the charts (otherwise the
+		representation is not meaningful).  To enforce the
+		comatibility condition is not clear how to you need to solve
+		a system of Poisson equations, one for each chart, with
+		coupled boundaries on the overlapping edges.  This
+		compatibility must be enforced every time the texture data
+		changes (e.g. on each iteration when solving a PDE
+		iteratively).
+	\item Computing derivatives (e.g. the laplacian) is not
+		straightforward, as it requires computing differences
+		between pixels interpolated on separate images.
+	\item If you change the geometry (e.g., divide or join some
+		triangles), you have to update the atlas, and charts may
+		appear or disappear.
+\end{itemize}
+
+{\bf Advantages of vertex-wise functions:}
+
+\begin{itemize}
+	\item It is the standard in numerical analysis and simulation.
+	\item It is straightforward. You just store the value of the function
+		at each vertex of your surface (by e.g. adding a fourth
+		column to the list of vertex positions).
+	\item Any set of numbers is self-consistent, there are no
+		compatibility conditions to impose
+	\item Refining or joining mesh triangles is local and very easy: to add
+		new vertices you interpolate the data using barycentric
+		coordinates; to remove a vertex you sum his value into the
+		neighboring ones (or you simply remove the vertex).
+	\item Computing derivatives is easy, and only entails combination of
+		neighboring values with weights given by the geometry
+		(discrete first fundamental form).
+	\item Discrete exterior calculus provides an appropriate
+		formalization for PDE in this setting.
+\end{itemize}
+
+{\bf Disadvantages of vertex-wise functions:}
+
+\begin{itemize}
+	\item You need to use tiny triangles to represent high-resolution
+		textures.  The size of the triangle must be smaller than the
+		desired resolution.
+	\item Even if the triangles are very small, this amounts to a
+		re-sampling of the original image data that may create
+		artifacts.
+	\item Large meshes will be huge and sluggish to display on (e.g.
+		meshlab)
+	\item A bad mesh cannot ever give good visual results.  For example,
+		in the case of buildings, if we have large triangles along
+		the façade~\emph{we will never be able to put windows inside
+		them}.
+	\item ...Thus, it requires to refine the mesh as an essential, not
+		purely cosmetic step.
+\end{itemize}
+
+Disclaimer (ENRIC): I am quite convinced that the vertex-wise representation
+of functions is easier to work with for differential equations, and thus the
+appropriate choice choice.  So take my comparison above with a grain of salt.
+
+Note: maybe we can have the best of both worlds.  Since refining and
+simplifying a mesh are standard and well-known operations, we can use the
+atlases for storing a final, efficient mesh, and still keep the vertex-wise
+representation for all the intermediate processing.  These operations are
+standard in the CGAL library.
+
+\end{otherlanguage}
+
+
+
+%Either by giving a set
+%
+%
+%of overlapping \emph{parametrizations}~$\varphi_i:\R^2\to\R^3$, or an by
+%giving a set of \emph{charts}
+%
+%If~$S\subset\R^3$ is a surface, a function~$f:S\to\R$ is said to be smooth if
+%it is the restriction to~$S$ of a smooth function of~$\R^3$.  Given a 
 
 
 
