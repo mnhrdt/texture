@@ -7,6 +7,11 @@
 #include "iio.h"
 #include "drawtriangle.c"
 
+double euclidean_norm(double *x, int n)
+{
+        return n > 0 ? hypot(*x, euclidean_norm(x+1, n-1)) : 0;
+}
+
 // extrapolate by nearest neighbour
 static void keep_in_bounds(int w, int h, int *ij)
 {
@@ -32,11 +37,39 @@ static void interpolate_vertices_values(int i, int j, void *ee)
                 z[l] = e->x[e->v[l][0] + e->v[l][1]*w];
         int u[2] = {e->v[2][0] - e->v[0][0], e->v[2][1] - e->v[0][1]};
         int v[2] = {e->v[1][0] - e->v[0][0], e->v[1][1] - e->v[0][1]};
-        float alpha = (float) ((j-e->v[0][1])*v[0] - (i-e->v[0][0])*v[1])
-                / (u[1]*v[0] - u[0]*v[1]);
-        float beta = (float) (-(j-e->v[0][1])*u[0] + (i-e->v[0][0])*u[1])
-                 / (u[1]*v[0] - u[0]*v[1]);
-        e->x[i+j*w] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
+        // vérifie que l'on a un vrai triangle
+        if ((u[1]*v[0] - u[0]*v[1])==0)
+                printf("a %d %d b %d %d c %d %d z %f %f %f valeur %d\n", e->v[0][0], e->v[0][1], e->v[1][0], e->v[1][1], e->v[2][0], e->v[2][1], z[0], z[1], z[2], (u[1]*v[0] - u[0]*v[1]));
+        assert((u[1]*v[0] - u[0]*v[1])!=0);
+        // en cas de triangle dégénéré
+        if ((u[1]*v[0] - u[0]*v[1])==0)
+        {
+                if ((e->v[0][0] == e->v[1][0] && e->v[0][1] == e->v[1][1]) ||
+                                (e->v[2][0] == e->v[1][0] && e->v[2][1] == e->v[1][1]))
+                {
+                        assert(e->v[0][0] != e->v[2][0] || e->v[0][1] != e->v[2][1]);
+                        double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
+                        double ac[2] = {e->v[2][0] - e->v[0][0], e->v[2][1] - e->v[0][1]};
+                        e->x[i+j*w] = z[0] + (z[2] - z[0])*euclidean_norm(ax, 2) 
+                                / euclidean_norm(ac, 2);
+                }
+                if (e->v[0][0] == e->v[2][0] && e->v[0][1] == e->v[2][1])
+                {
+                        assert(e->v[0][0] != e->v[1][0] || e->v[0][1] != e->v[1][1]);
+                        double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
+                        double ac[2] = {e->v[1][0] - e->v[0][0], e->v[1][1] - e->v[0][1]};
+                        e->x[i+j*w] = z[0] + (z[1] - z[0])*euclidean_norm(ax, 2) 
+                                / euclidean_norm(ac, 2);
+                }
+        }
+        else
+        {
+                double alpha = (double) ((j-e->v[0][1])*v[0] - (i-e->v[0][0])*v[1])
+                        / (u[1]*v[0] - u[0]*v[1]);
+                double beta = (double) (-(j-e->v[0][1])*u[0] + (i-e->v[0][0])*u[1])
+                        / (u[1]*v[0] - u[0]*v[1]);
+                e->x[i+j*w] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
+        }
 }
 
 struct image_coord{ // coordonnées de la projection du sommet sur l'image
@@ -67,7 +100,7 @@ struct mesh_t{
         struct face *f; // liste des faces
 };
 
-void initialize_mesh_from_lidar(struct mesh_t mesh, char *filename_dsm)
+void initialize_mesh_from_lidar(struct mesh_t *mesh, char *filename_dsm)
 {
         // variables that will hold the local georeferencing transform
         double origin[2] = {0, 0};
@@ -107,7 +140,7 @@ void initialize_mesh_from_lidar(struct mesh_t mesh, char *filename_dsm)
                         vid[j][i] = nvertices++;
                 else
                         vid[j][i] = -1;
-        mesh.nv = nvertices;
+        mesh->nv = nvertices;
 
         // count number of valid square faces
         int nfaces = 0;
@@ -118,10 +151,10 @@ void initialize_mesh_from_lidar(struct mesh_t mesh, char *filename_dsm)
                 if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
                         nfaces += 2;
         }
-        mesh.nf = nfaces;
+        mesh->nf = nfaces;
 
         // initialize vertices with their coordinates in space and in the lidar
-        mesh.v = malloc(mesh.nv*sizeof(struct vertex));
+        mesh->v = malloc(mesh->nv*sizeof(struct vertex));
         int cx = 0;
         for (int j = 0; j < h; j++)
         for (int i = 0; i < w; i++)
@@ -131,20 +164,20 @@ void initialize_mesh_from_lidar(struct mesh_t mesh, char *filename_dsm)
                 double e = i* scale[0];// + origin[0]; // easting
                 double n = j* scale[1];// + origin[1]; // northing
                 double z = height[j][i];             // height
-                mesh.v[cx].xyz[0] = e ;
-                mesh.v[cx].xyz[1] = n ;
-                mesh.v[cx].xyz[2] = z ;
+                mesh->v[cx].xyz[0] = e;
+                mesh->v[cx].xyz[1] = n;
+                mesh->v[cx].xyz[2] = z;
 
-                mesh.v[cx].ij[0] = i;
-                mesh.v[cx].ij[1] = j;
+                mesh->v[cx].ij[0] = i;
+                mesh->v[cx].ij[1] = j;
 
-                mesh.v[cx].im = malloc((mesh.nimages)*sizeof(struct image_coord));
+                mesh->v[cx].im = malloc((mesh->nimages)*sizeof(struct image_coord));
                 cx += 1;
         }
         assert(cx == nvertices);
         // for each square in lidar, create two triangular faces.
         // Vertices order is such that the face is oriented towards the outside.
-        mesh.f = malloc(mesh.nf*sizeof(struct face));
+        mesh->f = malloc(mesh->nf*sizeof(struct face));
         cx = 0;
         for (int j = 0; j < h-1; j++)
                 for (int i = 0; i < w-1; i++)
@@ -154,17 +187,17 @@ void initialize_mesh_from_lidar(struct mesh_t mesh, char *filename_dsm)
                         {
                         if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1)*w]))
                         {
-                                mesh.f[cx] = (struct face) {.v0 = q[3],
+                                mesh->f[cx] = (struct face) {.v0 = q[3],
                                         .v1 = q[0], .v2 = q[1]};
-                                mesh.f[cx+1] = (struct face) {.v0 = q[3],
+                                mesh->f[cx+1] = (struct face) {.v0 = q[3],
                                         .v1 = q[1], .v2 = q[2]};
                                 cx += 2;
                         }
                         else
                         {
-                                mesh.f[cx] = (struct face) {.v0 = q[0],
+                                mesh->f[cx] = (struct face) {.v0 = q[0],
                                         .v1 = q[1], .v2 = q[2]};
-                                mesh.f[cx+1] = (struct face) {.v0 = q[0],
+                                mesh->f[cx+1] = (struct face) {.v0 = q[0],
                                         .v1 = q[2], .v2 = q[3]};
                                 cx += 2;
                         }
@@ -231,7 +264,7 @@ int main_zbuffer(int c, char *v[])
 
         // create and initialize mesh with lidar
         struct mesh_t mesh;
-        initialize_mesh_from_lidar(mesh, filename_dsm);
+        initialize_mesh_from_lidar(&mesh, filename_dsm);
 
         // loop over mesh faces and fill img_copy with height of lidar point
         // keep only the highest heigtht for each point to deal with occlusions
@@ -265,14 +298,18 @@ int main_zbuffer(int c, char *v[])
                         else
                                 visible = false;
                 }
+                if (nf == 435039) printf("ok\n");
                 float abc[3][2];
                 for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 2; j++)
                         abc[i][j] = (float) vert_coord[i][j];
                 struct im_ver e = {.w = wi, .h = hi, .x = x, .v = **vert_coord};
-                traverse_triangle(abc, interpolate_vertices_values, &e);
+                if (nf == 435039) printf("ok\n");
+                if (visible)
+                        traverse_triangle(abc, interpolate_vertices_values, &e);
         }
 
+        iio_save_image_float("essai_curve/data/img_copy.tif", img_copy, wi, hi);
 
 
       
@@ -285,6 +322,7 @@ int main_zbuffer(int c, char *v[])
         for (int i = 0; i < w; i++)
                 for (int j = 0; j < h; j++)
                 {
+                        printf("i %d j %d \n", i, j);
                         double z = x[j * w+i];
                         if (z<0)
                                 z = 20.0;
