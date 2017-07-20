@@ -41,7 +41,7 @@
 \begin{itemize}
 \item[\checkmark] régulariser le lidar (fait à l'aide du curvature microscope
 sur ipol~\footnote{\url{http://www.ipol.im/pub/pre/212/}})
-\item (19/07) créer les faces triangulaires selon la hauteur des sommets et
+\item[\checkmark]  créer les faces triangulaires selon la hauteur des sommets et
 	non toujours pareil
 		\mnhrdt{C'est un critère facile à implementer (il faut
 		simplement choisir l'arête diagonale la plus courte).
@@ -51,16 +51,16 @@ sur ipol~\footnote{\url{http://www.ipol.im/pub/pre/212/}})
 régulariser les normales des façades.
 		\mnhrdt{Pourquoi? C'est un algorithme qui travaille avec des
 		nuages de points, pas avec des maillages.  Je ne vois pas
-		comment l'utiliser ici...}
+		comment l'utiliser ici...} C'est Gabriele qui m'en a parl\'e, en compl\'ement du lissage de lidar et du d\'ecoupage de triangle pour les zones qui ne sont pas verticales ou horizontales.
 \end{itemize}
-\item (19/07) recaler les images en utilisant les données de gabriele sur menthe \url{menthe:/home/facciolo/iarpa/all_pairs/outdir_from_19_32/ncc_transform.txt"}
+\item (19/07) recaler les images en utilisant les données de gabriele sur menthe \url{menthe:/home/facciolo/iarpa/all_pairs/outdir_from_19_32/ncc_transform.txt"}. Exemple de mauvais recalage : Avec comme input le lidar r\'egularis\'e et les 9 premi\`eres images, colormultiple.c utilise la 5\`eme image pour l'arri\`ere de nombreux b\^atiments. Mais cette image est mal recal\'ee et on voit que les fa\c cades des b\^atiments sont \`a moiti\'e blanches (venant de zones satur\'ees de l'image correspondant aux toits des b\^atiments et non \`a leurs fa\c cades).
 	\mnhrdt{Très important!  Il suffit de passer les vecteurs de recalage
 		comme offset à appliquer à chaque image avant d'évaluer ses
 		RPC.  Mais, comme la filtrage du lidar, l'implementation de
 		cette opération commute avec la texturisation, et on peut la
 		laisser pour la fin.}
-		\mnhrdt{
-\item STRUCTURES DE DONNÉES POUR LA FUSION DE TEXTURES.  L'objectif de ce
+		
+\item (19/07) STRUCTURES DE DONNÉES POUR LA FUSION DE TEXTURES.  \mnhrdt{L'objectif de ce
 travail est avoir un maillage avec une texture nouvelle qui n'existe
 pas encore (donc, l'atlas avec toutes les images d'entrée est
 juste une étape intermédiaire qui ne fait pas partie de la
@@ -112,7 +112,7 @@ des images, etc.
 \section{Remarque}
 \subsection{Création de mesh à partir de lidar}
 Le lidar est bruité, le bord des immeubles n'est pas lisse. Le mesh naïf
-obtenu en reliant les points du lidar n'est donc pas satisfaisant.
+obtenu en reliant les points du lidar n'est donc pas satisfaisant pour du prototypage.
 L'utilisation de ``The Image Curvature Microscope'' sur ipol permet d'obtenir
 un lidar plus lisse à partir duquel on obtient un mesh plus propre. Plutôt
 que de créer les triangles toujours dans le même ordre il faudrait aussi que
@@ -120,14 +120,19 @@ cela dépende de la hauteur des quatre points utilisés. Cela donnerait des
 surfaces plus lisses pour les immeubles en diagonal sur le lidar.
 \mnhrdt{Je ne suis pas d'accord que le mesh naïf n'est pas satisfaisant, le
 problème est que on le regarde de trop près.  On peut le filtrer sans soucis
-pour obtenir des maillages un peu plus faciles à voir.}
+pour obtenir des maillages un peu plus faciles à voir. }
+
+\subsection{R\'eponse aux commentaires sur la non n\'ecessit\'e d'avoir un beau mesh}
+Quand j'ai parl\'e de mesh ``satisfaisant'' c'\'etait au sens de satisfaisant pour du prototypage et non comme r\'esultat final. Donc l'astuce de lisser le lidar et de cr\'eer les faces triangulaires selon la hauteur des sommets r\'esout pour l'instant le probl\`eme. Avec le lidar non liss\'e, les r\'esultats sont tr\`es difficiles \`a interpr\'eter et on ne peut pas juger la texturation. A fortiori lorsque les images ne sont pas recal\'es. On obtient de microscopiques morceaux de texture juxtapos\'es. Du coup am\'eliorer le mesh ne commute pas vraiment avec la texturation.
+
+Je t'ai mis les r\'esultats sur menthe dans essai\_small pour lidar non filtr\'e et dans essai\_curve pour lidar filtr\'e et triangles d\'ecoup\'es selon la hauteur. 
 
 
  %%%%%%%%%%%%%%%%%
 %%%%%%%AVANCEMENT%%%%%%%
  %%%%%%%%%%%%%%%%%
 \section{Résumé des activités de la journée}
-\paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé
+\paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé, d\'ecoupage plus intelligent de face triangulaire. \c Ca marche, on devine des fen\^etres ! travail en cours sur zbuffer.c (aml\'elioration du z-buffer de colorize\_with\_shadows.c)
 
 
 
