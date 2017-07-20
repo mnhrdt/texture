@@ -23,10 +23,9 @@ static void keep_in_bounds(int w, int h, int *ij)
 
 struct im_ver{
         int w, h;    // lidar width, height
-        int wi, hi;  // image width, heightt
-        float *x;    // lidar data
-        int v[3][4]; // coordonnées des sommets dans lidar et projetés dans image
+        int v[3][2]; // coordonnées i j des sommets dans image
         float *img_copy;
+        float z[3]; // valeur des sommets
 };
 
 static bool is_large_triangle(float abc[3][2])
@@ -44,40 +43,38 @@ static void interpolate_vertices_values(int i, int j, void *ee)
         struct im_ver *e = ee;
         int w = e->w;
         int h = e->h;
-        int wi = e->wi;
-        int hi = e->hi;
         float z[3];
         for (int l = 0; l < 3; l++)
-                z[l] = e->x[e->v[l][0] + e->v[l][1]*w];
-        int u[2] = {e->v[2][2] - e->v[0][2], e->v[2][3] - e->v[0][3]};
-        int v[2] = {e->v[1][2] - e->v[0][2], e->v[1][3] - e->v[0][3]};
+                z[l] = e->z[l];
+        int u[2] = {e->v[2][0] - e->v[0][0], e->v[2][1] - e->v[0][1]};
+        int v[2] = {e->v[1][0] - e->v[0][0], e->v[1][1] - e->v[0][1]};
         // vérifie que l'on a un vrai triangle
         // en cas de triangle dégénéré
         if ((u[1]*v[0] - u[0]*v[1])==0)
         {
-                if ((e->v[0][2] == e->v[1][2] && e->v[0][3] == e->v[1][3]) ||
-                                (e->v[2][2] == e->v[1][2] && e->v[2][3] == e->v[1][3]    )) 
+                if ((e->v[0][0] == e->v[1][0] && e->v[0][1] == e->v[1][1]) ||
+                                (e->v[2][0] == e->v[1][0] && e->v[2][1] == e->v[1][1]    )) 
                 {
-                        assert(e->v[0][2] != e->v[2][2] || e->v[0][3] != e->v[2][3]);
-                        double ax[2] = {i-e->v[0][2], j - e->v[0][3]};
-                        double ac[2] = {e->v[2][2] - e->v[0][2], e->v[2][3] - e->v[0]    [3]};
-                        e->img_copy[i+j*wi] = z[0] + (z[2] - z[0])*euclidean_norm(ax, 2) / euclidean_norm(ac, 2);
+                        assert(e->v[0][0] != e->v[2][0] || e->v[0][1] != e->v[2][1]);
+                        double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
+                        double ac[2] = {e->v[2][0] - e->v[0][0], e->v[2][1] - e->v[0]    [1]};
+                        e->img_copy[i+j*w] = z[0] + (z[2] - z[0])*euclidean_norm(ax, 2) / euclidean_norm(ac, 2);
                 }
-                if (e->v[0][2] == e->v[2][2] && e->v[0][3] == e->v[2][3])
+                if (e->v[0][0] == e->v[2][0] && e->v[0][1] == e->v[2][1])
                 {
-                        assert(e->v[0][2] != e->v[1][2] || e->v[0][3] != e->v[1][3]);
-                        double ax[2] = {i-e->v[0][2], j - e->v[0][3]};
-                        double ac[2] = {e->v[1][2] - e->v[0][2], e->v[1][3] - e->v[0]    [3]};
-                        e->img_copy[i+j*wi] = z[0] + (z[1] - z[0])*euclidean_norm(ax, 2)  / euclidean_norm(ac, 2);
+                        assert(e->v[0][0] != e->v[1][0] || e->v[0][1] != e->v[1][1]);
+                        double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
+                        double ac[2] = {e->v[1][0] - e->v[0][0], e->v[1][1] - e->v[0]    [1]};
+                        e->img_copy[i+j*w] = z[0] + (z[1] - z[0])*euclidean_norm(ax, 2)  / euclidean_norm(ac, 2);
                 }
         }
         else
         {
-                double alpha = (double) ((j-e->v[0][3])*v[0] - (i-e->v[0][2])*v[1])
+                double alpha = (double) ((j-e->v[0][1])*v[0] - (i-e->v[0][0])*v[1])
                         / (u[1]*v[0] - u[0]*v[1]);
-                double beta = (double) (-(j-e->v[0][3])*u[0] + (i-e->v[0][2])*u[1])
+                double beta = (double) (-(j-e->v[0][1])*u[0] + (i-e->v[0][0])*u[1])
                         / (u[1]*v[0] - u[0]*v[1]);
-                e->img_copy[i+j*wi] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
+                e->img_copy[i+j*w] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
         }
 
 }
@@ -282,14 +279,14 @@ int main_zbuffer(int c, char *v[])
                 bool visible = true;
                 struct face mf = mesh.f[nf];
                 int vertices[3] = {mf.v0, mf.v1, mf.v2};
-                int v_coord_lid_img[3][4];
+                int v_coord[3][2];
+                float v_z[3];
                 for (int l = 0; l < 3; l++)
                 {
                         int i = mesh.v[vertices[l]].ij[0];
                         int j = mesh.v[vertices[l]].ij[1];
-                        v_coord_lid_img[l][0] = i;
-                        v_coord_lid_img[l][1] = j;
                         double z = x[i+j*w];
+                        v_z[l] = z;
                         if (z<0)
                                 z = 20.0;
                         double xyz1[4] = {i, j, z, 1};
@@ -302,26 +299,29 @@ int main_zbuffer(int c, char *v[])
                                 ij_int[k] = (int) round(ij_approx[k]);
 
                         keep_in_bounds(wi, hi, ij_int);
-                        v_coord_lid_img[l][2] = ij_int[0];
-                        v_coord_lid_img[l][3] = ij_int[1];
+                        v_coord[l][0] = ij_int[0];
+                        v_coord[l][1] = ij_int[1];
                         if (img_copy[ij_int[1]*wi+ij_int[0]] <= z)
                                 img_copy[ij_int[1]*wi+ij_int[0]] = z;
                         else
                                 visible = false;
                 }
                 if (nf == 435039) printf("ok\n");
-                struct im_ver e = {.w = w, .h = h, .wi = wi, .hi = hi, .x = x, .img_copy = img_copy};
+                struct im_ver e = {.w = w, .h = h, .img_copy = img_copy};
                 float abc[3][2];
                 for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 2; j++)
                 {
-                        abc[i][j] = (float) v_coord_lid_img[i][j+2];
-                        e.v[i][j] = v_coord_lid_img[i][j];
-                        e.v[i][j+2] = v_coord_lid_img[i][j+2];
+                        abc[i][j] = (float) v_coord[i][j];
+                        e.v[i][j] = v_coord[i][j];
+                        e.z[i] = v_z[i];
                 }
                 if (nf == 435039) printf("ok\n");
                 if (visible && is_large_triangle(abc))
+                {
+                        printf("z %f %f %f\n", v_z[0], v_z[1], v_z[2]);
                         traverse_triangle(abc, interpolate_vertices_values, &e);
+                }
         }
 
         iio_save_image_float("essai_curve/data/img_copy.tif", img_copy, wi, hi);
