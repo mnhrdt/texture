@@ -4,13 +4,14 @@
 #include <assert.h>
 #include <stdlib.h> // qsort
 #include <math.h>   // fmax, fmin, floor, ceil
+#include <stdbool.h>
 
 // cut the line between points a and b at height h
 // note: the line must not be horizontal!
 static float cut_line_at_height(float a[2], float b[2], float h)
 {
 	assert(a[1] != b[1]);
-	assert((a[1] - h) * (b[1] - h) < 0);
+	assert((a[1] - h) * (b[1] - h) <= 0);
 	float t = (h - a[1]) / (b[1] - a[1]);
 	float r = (1 - t) * a[0] + t * b[0];
 	return r;
@@ -61,6 +62,11 @@ static void traverse_flat_triangle(
 	}
 }
 
+
+static bool is_flat_triangle(float abc[3][2])
+{
+        return (abc[0][1] == abc[1][1] || abc[2][1] == abc[1][1] || abc[0][1] == abc[2][1]);
+}
 // fill a triangle defined by three points a,b,c
 void traverse_triangle(
 		float abc[3][2],          // coordinates of the three points
@@ -68,11 +74,25 @@ void traverse_triangle(
 		void *e                   // passed to f
 		)
 {
-	float pqr[3][2]; // the flat bottomed half of triangle abc
-	float xyz[3][2]; // the upper-flat half of the triangle abc
-	split_triangle_horizontally(pqr, xyz, abc);
-	traverse_flat_triangle(pqr, f, e);
-	traverse_flat_triangle(xyz, f, e);
+        bool a = is_flat_triangle(abc);
+        if (is_flat_triangle(abc))
+        {
+                qsort(abc, 3, sizeof*abc, compare_points_by_height);
+                if (abc[0][1] > abc[1][1])
+                {
+                        abc[2][1] = abc[0][1];
+                        abc[0][1] = abc[1][1];
+                }
+                traverse_flat_triangle(abc, f, e);
+        }
+        else
+        {
+                float pqr[3][2]; // the flat bottomed half of triangle abc
+                float xyz[3][2]; // the upper-flat half of the triangle abc
+                split_triangle_horizontally(pqr, xyz, abc);
+                traverse_flat_triangle(pqr, f, e);
+                traverse_flat_triangle(xyz, f, e);
+        }
 }
 
 #endif//DRAWTRIANGLE_C
