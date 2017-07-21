@@ -46,35 +46,6 @@ double euclidean_norm(double *x, int n)
 	return n > 0 ? hypot(*x, euclidean_norm(x+1, n-1)) : 0;
 }
 
-// coordinates of the normal to a triangle in a 3D space
-void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les sommets sont donnés dans le sens direct
-{
-        double u[3];
-        double v[3];
-        for (int i = 0; i < 3; i++) u[i] = b[i] - a[i];
-        for (int i = 0; i < 3; i++) v[i] = c[i] - a[i];
-	cross_product(n, u, v);
-
-        double norm = euclidean_norm(n, 3);
-        for (int i = 0; i < 3; i++) n[i] /= norm;
-
-        norm = euclidean_norm(n, 3);
-        if (norm < 0.9999 || norm > 1.0000001)
-                printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
-}
-
-// check if (xmin < x < xmax) && (ymin < y < ymax)
-bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
-                int l, // longueur des x/y
-                double xmin, double xmax, double ymin, double ymax)
-{       
-        bool a = true;
-        for (int i = 0; i < l; i++) 
-                a &= (xy[i] >= xmin && xy[i] <= xmax &&
-                                xy[i+l] >= ymin && xy[i+l] <=ymax);
-        return a;
-}
-
 // conversion from hsv to rgb (h in [0, 360], s v r g b in [0, 1])
 void hsv2rgb(double hsv[3], double rgb[3])
 {
@@ -120,6 +91,59 @@ void hsv2rgb(double hsv[3], double rgb[3])
                 rgb[2] = m;
         }
 }
+
+void create_colormap(char *filename_map, int nimages, int w, int h) // nimages max = 48
+{
+        float *map = malloc(6 * w * h * nimages * sizeof(float));
+        double Hsv[8] = {0, 45, 60, 120, 180, 225, 270, 315};
+        double hSv[3] = {1, 0.33, 0.67};
+        double hsV[2] = {1, 0.7};
+        for (int ni = 0; ni < nimages; ni++)
+        {
+                double hsv[3] = {Hsv[ni%8], hSv[(ni/16)%3], hsV[(ni/8)%2]};
+                double rgb[3];
+                hsv2rgb(hsv, rgb);
+        for (int i = ni*w; i < (ni+1)*w; i++)
+        for (int j = 0; j < h; j++)
+        for (int l = 0; l < 3; l++)
+                        map[3*(i+j*nimages*w)+l] = 255*rgb[l];
+        }
+        for (int i = 3*w*h*nimages; i < 6*w*h*nimages; i++)
+                map[i] = 0;
+        iio_save_image_float_vec(filename_map, map, nimages*w, 2*h, 3);
+        free(map);
+
+}
+
+// coordinates of the normal to a triangle in a 3D space
+void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les sommets sont donnés dans le sens direct
+{
+        double u[3];
+        double v[3];
+        for (int i = 0; i < 3; i++) u[i] = b[i] - a[i];
+        for (int i = 0; i < 3; i++) v[i] = c[i] - a[i];
+	cross_product(n, u, v);
+
+        double norm = euclidean_norm(n, 3);
+        for (int i = 0; i < 3; i++) n[i] /= norm;
+
+        norm = euclidean_norm(n, 3);
+        if (norm < 0.9999 || norm > 1.0000001)
+                printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
+}
+
+// check if (xmin < x < xmax) && (ymin < y < ymax)
+bool xy_are_in_bounds(double *xy, // tableau de coords (x1, x2,..., y1,y2,..)
+                int l, // longueur des x/y
+                double xmin, double xmax, double ymin, double ymax)
+{       
+        bool a = true;
+        for (int i = 0; i < l; i++) 
+                a &= (xy[i] >= xmin && xy[i] <= xmax &&
+                                xy[i+l] >= ymin && xy[i+l] <=ymax);
+        return a;
+}
+
 
 // Création d'une structure pour le mesh. À optimiser
 
@@ -235,11 +259,16 @@ struct mesh_t{
                 if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
                 {
                         if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1    )*w]))
+                        // choix du découpage en triangle selon la hauteur des sommets
                         {
                                 mesh->f[cx] = (struct face) {.v[0] = q[3],
                                         .v[1] = q[0], .v[2] = q[1]};
                                 mesh->f[cx+1] = (struct face) {.v[0] = q[3],
                                         .v[1] = q[1], .v[2] = q[2]};
+                                triangle_normal(mesh->f[cx].n, mesh->v[q[3]].xyz, 
+                                                mesh->v[q[0]].xyz, mesh->v[q[1]].xyz);
+                                triangle_normal(mesh->f[cx+1].n, mesh->v[q[3]].xyz, 
+                                                mesh->v[q[1]].xyz, mesh->v[q[2]].xyz);
                                 cx += 2;
                         }
                         else
@@ -248,6 +277,10 @@ struct mesh_t{
                                         .v[1] = q[1], .v[2] = q[2]};
                                 mesh->f[cx+1] = (struct face) {.v[0] = q[0],
                                         .v[1] = q[2], .v[2] = q[3]};
+                                triangle_normal(mesh->f[cx].n, mesh->v[q[0]].xyz, 
+                                                mesh->v[q[1]].xyz, mesh->v[q[2]].xyz);
+                                triangle_normal(mesh->f[cx+1].n, mesh->v[q[0]].xyz, 
+                                                mesh->v[q[2]].xyz, mesh->v[q[3]].xyz);
                                 cx += 2;
                         }
                 }
@@ -457,10 +490,9 @@ int main_colormultiple(int c, char *v[])
                         himax = hi;
                 free(img);
         }
-        int pda = 3;
-        float *a = malloc(2 * pda * wimax * himax * nimages * sizeof(float));
+        float *a = malloc(2 * 3 * wimax * himax * nimages * sizeof(float));
         for (int i = 0; i < 2*wimax*himax*nimages; i++)
-        for (int l = 0; l < pda; l++)
+        for (int l = 0; l < 3; l++)
                 a[3*i+l] = (l==1) ? 2055 : 0;
         for (int ni = 0; ni < nimages; ni++)
         {
@@ -470,36 +502,20 @@ int main_colormultiple(int c, char *v[])
                         return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
                 for (int i = 0; i < wi; i++)
                 for (int j = 0; j < hi; j++)
-                for (int l = 0; l < pda; l++)
+                for (int l = 0; l < 3; l++)
                         a[3*(i+ni*wimax+j*nimages*wimax)+l] = img[i+j*wi];
                 free(img);
         }
         char n_a[1000];
         sprintf(n_a, "%s.tif", filename_a);
-        iio_save_image_float_vec(n_a, a, nimages*wimax, 2*himax, pda);
+        iio_save_image_float_vec(n_a, a, nimages*wimax, 2*himax, 3);
         free(a);
 
         // create colormap
-        float *map = malloc(6 * wimax * himax * nimages * sizeof(float));
-        double Hsv[8] = {0, 45, 60, 120, 180, 225, 270, 315};
-        double hSv[3] = {1, 0.33, 0.67};
-        double hsV[2] = {1, 0.7};
-        for (int ni = 0; ni < nimages; ni++)
-        {
-                double hsv[3] = {Hsv[ni%8], hSv[(ni/16)%3], hsV[(ni/8)%2]};
-                double rgb[3];
-                hsv2rgb(hsv, rgb);
-        for (int i = ni*wimax; i < (ni+1)*wimax; i++)
-        for (int j = 0; j < himax; j++)
-        for (int l = 0; l < 3; l++)
-                        map[3*(i+j*nimages*wimax)+l] = 255*rgb[l];
-        }
-        for (int i = 3*wimax*himax*nimages; i < 6*wimax*himax*nimages; i++)
-                map[i] = 0;
         char n_map[1000];
         char *dir_name = filename_ply;
         sprintf(n_map, "%s/map.png", dirname(dir_name));
-        iio_save_image_float_vec(n_map, map, nimages*wimax, 2*himax, 3);
+        create_colormap(n_map, nimages, wimax, himax);
 
 
         // get camera directions
@@ -515,100 +531,30 @@ int main_colormultiple(int c, char *v[])
                         cam_n[3*ni+l] = c_n[l];
         }
 
-
-
-
-        // variables that will hold the local georeferencing transform
-        double origin[2] = {0, 0};
-        double scale[2] = {1, 1};
-
-        // read georeferencing transform using GDAL
-        GDALAllRegister();
-        GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
-        if (gdal_dataset == NULL)
-                return fprintf(stderr, "GDALOpen(%s) failed\n", filename_dsm);
-        double tmp[6];
-        if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
-                origin[0] = tmp[0], origin[1] = tmp[3];
-                scale[0] = tmp[1], scale[1] = tmp[5];
-        } else {
-                fprintf(stderr, "WARNING: not found origin and scale info\n");
-        }
-
-
-	// read the whole input DSM (typically, rather small)
-	int w, h;
-	float *x = iio_read_image_float(filename_dsm, &w, &h);
-	if (!x)
-		return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
-
-
         // create mesh
         struct mesh_t mesh;
         mesh.nimages = nimages;
         initialize_mesh_from_lidar(&mesh, filename_dsm);
-
-        printf("nombre de sommets %d\n", mesh.nv);
-	// assign comfortable pointers
-	float (*height)[w] = (void*)x;
-	int (*vid)[w] = malloc(w*h*sizeof(int));
-
-	// count number of valid vertices
-	int nvertices = 0;
-	for (int j = 0; j < h; j++)
-	for (int i = 0; i < w; i++)
-		if (isfinite(height[j][i]))
-			vid[j][i] = nvertices++;
-		else
-			vid[j][i] = -1;
-        mesh.nv = nvertices;
-        printf("nombre de sommets %d\n", mesh.nv);
-
-	// count number of valid square faces
-	int nfaces = 0;
-	for (int j = 0; j < h-1; j++)
-	for (int i = 0; i < w-1; i++)
-	{
-		int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
-		if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
-			nfaces += 2;
-	}
-        mesh.nf = nfaces;
-
-	// initialize vertices with their coordinates in space and in the lidar
-        mesh.v = malloc(mesh.nv*sizeof(struct vertex));
-	int cx = 0;
-	for (int j = 0; j < h; j++)
-	for (int i = 0; i < w; i++)
-	{
-		if (!isfinite(height[j][i])) continue;
-		// compute lonlat from eastnorth = {p[0], p[1]}
-		double e = i* scale[0];// + origin[0]; // easting
-		double n = j* scale[1];// + origin[1]; // northing
-		double z = height[j][i];             // height
-                mesh.v[cx].xyz[0] = e - offset_x;
-                mesh.v[cx].xyz[1] = n - offset_y;
-                mesh.v[cx].xyz[2] = z - offset_z;
-
-                mesh.v[cx].ij[0] = i;
-                mesh.v[cx].ij[1] = j;
-
+        for (int cx = 0; cx < mesh.nv; cx++)
                 mesh.v[cx].im = malloc((mesh.nimages)*sizeof(struct image_coord));
-		cx += 1;
-	}
-	assert(cx == nvertices);
 
         // for each vertex, get texture coordinate for each image
        int wm, hm, pdm;
+       int w, h;
        for (int ni = 0; ni < nimages; ni++)
        {
                char *filename_m = v[2*nimages+ni+2];
                float *m = iio_read_image_float_vec(filename_m, &wm, &hm, &pdm);
                if (!m)
                        return fprintf(stderr, "iio_read(%s) failed\n", filename_m);
+               if (ni == 0)
+               {
+                       w = wm;
+                       h = hm;
+               }
                if (w != wm || h != hm || pdm != 2)
                        return fprintf(stderr, "input sizes mismatch (%s)\n", filename_m);
-               for (int cx = 0; cx < nvertices; cx++)
+               for (int cx = 0; cx < mesh.nv; cx++)
                {
                        int i = mesh.v[cx].ij[0];
                        int j = mesh.v[cx].ij[1];
@@ -619,44 +565,12 @@ int main_colormultiple(int c, char *v[])
                free(m);
        }
 
-	// for each square in lidar, create two triangular faces.
-        // Vertices order is such that the face is oriented towards the outside.
-        mesh.f = malloc(mesh.nf*sizeof(struct face));
-	cx = 0;
-	for (int j = 0; j < h-1; j++)
-	for (int i = 0; i < w-1; i++)
-	{
-                int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
-                if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
-                {
-                        if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1    )*w]))
-                        {
-                                mesh.f[cx] = (struct face) {.v[0] = q[3],
-                                        .v[1] = q[0], .v[2] = q[1]};
-                                mesh.f[cx+1] = (struct face) {.v[0] = q[3],
-                                        .v[1] = q[1], .v[2] = q[2]};
-                                cx += 2;
-                        }
-                        else
-                        {
-                                mesh.f[cx] = (struct face) {.v[0] = q[0],
-                                        .v[1] = q[1], .v[2] = q[2]};
-                                mesh.f[cx+1] = (struct face) {.v[0] = q[0],
-                                        .v[1] = q[2], .v[2] = q[3]};
-                                cx += 2;
-                        }
-                }
-	}
-	assert(cx == nfaces);
-
-        // pour chaque face : - calcule la normale
-        //                    - voit sur quelles images la face est visible
+        // pour chaque face : - voit sur quelles images la face est visible
         //                    - choisit parmi celles-ci la plus en face
-        for (int i = 0; i < nfaces; i++)
+        for (int i = 0; i < mesh.nf; i++)
         {
                 mesh.f[i].isvisible = malloc(mesh.nimages * sizeof(bool));
                 struct face mf = mesh.f[i];
-                triangle_normal(mesh.f[i].n, mesh.v[mf.v[0]].xyz, mesh.v[mf.v[1]].xyz, mesh.v[mf.v[2]].xyz);
                 double sp = -1;
                 double c_n[3];
                 for (int ni = 0; ni < nimages; ni++)
@@ -667,9 +581,7 @@ int main_colormultiple(int c, char *v[])
                                 for (int l = 0; l < 3; l++)
                                         c_n[l] = cam_n[3*ni+l];
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > 1)
-                                {
                                         printf("wARNING: scalar product error.\n");
-                                }
                                 if (fabs(scalar_product(c_n, mesh.f[i].n, 3)) > sp)
                                 {
                                         sp = fabs(scalar_product(c_n, mesh.f[i].n, 3));
