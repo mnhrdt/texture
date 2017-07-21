@@ -320,12 +320,8 @@ int main_zbuffer(int c, char *v[])
                         traverse_triangle(abc, interpolate_vertices_values, &e);
                 }
         }
-
         iio_save_image_float("essai_curve/data/img_copy.tif", img_copy, wi, hi);
 
-
-      
-        
 
         // allocate space for output
         float *out_x = malloc(2 * w * h * sizeof(float));
