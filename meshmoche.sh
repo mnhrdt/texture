@@ -52,7 +52,7 @@ mkdir -p $exp_dir/data/matches
 # localise le lidar sur l'image puis reprojette sur lidar (donne les images avec grille)
 echo "COLORIZE_WITH_SHADOWS: get lidar texture coordinates in each view"
 for i in $IDX; do
-    bin/colorize_with_shadows $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
+    bin/zbuffer $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
 done
 #
 # crée un atlas et un mesh texturé à partir du lidar et d'une image.
