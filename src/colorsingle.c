@@ -109,7 +109,7 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                                 mf.v0, mf.v1, mf.v2, 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
                         if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
-                                printf("WARNING: tries to access invalid texture\n");
+                                printf("WARNING: tries to access invalid texture %f %f %f %f %f %f\n",a[0], a[3], a[1], a[4], a[2], a[5]);
                 }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
@@ -242,7 +242,7 @@ int main_colorsingle(int c, char *v[])
                 mesh.v[cx].y = n - offset_y;
                 mesh.v[cx].z = z - offset_z;
 
-                mesh.v[cx].im = malloc((mesh.ni-1)*sizeof(struct image_coord));
+                mesh.v[cx].im = malloc((mesh.ni)*sizeof(struct image_coord));
                 mesh.v[cx].im[0].i = m[2*(i+j*w)]  /wi;
                 mesh.v[cx].im[0].j = m[2*(i+j*w)+1]/hi;
 		cx += 1;

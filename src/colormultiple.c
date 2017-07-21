@@ -135,9 +135,7 @@ struct vertex{
 };
 
 struct face{
-        int v0; // 1er sommet
-        int v1; // 2ème sommet
-        int v2; // 3ème sommet
+        int v[3]; // 1er sommet
         double n[3]; // vecteur normal à la face
         int im; // référence de l'image la plus en face
         bool *isvisible; // 1 si visible dans l'image i, 0 sinon
@@ -152,16 +150,124 @@ struct mesh_t{
 };
 
 
+ void initialize_mesh_from_lidar(struct mesh_t *mesh, char *filename_dsm)
+{
+        // variables that will hold the local georeferencing transform
+        double origin[2] = {0, 0};
+        double scale[2] = {1, 1};
+
+        // read georeferencing transform using GDAL
+        GDALAllRegister();
+        GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
+        if (gdal_dataset == NULL)
+                fprintf(stderr, "GDALOpen(%s) failed\n", filename_dsm);
+        double tmp[6];
+        if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
+                origin[0] = tmp[0], origin[1] = tmp[3];
+                scale[0] = tmp[1], scale[1] = tmp[5];
+        } else {
+                fprintf(stderr, "WARNING: not found origin and scale info\n");
+        }
+
+
+        // read the whole input DSM (typically, rather small)
+        int w, h;
+        float *x = iio_read_image_float(filename_dsm, &w, &h);
+        if (!x)
+                fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
+
+
+
+        // assign comfortable pointers
+        float (*height)[w] = (void*)x;
+        int (*vid)[w] = malloc(w*h*sizeof(int));
+
+        // count number of valid vertices
+        int nvertices = 0;
+        for (int j = 0; j < h; j++)
+        for (int i = 0; i < w; i++)
+                if (isfinite(height[j][i]))
+                        vid[j][i] = nvertices++;
+                else
+                        vid[j][i] = -1;
+        mesh->nv = nvertices;
+
+        // count number of valid square faces
+        int nfaces = 0;
+        for (int j = 0; j < h-1; j++)
+        for (int i = 0; i < w-1; i++)
+        {
+                int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
+                if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
+                        nfaces += 2;
+        }
+        mesh->nf = nfaces;
+
+        // initialize vertices with their coordinates in space and in the lidar
+        mesh->v = malloc(mesh->nv*sizeof(struct vertex));
+        int cx = 0;
+        for (int j = 0; j < h; j++)
+        for (int i = 0; i < w; i++)
+        {
+                if (!isfinite(height[j][i])) continue;
+                // compute lonlat from eastnorth = {p[0], p[1]}
+                double e = i* scale[0];// + origin[0]; // easting
+                double n = j* scale[1];// + origin[1]; // northing
+                double z = height[j][i];             // height
+                mesh->v[cx].xyz[0] = e;
+                mesh->v[cx].xyz[1] = n;
+                mesh->v[cx].xyz[2] = z;
+
+                mesh->v[cx].ij[0] = i;
+                mesh->v[cx].ij[1] = j;
+
+                cx += 1;
+        }
+        assert(cx == nvertices);
+        // for each square in lidar, create two triangular faces.
+        // Vertices order is such that the face is oriented towards the outside.
+        mesh->f = malloc(mesh->nf*sizeof(struct face));
+        cx = 0;
+        for (int j = 0; j < h-1; j++)
+        for (int i = 0; i < w-1; i++)
+        {
+                int q[4] = {vid[j][i], vid[j+1][i], vid[j+1][i+1], vid[j][i+1]};
+                if (q[0] >= 0 && q[1] >= 0 && q[2] >= 0 && q[3] >= 0)
+                {
+                        if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1    )*w]))
+                        {
+                                mesh->f[cx] = (struct face) {.v[0] = q[3],
+                                        .v[1] = q[0], .v[2] = q[1]};
+                                mesh->f[cx+1] = (struct face) {.v[0] = q[3],
+                                        .v[1] = q[1], .v[2] = q[2]};
+                                cx += 2;
+                        }
+                        else
+                        {
+                                mesh->f[cx] = (struct face) {.v[0] = q[0],
+                                        .v[1] = q[1], .v[2] = q[2]};
+                                mesh->f[cx+1] = (struct face) {.v[0] = q[0],
+                                        .v[1] = q[2], .v[2] = q[3]};
+                                cx += 2;
+                        }
+                }
+
+        }
+        assert(cx == nfaces);
+}
+
+
+
+
 // true if the ith face in mesh is visible in image j
 bool ith_face_is_visible_in_image(struct mesh_t mesh, int i, int j)
 {
         struct face mf = mesh.f[i];
-        return !isnan(mesh.v[mf.v0].im[j].i) && 
-                !isnan(mesh.v[mf.v0].im[j].j) && 
-                !isnan(mesh.v[mf.v1].im[j].i) && 
-                !isnan(mesh.v[mf.v1].im[j].j) && 
-                !isnan(mesh.v[mf.v2].im[j].i) &&
-                !isnan(mesh.v[mf.v2].im[j].j);
+        bool a = true;
+        for (int l = 0; l < 3; l++)
+                a &= !isnan(mesh.v[mf.v[l]].im[j].i) 
+                        && !isnan(mesh.v[mf.v[l]].im[j].j);
+        return a;
 }
 
 // get the satellite direction using only the rpc data
@@ -234,20 +340,20 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
         // print faces
         for (int i = 0; i < mesh.nf; i++) {
                 struct face mf = mesh.f[i];
-                double a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
-                        mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
-                        mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
+                double a[6] = {mesh.v[mf.v[0]].im[mf.im].i, mesh.v[mf.v[1]].im[mf.im].i,
+                        mesh.v[mf.v[2]].im[mf.im].i, mesh.v[mf.v[0]].im[mf.im].j,
+                        mesh.v[mf.v[1]].im[mf.im].j, mesh.v[mf.v[2]].im[mf.im].j};
                 if (ith_face_is_visible_in_image(mesh, i, mf.im))
                 {
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
-                                mf.v0, mf.v1, mf.v2, 
+                                mf.v[0], mf.v[1], mf.v[2], 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
                         if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
                                 printf("WARNING: tries to access invalid texture\n");
                 }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
-                                mf.v0, mf.v1, mf.v2);
+                                mf.v[0], mf.v[1], mf.v[2]);
 
         }
 }
@@ -285,20 +391,20 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
         // print faces
         for (int i = 0; i < mesh.nf; i++) {
                 struct face mf = mesh.f[i];
-                double a[6] = {mesh.v[mf.v0].im[mf.im].i, mesh.v[mf.v1].im[mf.im].i,
-                        mesh.v[mf.v2].im[mf.im].i, mesh.v[mf.v0].im[mf.im].j,
-                        mesh.v[mf.v1].im[mf.im].j, mesh.v[mf.v2].im[mf.im].j};
+                double a[6] = {mesh.v[mf.v[0]].im[mf.im].i, mesh.v[mf.v[1]].im[mf.im].i,
+                        mesh.v[mf.v[2]].im[mf.im].i, mesh.v[mf.v[0]].im[mf.im].j,
+                        mesh.v[mf.v[1]].im[mf.im].j, mesh.v[mf.v[2]].im[mf.im].j};
                 if (ith_face_is_visible_in_image(mesh, i, mf.im))
                 {
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
-                                mf.v0, mf.v1, mf.v2, 
+                                mf.v[0], mf.v[1], mf.v[2], 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
                         if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
                                 printf("WARNING: tries to access invalid texture\n");
                 }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
-                                mf.v0, mf.v1, mf.v2);
+                                mf.v[0], mf.v[1], mf.v[2]);
 
         }
 }
@@ -440,7 +546,9 @@ int main_colormultiple(int c, char *v[])
         // create mesh
         struct mesh_t mesh;
         mesh.nimages = nimages;
+        initialize_mesh_from_lidar(&mesh, filename_dsm);
 
+        printf("nombre de sommets %d\n", mesh.nv);
 	// assign comfortable pointers
 	float (*height)[w] = (void*)x;
 	int (*vid)[w] = malloc(w*h*sizeof(int));
@@ -454,6 +562,7 @@ int main_colormultiple(int c, char *v[])
 		else
 			vid[j][i] = -1;
         mesh.nv = nvertices;
+        printf("nombre de sommets %d\n", mesh.nv);
 
 	// count number of valid square faces
 	int nfaces = 0;
@@ -522,18 +631,18 @@ int main_colormultiple(int c, char *v[])
                 {
                         if (fabs(x[i+j*w]-x[i+1+(j+1)*w]) >= fabs(x[i+1+j*w]-x[i+(j+1    )*w]))
                         {
-                                mesh.f[cx] = (struct face) {.v0 = q[3],
-                                        .v1 = q[0], .v2 = q[1]};
-                                mesh.f[cx+1] = (struct face) {.v0 = q[3],
-                                        .v1 = q[1], .v2 = q[2]};
+                                mesh.f[cx] = (struct face) {.v[0] = q[3],
+                                        .v[1] = q[0], .v[2] = q[1]};
+                                mesh.f[cx+1] = (struct face) {.v[0] = q[3],
+                                        .v[1] = q[1], .v[2] = q[2]};
                                 cx += 2;
                         }
                         else
                         {
-                                mesh.f[cx] = (struct face) {.v0 = q[0],
-                                        .v1 = q[1], .v2 = q[2]};
-                                mesh.f[cx+1] = (struct face) {.v0 = q[0],
-                                        .v1 = q[2], .v2 = q[3]};
+                                mesh.f[cx] = (struct face) {.v[0] = q[0],
+                                        .v[1] = q[1], .v[2] = q[2]};
+                                mesh.f[cx+1] = (struct face) {.v[0] = q[0],
+                                        .v[1] = q[2], .v[2] = q[3]};
                                 cx += 2;
                         }
                 }
@@ -547,7 +656,7 @@ int main_colormultiple(int c, char *v[])
         {
                 mesh.f[i].isvisible = malloc(mesh.nimages * sizeof(bool));
                 struct face mf = mesh.f[i];
-                triangle_normal(mesh.f[i].n, mesh.v[mf.v0].xyz, mesh.v[mf.v1].xyz, mesh.v[mf.v2].xyz);
+                triangle_normal(mesh.f[i].n, mesh.v[mf.v[0]].xyz, mesh.v[mf.v[1]].xyz, mesh.v[mf.v[2]].xyz);
                 double sp = -1;
                 double c_n[3];
                 for (int ni = 0; ni < nimages; ni++)
