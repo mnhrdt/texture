@@ -30,11 +30,11 @@ struct im_ver{
 
 static bool is_large_triangle(float abc[3][2])
 {
-        bool a = true;
+        bool a = false;
         for (int i = 0; i < 3; i++)
-                a &= ((abc[i][0] - abc[(i+1)%3][0])>1 || (abc[i][1] - abc[(i+1)%3][1])>1);
-        if (a==true)
-                printf("a %f %f b %f %f c %f %f\n", abc[0][0],abc[0][1],abc[1][0],abc[1][1],abc[2][0],abc[2][1]);
+                a |= ((abc[i][0] - abc[(i+1)%3][0])>1 || (abc[i][1] - abc[(i+1)%3][1])>1);
+
+        a &= (abc[0][1] != abc[1][1] || abc[0][1] != abc[2][1] || abc[1][1] != abc[2][1]);
         return a;
 }
 
@@ -306,8 +306,7 @@ int main_zbuffer(int c, char *v[])
                         else
                                 visible = false;
                 }
-                if (nf == 435039) printf("ok\n");
-                struct im_ver e = {.w = w, .h = h, .img_copy = img_copy};
+                struct im_ver e = {.w = wi, .h = hi, .img_copy = img_copy};
                 float abc[3][2];
                 for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 2; j++)
@@ -316,10 +315,8 @@ int main_zbuffer(int c, char *v[])
                         e.v[i][j] = v_coord[i][j];
                         e.z[i] = v_z[i];
                 }
-                if (nf == 435039) printf("ok\n");
                 if (visible && is_large_triangle(abc))
                 {
-                        printf("z %f %f %f\n", v_z[0], v_z[1], v_z[2]);
                         traverse_triangle(abc, interpolate_vertices_values, &e);
                 }
         }
@@ -328,6 +325,7 @@ int main_zbuffer(int c, char *v[])
 
 
       
+        
 
         // allocate space for output
         float *out_x = malloc(2 * w * h * sizeof(float));
