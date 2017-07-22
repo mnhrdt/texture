@@ -26,6 +26,8 @@ int main_get_corners(int c, char *v[])
         double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
         double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
         double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
+        double bias_x = atof(pick_option(&c, &v, "-bx", "0"));
+        double bias_y = atof(pick_option(&c, &v, "-by", "0"));
         if (c != 4)
                 return fprintf(stderr, "usage:\n\t"
                                 "%s dsm_nan.tif zone rpc \n",*v);
@@ -121,7 +123,7 @@ int main_get_corners(int c, char *v[])
                         //z = z - offset_z;
 
                         
-        printf("%i %i %i %i\n", xmin-10, ymin-10, xmax-xmin+20, ymax-ymin+20);
+        printf("%i %i %i %i\n", xmin-10+bias_x, ymin-10+bias_y, xmax-xmin+20, ymax-ymin+20);
 
         // save and exit without cleanup
 
