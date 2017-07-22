@@ -85,16 +85,15 @@ int main_get_P_of_crop(int c, char *v[])
 	double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
 	double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
-	if (c != 7)
+	if (c != 6)
 		return fprintf(stderr, "usage:\n\t"
-			"%s dsm.tif zone img.ntf rpc out.tif\n",*v);
-			//0 1       2    3       4   5
+			"%s dsm.tif zone rpc xmin ymin\n",*v);
+			//0 1       2    3   4    5   
 	char *filename_dsm = v[1];
 	int signed_zone    = atoi(v[2]);
 	char *filename_rpc = v[3];
 	int crop_x0 = atoi(v[4]);
         int crop_y0 = atoi(v[5]);
-	char *filename_out = v[6];
 
 	// variables that will hold the local georeferencing transform
 	double origin[2] = {0, 0};
