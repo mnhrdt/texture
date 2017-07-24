@@ -7,25 +7,35 @@ img_dir=$1
 exp_dir=$2
 lidar=$3
 
-IDX=`echo {01..47}`
+IDX=`echo {01..42} {44..47}`
 
 mkdir -p $exp_dir/
 mkdir -p $exp_dir/data/
 mkdir -p $exp_dir/data/minMax/
 mkdir -p $exp_dir/data/cropped/
+mkdir -p $exp_dir/data/projection/
 
 # extrait les vecteurs de déplacements pour chaque image et les projette sur l'image
+for i in $IDX; do 
+    bin/get_projection_matrix $lidar -21 $img_dir/img_$i.rpc > $exp_dir/data/projection/P_img_$i.txt
+done
 
+# projette ces vecteurs dans l'espace de l'image
+for i in $IDX; do
+    vec=`ls data/biais/ncc_transform_$i*`
+    bin/vector_proj $exp_dir/data/projection/P_img_$i.txt $vec > $exp_dir/data/bias_img_$î.txt
+done
 
 # crée à partir des grandes images .ntf des petites images tif contenant la zone du lidar 
 echo "GET_CORNERS: get lidar corners projections on each image"
 for i in $IDX; do
-    bin/get_corners $lidar -21 $img_dir/img_$i.rpc > $exp_dir/data/minMax/minMaxWH_img_$i.txt
+    read bx by < $exp_dir/data/bias_img_$i.txt
+    bin/get_corners $lidar -21 $img_dir/img_$i.rpc -bx $bx -by $by> $exp_dir/data/minMax/minMaxWH_img_$i.txt
     read xmin ymin width height < $exp_dir/data/minMax/minMaxWH_img_$i.txt
-#    gdal_translate -ot uint16 -srcwin $xmin $ymin $width $height $img_dir/img_$i.ntf $exp_dir/data/cropped/cropped_img_$i.tif
+    gdal_translate -ot float64 -srcwin $xmin $ymin $width $height $img_dir/img_$i.ntf $exp_dir/data/cropped/cropped_img_$i.tif
 done
 
-mkdir -p $exp_dir/data/images/
+# mkdir -p $exp_dir/data/images/
 
 # quantifie les petites images tif et les convertit en jpg
 #for i in $exp_dir/data/cropped/*tif; do
@@ -46,9 +56,9 @@ for i in $IDX; do
 done
 
 # calcule K, R et C à partir de P
-for i in $IDX; do 
-    python src/decomp_affine.py $exp_dir/data/proj/P_img_$i.txt
-done
+#for i in $IDX; do 
+#    python src/decomp_affine.py $exp_dir/data/proj/P_img_$i.txt
+#done
 
 mkdir -p $exp_dir/data/matches
 
