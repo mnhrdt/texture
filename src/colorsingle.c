@@ -260,9 +260,9 @@ int main_colorsingle(int c, char *v[])
 		{
                         mesh.f[cx].im = 0;
                         mesh.f[cx] = (struct face) {.v0 = q[3], 
-                                .v1 = q[1], .v2 = q[0]};
+                                .v1 = q[0], .v2 = q[1]};
                         mesh.f[cx+1] = (struct face) {.v0 = q[3], 
-                                .v1 = q[2], .v2 = q[1]};
+                                .v1 = q[1], .v2 = q[2]};
 			cx += 2;
 		}
 	}
