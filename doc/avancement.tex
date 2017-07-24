@@ -63,7 +63,8 @@ régulariser les normales des façades.
 		RPC.  Mais, comme la filtrage du lidar, l'implementation de
 		cette opération commute avec la texturisation, et on peut la
 		laisser pour la fin.}
-		
+\item (22/07) appliquer non local pansharpening aux images multispectrales pour obtenir des meshs en couleurs (JMM).
+
 \item (19/07) STRUCTURES DE DONNÉES POUR LA FUSION DE TEXTURES.  \mnhrdt{L'objectif de ce
 travail est avoir un maillage avec une texture nouvelle qui n'existe
 pas encore (donc, l'atlas avec toutes les images d'entrée est
@@ -139,6 +140,7 @@ Je t'ai mis les r\'esultats sur menthe dans essai\_small pour lidar non filtr\'e
 \paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé, d\'ecoupage plus intelligent de face triangulaire. \c Ca marche, on devine des fen\^etres ! travail en cours sur zbuffer.c (aml\'elioration du z-buffer de colorize\_with\_shadows.c)
 \paragraph{20/07/2017}  travail toujours en cours sur zbuffer.c (j'ai pass\'e la journ\'ee \`a faire du debuggage et \`a am\'eliorer ma connaissance des pointeurs). zbuffer.c est plus ou moins fonctionnel. 
 \paragraph{21/07/2017} nettoyage du main de colormultiple pour le s\'eparer en sous ensembles. D\'ebut de travail sur le recalage.
+\paragraph{24/07/2017} recalage en cours (j'esp\`ere avoir des r\'esultats demain mais cela m'\'etonnerait qu'ils soient bons : les vecteurs de d\'eplacement semblent trop \'elev\'es). \'etude de pansharpening pendant que la grande image ntf charge.
 
 \clearpage
 \begin{otherlanguage}{british}
