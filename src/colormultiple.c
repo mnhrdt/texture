@@ -475,13 +475,14 @@ int main_colormultiple(int c, char *v[])
 
         // create and save atlas by putting all the images on a line, 
         // padding by green and adding green on the bottom half of the atlas.
-        int wi, hi;
+        int wi, hi, pdi;
         int wimax = 0;
         int himax = 0;
         for (int ni = 0; ni < nimages; ni++)
         {
                 char *filename_img = v[ni+2];
-                float *img = iio_read_image_float(filename_img, &wi, &hi);
+                float *img = iio_read_image_float_split(filename_img, &wi, &hi, &pdi);
+                printf("pixel_dimension %d\n", pdi);
                 if (!img)
                         return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
                 if (wi > wimax)
@@ -497,13 +498,17 @@ int main_colormultiple(int c, char *v[])
         for (int ni = 0; ni < nimages; ni++)
         {
                 char *filename_img = v[ni+2];
-                float *img = iio_read_image_float(filename_img, &wi, &hi);
+                float *img = iio_read_image_float_split(filename_img, &wi, &hi, &pdi);
                 if (!img)
                         return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
                 for (int i = 0; i < wi; i++)
                 for (int j = 0; j < hi; j++)
                 for (int l = 0; l < 3; l++)
-                        a[3*(i+ni*wimax+j*nimages*wimax)+l] = img[i+j*wi];
+                        if (pdi == 3)
+                                a[3*(i+ni*wimax+j*nimages*wimax)+l] = img[i+j*wi+l*wi*hi];
+                        else
+                                a[3*(i+ni*wimax+j*nimages*wimax)+l] = img[i+j*wi];
+
                 free(img);
         }
         char n_a[1000];
