@@ -127,6 +127,9 @@ surfaces plus lisses pour les immeubles en diagonal sur le lidar.
 problème est que on le regarde de trop près.  On peut le filtrer sans soucis
 pour obtenir des maillages un peu plus faciles à voir. }
 
+% ENRIC: est-ce que j'ai cassé quelque chose avec le passage vers UNICODE?
+% pourquoi tu n'utilises pas des accents?
+
 \subsection{R\'eponse aux commentaires sur la non n\'ecessit\'e d'avoir un beau mesh}
 Quand j'ai parl\'e de mesh ``satisfaisant'' c'\'etait au sens de satisfaisant pour du prototypage et non comme r\'esultat final. Donc l'astuce de lisser le lidar et de cr\'eer les faces triangulaires selon la hauteur des sommets r\'esout pour l'instant le probl\`eme. Avec le lidar non liss\'e, les r\'esultats sont tr\`es difficiles \`a interpr\'eter et on ne peut pas juger la texturation. A fortiori lorsque les images ne sont pas recal\'es. On obtient de microscopiques morceaux de texture juxtapos\'es. Du coup am\'eliorer le mesh ne commute pas vraiment avec la texturation.
 
