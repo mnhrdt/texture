@@ -3,12 +3,13 @@
 
 # exemple input bash meshmoche.sh /home/coco/src/s2p-iarpa/input/ essai_small/ data/small_lidar.tif
 set -e
-img_dir=$1
+ntf_dir=$1
 exp_dir=$2
 lidar=$3
 rpc_dir=$4
 
-IDX=`echo {01..42} {44..47}`
+#IDX=`echo {01..42} {44..47}`
+IDX=02
 
 mkdir -p $exp_dir/
 mkdir -p $exp_dir/data/
@@ -19,7 +20,7 @@ mkdir -p $exp_dir/data/bias/
 
 # extrait les vecteurs de déplacements pour chaque image et les projette sur l'image
 for i in $IDX; do 
-    bin/get_projection_matrix $lidar -21 $img_dir/img_$i.rpc > $exp_dir/data/projection/P_img_$i.txt
+    bin/get_projection_matrix $lidar -21 $rpc_dir/img_$i.rpc > $exp_dir/data/projection/P_img_$i.txt
 done
 
 # projette ces vecteurs dans l'espace de l'image
@@ -32,9 +33,9 @@ done
 echo "GET_CORNERS: get lidar corners projections on each image"
 for i in $IDX; do
     read bx by < $exp_dir/data/bias/bias_img_$i.txt
-    bin/get_corners $lidar -21 $img_dir/img_$i.rpc -bx $bx -by $by> $exp_dir/data/minMax/minMaxWH_img_$i.txt
+    bin/get_corners $lidar -21 $rpc_dir/img_$i.rpc -bx $bx -by $by> $exp_dir/data/minMax/minMaxWH_img_$i.txt
     read xmin ymin width height < $exp_dir/data/minMax/minMaxWH_img_$i.txt
-    gdal_translate -ot float64 -srcwin $xmin $ymin $width $height $img_dir/img_$i.ntf $exp_dir/data/cropped/cropped_img_$i.tif
+    gdal_translate -ot float64 -srcwin $xmin $ymin $width $height $ntf_dir/img_$i.ntf $exp_dir/data/cropped/cropped_img_$i.tif
 done
 
 # mkdir -p $exp_dir/data/images/
@@ -54,7 +55,7 @@ mkdir -p $exp_dir/data/proj
 echo "GET_P_OF_CROP: get projection matrix for each view"
 for i in $IDX; do 
     read xmin ymin width height < $exp_dir/data/minMax/minMaxWH_img_$i.txt
-    bin/get_P_of_crop $lidar -21 $img_dir/img_$i.rpc $xmin $ymin > $exp_dir/data/proj/P_img_$i.txt
+    bin/get_P_of_crop $lidar -21 $rpc_dir/img_$i.rpc $xmin $ymin > $exp_dir/data/proj/P_img_$i.txt
 done
 
 # calcule K, R et C à partir de P
