@@ -50,6 +50,9 @@ régulariser les normales des faÀ§ades.
 	\item (22/07) appliquer non local pansharpening aux images multispectrales pour obtenir des meshs en couleurs (JMM).
 
 \item (19/07) STRUCTURES DE DONNÉS POUR LA FUSION DE TEXTURES.  
+\begin{itemize}
+\item[\checkmark] À chaque sommet, la texture de l'image visible la plus frontale
+\end{itemize}
 \mnhrdt{L'objectif de ce
 travail est avoir un maillage avec une texture nouvelle qui n'existe
 pas encore (donc, l'atlas avec toutes les images d'entrée est
@@ -60,6 +63,7 @@ obtenue par fusion des toutes les images d'entrée.  On devra
 essayer plusieurs critères de fusion, et pouvoir les comparer
 facilement sur des nouvelles donnés d'entrée.  Notamment
 \begin{itemize}
+	\item[\checkmark] À chaque sommet, la texture de l'image visible la plus frontale
 	\item À chaque triangle, la texture de l'image visible la plus frontale
 	\item À chaque triangle, la texture de l'image visible de plus haute
 		résolution une fois projetée sur le triangle.
@@ -96,11 +100,8 @@ des images, etc.}
 %%%%%%%REMARQUES%%%%%%%
  %%%%%%%%%%%%%%%%%
 \section{Remarque}
+Pourquoi dans la structure de données dis-tu à chaque triangle ? Je croyais que nous allions travailler sur les sommets. Faut-il que j'attribue une même couleur à chaque triangle plutôt ? 
 
-
-\paragraph{ENRIC}: est-ce que j'ai cassé quelque chose avec le passage vers UNICODE?
- pourquoi tu n'utilises pas des accents?
-\paragraph{Marie}: texshop n'était pas configuré correctement et mon .tex avait été enregistré en latin1. Le mélange latin1 - utf8 m'interdisait d'utiliser les accents. Après une rapide recherche sur internet, j'ai tout converti ce soir et maintenant \c ca marche très bien.
 
  %%%%%%%%%%%%%%%%%
 %%%%%%%AVANCEMENT%%%%%%%
@@ -109,8 +110,9 @@ des images, etc.}
 \paragraph{19/07/2017} création de ce pdf, essai de \verb"colormultiple.c" sur le lidar régularisé, découpage plus intelligent de face triangulaire. \c Ca marche, on devine des fenêtres ! travail en cours sur zbuffer.c (amlélioration du z-buffer de colorize\_with\_shadows.c)
 \paragraph{20/07/2017}  travail toujours en cours sur zbuffer.c (j'ai passé la journée à faire du debuggage et à améliorer ma connaissance des pointeurs). zbuffer.c est plus ou moins fonctionnel. 
 \paragraph{21/07/2017} nettoyage du main de colormultiple pour le séparer en sous ensembles. Début de travail sur le recalage.
-\paragraph{24/07/2017} recalage en cours (j'espère avoir des résultats demain mais cela m'étonnerait qu'ils soient bons : les vecteurs de d\'eplacement semblent trop élevés). étude de pansharpening pendant que la grande image ntf charge.
+\paragraph{24/07/2017} recalage en cours (j'espère avoir des résultats demain mais cela m'étonnerait qu'ils soient bons : les vecteurs de déplacement semblent trop élevés). étude de pansharpening pendant que la grande image ntf charge.
 \paragraph{25/07/2017}  modification de colormultiple.c pour permettre des images couleurs. modification de get\_corners.c pour permettre le pansharpening (les crops ont maintenant des dimensions multiples de 4). Début de travail sur colorfancy.c pour à terme colorer les sommets et non les faces. 
+\paragraph{26/07/2017} Comme je l'avais deviné, le recalage par simple projection des vecteurs de déplacement ne marche pas. Colorfancy marche et renvoie pour chaque sommet la couleur de l'image la plus frontale.
 \clearpage
 \begin{otherlanguage}{british}
 \section{Data structures for surfaces, and for functions on surfaces}
