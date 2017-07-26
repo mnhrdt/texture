@@ -518,7 +518,8 @@ int main_colormultiple(int c, char *v[])
 
         // create colormap
         char n_map[1000];
-        char *dir_name = filename_ply;
+        char dir_name[1000];
+        sprintf(dir_name, "%s", filename_ply);
         sprintf(n_map, "%s/map.png", dirname(dir_name));
         create_colormap(n_map, nimages, wimax, himax);
 

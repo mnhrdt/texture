@@ -1,15 +1,14 @@
 #!/bin/bash
 # auteur : mariedautume
 
-# exemple input bash meshmoche.sh /home/coco/src/s2p-iarpa/input/ essai_small/ data/small_lidar.tif
+# exemple input bash meshrecale.sh /home/coco/src/s2p-iarpa/input/ essai/ data/lidar_curve_max.tif /home/coco/src/s2p-iarpa/input/
 set -e
 ntf_dir=$1
 exp_dir=$2
 lidar=$3
 rpc_dir=$4
 
-#IDX=`echo {01..42} {44..47}`
-IDX=02
+IDX=`echo {01..42} {44..47}`
 
 mkdir -p $exp_dir/
 mkdir -p $exp_dir/data/
@@ -19,11 +18,13 @@ mkdir -p $exp_dir/data/projection/
 mkdir -p $exp_dir/data/bias/
 
 # extrait les vecteurs de déplacements pour chaque image et les projette sur l'image
+echo "GET_PROJECTION_MATRIX"
 for i in $IDX; do 
     bin/get_projection_matrix $lidar -21 $rpc_dir/img_$i.rpc > $exp_dir/data/projection/P_img_$i.txt
 done
 
 # projette ces vecteurs dans l'espace de l'image
+echo "VECTOR_PROJ"
 for i in $IDX; do
     vec=`ls data/biais/ncc_transform_$i*`
     bin/vector_proj $exp_dir/data/projection/P_img_$i.txt $vec > $exp_dir/data/bias/bias_img_$i.txt
@@ -58,32 +59,32 @@ for i in $IDX; do
     bin/get_P_of_crop $lidar -21 $rpc_dir/img_$i.rpc $xmin $ymin > $exp_dir/data/proj/P_img_$i.txt
 done
 
-# calcule K, R et C à partir de P
-#for i in $IDX; do 
-#    python src/decomp_affine.py $exp_dir/data/proj/P_img_$i.txt
+## calcule K, R et C à partir de P
+##for i in $IDX; do 
+##    python src/decomp_affine.py $exp_dir/data/proj/P_img_$i.txt
+##done
+#
+#mkdir -p $exp_dir/data/matches
+#
+## localise le lidar sur l'image puis reprojette sur lidar (donne les images avec grille)
+#echo "COLORIZE_WITH_SHADOWS: get lidar texture coordinates in each view"
+#for i in $IDX; do
+#    bin/zbuffer $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
 #done
-
-mkdir -p $exp_dir/data/matches
-
-# localise le lidar sur l'image puis reprojette sur lidar (donne les images avec grille)
-echo "COLORIZE_WITH_SHADOWS: get lidar texture coordinates in each view"
-for i in $IDX; do
-    bin/zbuffer $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/proj/P_img_$i.txt $exp_dir/data/matches/matches_lidar_img_$i.tif
-done
+##
+## crée un atlas et un mesh texturé à partir du lidar et d'une image.
+#echo "COLORSINGLE: create colorized mesh from lidar and one view"
+#mkdir -p $exp_dir/mesh
+#for i in $IDX; do
+#    bin/colorsingle $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/matches/matches_lidar_img_$i.tif $exp_dir/mesh/pil_$i.ply $exp_dir/mesh/atlas_$i
+#    qeasy 100 1100 $exp_dir/mesh/atlas_$i.tif $exp_dir/mesh/atlas_$i.png
+#done
+##
+## création d'un mesh à partir des 9 premières images
+#echo "COLORMULTIPLE: create textured mesh from lidar and several views"
+#bin/colormultiple $lidar $exp_dir/data/cropped/cropped_img_0*.tif $rpc_dir/img_0*.rpc $exp_dir/data/matches/matches_lidar_img_0*.tif $exp_dir/mesh/pil_multi.ply $exp_dir/mesh/atlas_multi 
 #
-# crée un atlas et un mesh texturé à partir du lidar et d'une image.
-echo "COLORSINGLE: create colorized mesh from lidar and one view"
-mkdir -p $exp_dir/mesh
-for i in $IDX; do
-    bin/colorsingle $lidar $exp_dir/data/cropped/cropped_img_$i.tif $exp_dir/data/matches/matches_lidar_img_$i.tif $exp_dir/mesh/pil_$i.ply $exp_dir/mesh/atlas_$i
-    qeasy 100 1100 $exp_dir/mesh/atlas_$i.tif $exp_dir/mesh/atlas_$i.png
-done
-#
-# création d'un mesh à partir des 9 premières images
-echo "COLORMULTIPLE: create textured mesh from lidar and several views"
-bin/colormultiple $lidar $exp_dir/data/cropped/cropped_img_0*.tif $rpc_dir/img_0*.rpc $exp_dir/data/matches/matches_lidar_img_0*.tif $exp_dir/mesh/pil_multi.ply $exp_dir/mesh/atlas_multi 
-
-qeasy 100 1100 $exp_dir/mesh/atlas_multi.tif $exp_dir/mesh/atlas_multi.png
-#
-#  Created by marie d'autume on 10/05/2017.
-#
+#qeasy 100 1100 $exp_dir/mesh/atlas_multi.tif $exp_dir/mesh/atlas_multi.png
+##
+##  Created by marie d'autume on 10/05/2017.
+##
