@@ -23,10 +23,10 @@ void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
 //
 int main_get_msi_offset(int c, char *v[])
 {
-        if (c < 4)
+        if (c < 5)
                 return fprintf(stderr, "usage:\n\t"
-                                "%s dsm_nan.tif zone rpc \n",*v);
-                                //0 1           2    3
+                                "%s dsm_nan.tif zone pan.rpc msi.xml\n",*v);
+                                //0 1           2    3       4
         char *filename_dsm = v[1];
         int signed_zone    = atoi(v[2]);
         char *filename_rpc = v[3];

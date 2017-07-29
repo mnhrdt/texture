@@ -124,7 +124,7 @@ int main_get_corners(int c, char *v[])
                         //z = z - offset_z;
 
                         
-        printf("%lf %lf %d %d\n", xmin-10.0, ymin-10.0, 4*((xmax-xmin)/4)+20, 4*((ymax-ymin)/4)+20);
+        printf("%lf %lf %d %d\n", xmin-bias_x-10.0, ymin-bias_y-10.0, 4*((xmax-xmin)/4)+20, 4*((ymax-ymin)/4)+20);
 
         // save and exit without cleanup
 
