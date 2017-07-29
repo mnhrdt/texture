@@ -17,6 +17,7 @@ void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
 // input_1 : a georeferenced DSM of size WxH with nan when no data
 // input_2 : utm zone
 // input_3 : the RPC of a georeferenced d-band image (of any size, typically huge) 
+// input_4 : the RPC of the msi image
 // output  : print xmin ymin W H rectangle to crop from the huge image
 //
 // note: formally, for the input we have to give the signed zone
@@ -123,7 +124,7 @@ int main_get_corners(int c, char *v[])
                         //z = z - offset_z;
 
                         
-        printf("%lf %lf %d %d\n", xmin-10, ymin-10, 4*((xmax-xmin)/4)+20, 4*((ymax-ymin)/4)+20);
+        printf("%lf %lf %d %d\n", xmin-10.0, ymin-10.0, 4*((xmax-xmin)/4)+20, 4*((ymax-ymin)/4)+20);
 
         // save and exit without cleanup
 
