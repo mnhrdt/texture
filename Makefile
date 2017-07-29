@@ -1,11 +1,6 @@
 # the following two options are used to control all C and C++ compilations
-<<<<<<< Updated upstream
-CFLAGS   ?= -march=native -O3 -g
-CXXFLAGS ?= -march=native -O3 -g
-=======
-CFLAGS   ?= -march=native -O3 -Wall -Wextra
-CXXFLAGS ?= -march=native -O3 -Wall -Wextra
->>>>>>> Stashed changes
+CFLAGS   ?= -march=native -O3 -g #-Wall -g
+CXXFLAGS ?= -march=native -O3 -g #-Wall -Wextra -g
 
 # required libraries
 IIOLIBS := -lz -ltiff -lpng -ljpeg -lm
