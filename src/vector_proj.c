@@ -22,6 +22,9 @@ static void matrix_product_mxn_nxp(double *ab, double *a, double *b, int m,
 
 int main_vector_proj(int c, char *v[])
 {
+        if (c < 3)
+                return fprintf(stderr, "usage:\n\t" 
+                                "%s P.txt vec.txt\n", *v);
         char *filename_P = v[1];
         char *filename_vec = v[2];
 
@@ -53,7 +56,7 @@ int main_vector_proj(int c, char *v[])
 			return fprintf(stderr, "could not read element %d of %s", i, filename_vec);
         }
         
-        double xyz1[4] = {xysz[0], xysz[1], xysz[3], 0};
+        double xyz1[4] = {-xysz[0], -xysz[1], -xysz[3], 0};
 
         double ij1[3] = {0};
         
