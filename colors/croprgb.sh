@@ -42,15 +42,14 @@ CROP_MSI="$C1 $C2 $C3 $C4"
 
 # create temporary directory for intermediate files
 TPD=`mktemp -d`
-echo "crop pan $CROP_PAN crop msi $CROP_MSI"
+
 # extract each crop using gdal_translate
 gdal_translate -ot uint16 -srcwin $CROP_PAN $PAN $TPD/pan.tif
-gdal_translate -ot uint16 -srcwin $CROP_MSI $MSI $TPD/msi.tif
-gdal_translate -ot uint16 -srcwin $CROP_PAN $PAN pan.tif
-gdal_translate -ot uint16 -srcwin $CROP_MSI $MSI msi.tif
+gdal_translate -expand rgb -ot uint16 -srcwin $CROP_MSI $MSI $TPD/msi.tif
 
 # obtain rgb from msi (approximate formula)
 MSITORGB="x[4] x[2] 0.8 * x[5] 0.1 * + x[1] 1.2 * join3 log 5 7.3 range"
+#MSITORGB="x[2] x[1] x[0] join3 log 5 7.3 range" ## for image 1 and 20
 plambda $TPD/msi.tif "$MSITORGB" | upsa 4 1 - $TPD/rgb.tif
 
 # compute P+XS (already in rgb space)
