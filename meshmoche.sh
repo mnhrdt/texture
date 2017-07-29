@@ -39,7 +39,7 @@ mkdir -p $exp_dir/data/proj
 echo "GET_P_OF_CROP: get projection matrix for each view"
 for i in $IDX; do 
     read xmin ymin width height < $exp_dir/data/minMax/minMaxWH_img_$i.txt
-    bin/get_P_of_crop $lidar -21 $img_dir/img_$i.rpc $xmin $ymin essai.tif > $exp_dir/data/proj/P_img_$i.txt
+    bin/get_P_of_crop $lidar -21 $img_dir/img_$i.rpc $xmin $ymin > $exp_dir/data/proj/P_img_$i.txt
 done
 
 # calcule K, R et C à partir de P
@@ -70,4 +70,4 @@ bin/colormultiple $lidar $exp_dir/data/cropped/cropped_img_0*.tif data/rpc/img_0
 qeasy 100 1100 $exp_dir/mesh/atlas_multi.tif $exp_dir/mesh/atlas_multi.png
 #
 #  Created by marie d'autume on 10/05/2017.
-#
+

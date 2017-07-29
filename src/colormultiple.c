@@ -473,6 +473,7 @@ int main_colormultiple(int c, char *v[])
 	char *filename_ply = v[3*nimages+2];
         char *filename_a = v[3*nimages+3];
 
+        printf("nombre d'images %d\n", nimages);
         // create and save atlas by putting all the images on a line, 
         // padding by green and adding green on the bottom half of the atlas.
         int wi, hi, pdi;
@@ -537,10 +538,12 @@ int main_colormultiple(int c, char *v[])
                         cam_n[3*ni+l] = c_n[l];
         }
 
+        printf("create mesh\n");
         // create mesh
         struct mesh_t mesh;
         mesh.nimages = nimages;
         initialize_mesh_from_lidar(&mesh, filename_dsm);
+        printf("create mesh\n");
         for (int cx = 0; cx < mesh.nv; cx++)
                 mesh.v[cx].im = malloc((mesh.nimages)*sizeof(struct image_coord));
 

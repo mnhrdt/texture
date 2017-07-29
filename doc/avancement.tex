@@ -36,7 +36,7 @@
 \begin{itemize}
 \item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à l'aide d'une image : \verb"colorsingle.c"
 \item[\checkmark] Création d'un mesh grossier à partir du lidar, coloré à partir de plusieurs images, choix de l'image la plus en face : \verb"colormultiple.c"
-\item[$\sim$] z-buffer prenant en comptes les triangles, pas simplement les points du lidar (plus ou moins ok : il reste des probl\`emes que je ne comprends pas)
+\item[$\sim$] z-buffer prenant en comptes les triangles, pas simplement les points du lidar (plus ou moins ok : il reste des probl\`emes que je ne comprends pas). Modifier le z-buffer pour qu'il accepte la projection de sommets voisins sur un même pixel.
 \item création d'un mesh le plus propre possible pour le prototypage
 \begin{itemize}
 \item[\checkmark] régulariser le lidar (fait à l'aide du curvature microscope
@@ -113,6 +113,9 @@ Pourquoi dans la structure de données dis-tu à chaque triangle ? Je croyais qu
 \paragraph{24/07/2017} recalage en cours (j'espère avoir des résultats demain mais cela m'étonnerait qu'ils soient bons : les vecteurs de déplacement semblent trop élevés). étude de pansharpening pendant que la grande image ntf charge.
 \paragraph{25/07/2017}  modification de colormultiple.c pour permettre des images couleurs. modification de get\_corners.c pour permettre le pansharpening (les crops ont maintenant des dimensions multiples de 4). Début de travail sur colorfancy.c pour à terme colorer les sommets et non les faces. 
 \paragraph{26/07/2017} Comme je l'avais deviné, le recalage par simple projection des vecteurs de déplacement ne marche pas. Colorfancy marche et renvoie pour chaque sommet la couleur de l'image la plus frontale.
+\paragraph{27-28/07/2017} toutes les images msi  semblent avoir un offset proche de (13, -0,375) par rapport au pan. Problème de décalage et de saturation des images couleurs avec croprgb.sh. (saturation : travailler avec des floats, décalage : utiliser l'interpolation avec gdal\_translate).  Gabriele a relancé un scripts avec les bons paramètres et j'ai du coup les bons vecteurs de déplacement dans l'espace des nuages de points : voir ce qu'ils donnent projetés. En vue du sur-échantillonage du mesh, modification projetée du zbuffer pour qu'il autorise plusieurs sommets voisins à se projeter sur le même pixel de l'image.
+
+
 \clearpage
 \begin{otherlanguage}{british}
 \section{Data structures for surfaces, and for functions on surfaces}
