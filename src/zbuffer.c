@@ -58,14 +58,16 @@ static void interpolate_vertices_values(int i, int j, void *ee)
                         assert(e->v[0][0] != e->v[2][0] || e->v[0][1] != e->v[2][1]);
                         double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
                         double ac[2] = {e->v[2][0] - e->v[0][0], e->v[2][1] - e->v[0]    [1]};
-                        e->img_copy[i+j*w] = z[0] + (z[2] - z[0])*euclidean_norm(ax, 2) / euclidean_norm(ac, 2);
+                        if (z[0] + (z[2] - z[0])*euclidean_norm(ax,     2) / euclidean_norm(ac, 2) > e->img_copy[i+j*w])
+                                e->img_copy[i+j*w] = z[0] + (z[2] - z[0])*euclidean_norm(ax, 2) / euclidean_norm(ac, 2);
                 }
                 if (e->v[0][0] == e->v[2][0] && e->v[0][1] == e->v[2][1])
                 {
                         assert(e->v[0][0] != e->v[1][0] || e->v[0][1] != e->v[1][1]);
                         double ax[2] = {i-e->v[0][0], j - e->v[0][1]};
                         double ac[2] = {e->v[1][0] - e->v[0][0], e->v[1][1] - e->v[0]    [1]};
-                        e->img_copy[i+j*w] = z[0] + (z[1] - z[0])*euclidean_norm(ax, 2)  / euclidean_norm(ac, 2);
+                        if (z[0] + (z[1] - z[0])*euclidean_norm(ax,     2)  / euclidean_norm(ac, 2) > e->img_copy[i+j*w])
+                                e->img_copy[i+j*w] = z[0] + (z[1] - z[0])*euclidean_norm(ax, 2)  / euclidean_norm(ac, 2);
                 }
         }
         else
@@ -74,7 +76,8 @@ static void interpolate_vertices_values(int i, int j, void *ee)
                         / (u[1]*v[0] - u[0]*v[1]);
                 double beta = (double) (-(j-e->v[0][1])*u[0] + (i-e->v[0][0])*u[1])
                         / (u[1]*v[0] - u[0]*v[1]);
-                e->img_copy[i+j*w] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
+                if (z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[    0]) > e->img_copy[i+j*w])
+                        e->img_copy[i+j*w] = z[0] + alpha * (z[2] - z[0]) + beta * (z[1] - z[0]);
         }
 
 }
@@ -315,7 +318,8 @@ int main_zbuffer(int c, char *v[])
                         e.v[i][j] = v_coord[i][j];
                         e.z[i] = v_z[i];
                 }
-                if (visible && is_large_triangle(abc))
+                //if (visible && is_large_triangle(abc))
+                if (is_large_triangle(abc))
                 {
                         traverse_triangle(abc, interpolate_vertices_values, &e);
                 }
