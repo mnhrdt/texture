@@ -56,7 +56,8 @@ int main_vector_proj(int c, char *v[])
 			return fprintf(stderr, "could not read element %d of %s", i, filename_vec);
         }
         
-        double xyz1[4] = {-xysz[0], -xysz[1], -xysz[3], 0};
+        // les vecteurs de déplacements sont en coordonnées du nuage et non en UTM
+        double xyz1[4] = {0.3*xysz[1], 0.3*xysz[0], xysz[3], 0};
 
         double ij1[3] = {0};
         
