@@ -69,7 +69,7 @@ bool ith_face_is_visible(struct mesh_t mesh, int i)
                 !isnan(mesh.v[mf.v2].im[mf.im].j);
 }
 
-void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
+int write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
 {
 	// dump the ply file (with dsm-inherited connectivity)
 	FILE *f = fopen(filename_ply, "w");
@@ -109,13 +109,14 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                                 mf.v0, mf.v1, mf.v2, 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
                         if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
-                                printf("WARNING: tries to access invalid texture %f %f %f %f %f %f\n",a[0], a[3], a[1], a[4], a[2], a[5]);
+                                return fprintf(stderr, "WARNING: tries to access invalid texture %f %f %f %f %f %f\n",a[0], a[3], a[1], a[4], a[2], a[5]);
                 }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
                                 mf.v0, mf.v1, mf.v2);
 
         }
+        return 0;
 }
 
 // elevate a georeferenced DSM to an ascii point cloud
@@ -137,7 +138,9 @@ int main_colorsingle(int c, char *v[])
 	double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
 	double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
-	if (c != 6)
+        double ox = atof(pick_option(&c, &v, "ox", "0"));
+        double oy = atof(pick_option(&c, &v, "oy", "0"));
+	if (c < 6)
 		return fprintf(stderr, "usage:\n\t"
 			"%s dsm.tif img.tif match.tif .ply atlas\n",*v);
 			//0 1       2       3         4    5
@@ -146,6 +149,7 @@ int main_colorsingle(int c, char *v[])
 	char *filename_m = v[3];
 	char *filename_ply = v[4];
         char *filename_a = v[5];
+        printf("ox %f oy %f\n", ox, oy);
 
         // variables that will hold the local georeferencing transform
         double origin[2] = {0, 0};
@@ -164,6 +168,7 @@ int main_colorsingle(int c, char *v[])
                 fprintf(stderr, "WARNING: not found origin and scale info\n");
         }
 
+        printf("scale x %f scale y %f\n", scale[0], scale[1]);
 	// read the whole input DSM (typically, rather small)
 	int w, h;
 	float *x = iio_read_image_float(filename_dsm, &w, &h);
@@ -235,18 +240,19 @@ int main_colorsingle(int c, char *v[])
 	{
 		if (!isfinite(height[j][i])) continue;
 		// compute lonlat from eastnorth = {p[0], p[1]}
-		double e = i * scale[0] + origin[0]; // easting
-		double n = j * scale[1] + origin[1]; // northing
+		double e = i * scale[0];// + origin[0]; // easting
+		double n = j * scale[1];// + origin[1]; // northing
 		double z = height[j][i];             // height
                 mesh.v[cx].x = e - offset_x;
                 mesh.v[cx].y = n - offset_y;
                 mesh.v[cx].z = z - offset_z;
 
                 mesh.v[cx].im = malloc((mesh.ni)*sizeof(struct image_coord));
-                mesh.v[cx].im[0].i = m[2*(i+j*w)]  /wi;
-                mesh.v[cx].im[0].j = m[2*(i+j*w)+1]/hi;
+                mesh.v[cx].im[0].i = (m[2*(i+j*w)]+ox)  /wi;
+                mesh.v[cx].im[0].j = (m[2*(i+j*w)+1]+oy)/hi;
 		cx += 1;
 	}
+        printf("offset x %f y %f\n", ox, oy);
 	assert(cx == nvertices);
 
 	// output faces

@@ -376,14 +376,10 @@ void write_ply_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                 double a[6] = {mesh.v[mf.v[0]].im[mf.im].i, mesh.v[mf.v[1]].im[mf.im].i,
                         mesh.v[mf.v[2]].im[mf.im].i, mesh.v[mf.v[0]].im[mf.im].j,
                         mesh.v[mf.v[1]].im[mf.im].j, mesh.v[mf.v[2]].im[mf.im].j};
-                if (ith_face_is_visible_in_image(mesh, i, mf.im))
-                {
+                if (ith_face_is_visible_in_image(mesh, i, mf.im) && xy_are_in_bounds(a, 3, 0, 1, 0, 1))
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
                                 mf.v[0], mf.v[1], mf.v[2], 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
-                        if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
-                                printf("WARNING: tries to access invalid texture\n");
-                }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
                                 mf.v[0], mf.v[1], mf.v[2]);
@@ -427,14 +423,10 @@ void write_ply_map_t(char *filename_ply, char *filename_a, struct mesh_t mesh)
                 double a[6] = {mesh.v[mf.v[0]].im[mf.im].i, mesh.v[mf.v[1]].im[mf.im].i,
                         mesh.v[mf.v[2]].im[mf.im].i, mesh.v[mf.v[0]].im[mf.im].j,
                         mesh.v[mf.v[1]].im[mf.im].j, mesh.v[mf.v[2]].im[mf.im].j};
-                if (ith_face_is_visible_in_image(mesh, i, mf.im))
-                {
+                if (ith_face_is_visible_in_image(mesh, i, mf.im) && xy_are_in_bounds(a, 3, 0, 1, 0, 1))
                         fprintf(f, "3 %d %d %d 6 %.16lf %.16lf %.16lf %.16lf %.16lf %.16lf \n", 
                                 mf.v[0], mf.v[1], mf.v[2], 
                                 a[0], -a[3]/2, a[1], -a[4]/2, a[2], -a[5]/2);
-                        if (!xy_are_in_bounds(a, 3, 0, 1, 0, 1))
-                                printf("WARNING: tries to access invalid texture\n");
-                }
                 else
                         fprintf(f, "3 %d %d %d 6 0 0 0 0.1 0.1 0\n",
                                 mf.v[0], mf.v[1], mf.v[2]);
@@ -463,7 +455,10 @@ int main_colormultiple(int c, char *v[])
         double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
 	double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
-	if (c % 3 != 1 || c < 5)
+        double ox = atof(pick_option(&c, &v, "ox", "0"));
+        double oy = atof(pick_option(&c, &v, "oy", "0"));
+//if (c % 3 != 1 || c < 5)
+	if (c < 5)
 		return fprintf(stderr, "usage:\n\t"
 			"%s dsm.tif img_i.tif rpc_i.tif match_i.tif out.ply atlas\n",*v);
 			//0 1       2         3         4           3*i+2   3*i+3
@@ -512,9 +507,11 @@ int main_colormultiple(int c, char *v[])
 
                 free(img);
         }
+        printf("aaaaa\n");
         char n_a[1000];
         sprintf(n_a, "%s.tif", filename_a);
         iio_save_image_float_vec(n_a, a, nimages*wimax, 2*himax, 3);
+        printf("aaaaa\n");
         free(a);
 
         // create colormap
@@ -567,9 +564,9 @@ int main_colormultiple(int c, char *v[])
                {
                        int i = mesh.v[cx].ij[0];
                        int j = mesh.v[cx].ij[1];
-                       mesh.v[cx].im[ni].i = (m[2*(i+j*w)]  /wimax + ni)/nimages;
+                       mesh.v[cx].im[ni].i = ((m[2*(i+j*w)]+ox)  /wimax + ni)/nimages;
                        // abscisse dans l'atlas : située pour l'image ni dans [ni/nimages; (ni+1)/nimages]. On ajoute donc à ni/nimages, la coordonnée dans l'image (m[2*(i+j*w)]) multiplié par la part attribué à chaque pixel : (1/(wimax*nimages)).
-                       mesh.v[cx].im[ni].j = m[2*(i+j*w)+1]/himax;
+                       mesh.v[cx].im[ni].j = (m[2*(i+j*w)+1]+oy)/himax;
                }
                free(m);
        }

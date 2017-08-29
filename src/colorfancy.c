@@ -361,6 +361,9 @@ int main_colorfancy(int c, char *v[])
         double offset_x = atof(pick_option(&c, &v, "-offset_x", "0"));
 	double offset_y = atof(pick_option(&c, &v, "-offset_y", "0"));
 	double offset_z = atof(pick_option(&c, &v, "-offset_z", "0"));
+	double ox = atof(pick_option(&c, &v, "ox", "0"));
+	double oy = atof(pick_option(&c, &v, "oy", "0"));
+        int method = atoi(pick_option(&c, &v, "m", "0"));
 	if (c % 3 != 0 || c < 5)
 		return fprintf(stderr, "usage:\n\t"
 			"%s dsm.tif img_i.tif rpc_i.tif match_i.tif out.ply \n",*v);
@@ -417,8 +420,8 @@ int main_colorfancy(int c, char *v[])
                 {
                         int i = mesh.v[cx].ij[0];
                         int j = mesh.v[cx].ij[1];
-                        mesh.v[cx].ic[ni].i = m[2*(i+j*w)];
-                        mesh.v[cx].ic[ni].j = m[2*(i+j*w)+1];
+                        mesh.v[cx].ic[ni].i = m[2*(i+j*w)] + ox;
+                        mesh.v[cx].ic[ni].j = m[2*(i+j*w)+1] + oy;
                         if (!isnan(mesh.v[cx].ic[ni].i))
                                 mesh.v[cx].isvisible[ni] = true;
                         else
@@ -457,6 +460,7 @@ int main_colorfancy(int c, char *v[])
 
         printf("choix de l'image choisie\n");
         // pour chaque sommet : choisit parmi les images où le sommet est visible la plus en face
+        if (method == 0)
         for (int i = 0; i < mesh.nv; i++)
         {
                 struct vertex mv = mesh.v[i];

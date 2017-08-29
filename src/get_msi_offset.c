@@ -65,7 +65,7 @@ int main_get_msi_offset(int c, char *v[])
         read_rpc_file_xml(huge_xml, filename_xml);
         double e = w/2 * scale[0] + origin[0];
         double n = h/2 * scale[1] + origin[1];
-        double z = x[(w/2)+w*h/2];
+        double z = x[(w/2)+w*h/2]+20;
 
         double lonlat[3] = {0, 0, z};
         lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);

@@ -250,10 +250,10 @@ int main_zbuffer(int c, char *v[])
         if (!img)
                 return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
 
-        // allocate space of same size and initialize to -100
-        float *img_copy = malloc(wi * hi * sizeof(float));
+        // allocate space for same size multispectral image for (e, n, z, nx, ny, nz)
+        float *img_copy = malloc(6 * wi * hi * sizeof(float));
         for (int i=0; i < wi*hi; i++)
-                img_copy[i] = -100;
+                img_copy[6*i+2] = -100;
 
         // read P projection matrix of lidar on cropped image
         FILE *proj;

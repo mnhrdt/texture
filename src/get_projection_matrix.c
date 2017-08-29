@@ -124,7 +124,7 @@ int main_get_projection_matrix(int c, char *v[])
         int j_centre = scale[1] * h/2 + origin[1];
 
         double ij[2];
-        double z_centre = 20;
+        double z_centre = 31;
 
         float incrementation[12] = {0};
         for (int i = 0; i < 3; i++)
@@ -170,7 +170,7 @@ int main_get_projection_matrix(int c, char *v[])
                 printf("\n");
         }
 
-        double z = 120;
+        double z = 31;
 
         float *diff = malloc(2 * w * h * sizeof(float));
         for (int j=0; j<h; j++)
