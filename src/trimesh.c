@@ -1,7 +1,10 @@
-// create a triangular mesh from a tiff DEM (i,j,h)
+// data structure and functions for triangular mesh I/O
+
+
 
 #include <assert.h>   // assert
 #include <math.h>     // isfinite
+#include <stdbool.h>  // bool
 #include <stdio.h>    // fopen, fclose, fprintf, stdout
 #include <stdlib.h>   // malloc, realloc, free, exit
 #include <string.h>   // strcmp
@@ -9,10 +12,12 @@
 
 // data structure to store a triangular mesh
 struct trimesh {
-	int nv, max_nv;   // number of vertices
-	int nt, max_nt;   // number of triangles
-	float *v;         // array of vertices
-	int *t;           // array of triangles
+	int nv;       // number of vertices
+	int nt;       // number of triangles
+	int max_nv;   // size of vertex array
+	int max_nt;   // size of triangle array
+	float *v;     // array of vertices
+	int *t;       // array of triangles
 };
 
 
@@ -37,6 +42,7 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 // add a vertex (and return its index)
 static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 {
+	//fprintf(stderr, "trimesh_add_vertex_%d : %g %g %g\n", m->nv, x, y, z);
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nv + 1 <= m->max_nv);
 
@@ -49,6 +55,7 @@ static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 // add a triangle (and return its index)
 static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
+	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a, b, c);
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nt + 1 <= m->max_nt);
 
@@ -131,7 +138,57 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fclose(f);
 }
 
+void trimesh_read_from_ply(struct trimesh *m, char *fname)
+{
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
 
+	int n_vertices = -1;
+	int n_triangles = -1;
+
+	// process header lines
+	char buf[FILENAME_MAX] = {0};
+	while (fgets(buf, FILENAME_MAX, f)) { // read a line into "buf"
+		int tmp;
+		if (1 == sscanf(buf, "element vertex %d\n", &tmp)) n_vertices = tmp;
+		if (1 == sscanf(buf, "element face %d\n", &tmp)) n_triangles = tmp;
+		if (0 == strcmp(buf, "end_header\n"))
+			break;
+	}
+	//fprintf(stderr, "n_vertices = %d\n", n_vertices);
+	//fprintf(stderr, "n_triangles = %d\n", n_triangles);
+
+	// create mesh structure
+	trimesh_alloc_tables(m, n_vertices, n_triangles);
+
+	// read vertices
+	while (m->nv < n_vertices && fgets(buf, FILENAME_MAX, f))
+	{
+		double x[3];
+		if (3 != sscanf(buf, "%lf %lf %lf\n", x, x+1, x+2))
+			exit(fprintf(stderr, "ERROR: vfail_1 \"%s\"\n", buf));
+		trimesh_add_vertex(m, x[0], x[1], x[2]);
+	}
+	if (n_vertices != m->nv)
+		exit(fprintf(stderr, "ERROR: nv %d %d\n", n_vertices, m->nv));
+
+	// read triangles
+	while (m->nt < n_triangles && fgets(buf, FILENAME_MAX, f))
+	{
+		int x[3];
+		if (3 != sscanf(buf, "3 %d %d %d\n", x, x+1, x+2))
+			exit(fprintf(stderr, "ERROR: tfail_1 \"%s\"\n", buf));
+		trimesh_add_triangle(m, x[0], x[1], x[2]);
+	}
+	if (n_triangles != m->nt)
+		exit(fprintf(stderr, "ERROR: nt %d %d\n", n_triangles, m->nt));
+
+	// cleanup and exit
+	fclose(f);
+}
+
+#ifdef TRIMESH_DEMO_MAIN
 #include "iio.h"
 int main(int c, char *v[])
 {
@@ -152,8 +209,21 @@ int main(int c, char *v[])
 	// save triangulation into ply flie
 	trimesh_write_to_ply(filename_out, m);
 
+
+
+
 	// cleanup and exit
 	trimesh_free_tables(m);
 	free(x);
+
+	// do a silly consistency loop
+	struct trimesh n[1];
+	trimesh_read_from_ply(n, filename_out);
+	trimesh_write_to_ply("/tmp/plytmp.ply", n);
+
+	// cleanup and exit
+	trimesh_free_tables(n);
+	//free(x);
 	return 0;
 }
+#endif//TRIMESH_DEMO_MAIN
