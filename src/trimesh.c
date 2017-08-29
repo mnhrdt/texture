@@ -37,8 +37,6 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 // add a vertex (and return its index)
 static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 {
-	//fprintf(stderr, "add ver(%d/%d) %g %g %g\n", m->nv, m->max_nv, x, y, z);
-
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nv + 1 <= m->max_nv);
 
@@ -49,20 +47,18 @@ static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 }
 
 // add a triangle (and return its index)
-static int trimesh_add_triangle(struct trimesh *m, int t[3])
+static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
-	//fprintf(stderr, "add tri(%d) %d %d %d\n", m->nv, t[0], t[1], t[2]);
-
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nt + 1 <= m->max_nt);
 
-	assert(t[0] >= 0); assert(t[0] < m->nv);
-	assert(t[1] >= 0); assert(t[1] < m->nv);
-	assert(t[2] >= 0); assert(t[2] < m->nv);
+	assert(a >= 0); assert(a < m->nv);
+	assert(b >= 0); assert(b < m->nv);
+	assert(c >= 0); assert(c < m->nv);
 
-	m->t[3*m->nt + 0] = t[0];
-	m->t[3*m->nt + 1] = t[1];
-	m->t[3*m->nt + 2] = t[2];
+	m->t[3*m->nt + 0] = a;
+	m->t[3*m->nt + 1] = b;
+	m->t[3*m->nt + 2] = c;
 	return m->nt++;
 }
 
@@ -76,24 +72,25 @@ void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 	int *t = malloc(w * h * sizeof*t);
 	for (int j = 0; j < h; j++)
 	for (int i = 0; i < w; i++)
-	{
 	if (isfinite(x[j*w + i]))
 		t[j*w + i] = trimesh_add_vertex(m, i, j, x[j*w + i]);
 	else
 		t[j*w + i] = -1;
-	//fprintf(stderr, "t[%d,%d] = %d\n", i, j, t[j*w+i]);
-	}
 
 	// add the triangles all of whose whose vertices are good
 	for (int j = 0; j < h-1; j++)
 	for (int i = 0; i < w-1; i++)
 	{
-		int a[] = { (j+0)*w + (i+0), (j+1)*w + (i+0), (j+0)*w + (i+1) };
-		int b[] = { (j+0)*w + (i+1), (j+1)*w + (i+0), (j+1)*w + (i+1) };
-		if (t[a[0]] >= 0 && t[a[1]] >= 0 && t[a[2]] >= 0)
-			trimesh_add_triangle(m, a);
-		if (t[b[0]] >= 0 && t[b[1]] >= 0 && t[b[2]] >= 0)
-			trimesh_add_triangle(m, b);
+		int a = (j+0)*w + (i+0);
+		int b = (j+0)*w + (i+1);
+		int c = (j+1)*w + (i+0);
+		int d = (j+1)*w + (i+1);
+
+		// TODO: criteria to choose the appropriate diagonal
+		if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
+			trimesh_add_triangle(m, t[a], t[b], t[c]);
+		if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
+			trimesh_add_triangle(m, t[c], t[b], t[d]);
 	}
 
 	// cleanup
