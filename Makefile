@@ -11,7 +11,7 @@ override CFLAGS := $(CFLAGS) $(shell gdal-config --cflags)
 override LDLIBS := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
 
 # binaries
-BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle colormultiple triangles zbuffer get_projection_matrix vector_proj colorfancy get_msi_offset recale
+BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle colormultiple triangles zbuffer get_projection_matrix vector_proj colorfancy get_msi_offset recale trimesh
 BIN := $(addprefix bin/,$(BIN))
 OBJ := src/iio.o src/geographiclib_wrapper.o
 
@@ -36,8 +36,8 @@ ifeq (,$(shell $(CC) -dM -E - < /dev/null | grep __STDC_VERSION__))
 CFLAGS := $(CFLAGS) -std=gnu99
 endif
 
-bin/ncc_apply_shift: src/ncc_apply_shift.cc src/img.cc src/point.cc 
-	g++ $^ src/iio.o -lpng -ltiff -ljpeg -o $@
+bin/ncc_apply_shift: src/ncc_apply_shift.cc src/img.cc src/point.cc
+	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
 
-bin/ncc_compute_shift: src/ncc_compute_shift.cc src/img.cc src/point.cc 
-	g++ $^ src/iio.o -lpng -ltiff -ljpeg -o $@
+bin/ncc_compute_shift: src/ncc_compute_shift.cc src/img.cc src/point.cc
+	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
