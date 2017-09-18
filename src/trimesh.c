@@ -12,12 +12,33 @@
 
 // data structure to store a triangular mesh
 struct trimesh {
+	// 1. essential data
 	int nv;       // number of vertices
 	int nt;       // number of triangles
 	int max_nv;   // size of vertex array
 	int max_nt;   // size of triangle array
-	float *v;     // array of vertices
-	int *t;       // array of triangles
+	float *v;     // vertices (3D points)
+	int *t;       // triangles (triplets of vertex indices)
+
+#ifdef TRIMESH_MORE_STUFF
+	// 2. accessory data, that can be computed from the essential data
+
+	// 2.1. graph of edges (a directed graph with double edges)
+	int ne;       // number of edges
+	int *e;       // list of edges (pairs of vertex indices)
+
+	// 2.2. access from any point
+	// sides of edges (ne pairs of triangle indices)
+	// sides of triangles (nt triplets of edge indices)
+
+	// 2.3. edge fans (two tables of length nv)
+	// first edge around each vertex
+	// next edge in the triangle list
+
+	// 2.4. triangle fans
+	// first triangle around each vertex (two tables of length nv)
+	// next triangle in the triangle list
+#endif//TRIMESH_MORE_STUFF
 };
 
 
@@ -29,6 +50,7 @@ void trimesh_free_tables(struct trimesh *m)
 }
 
 // allocate vertex and triangle tables
+// (this function is always called to construcit a mesh)
 static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 {
 	m->nv = 0;
@@ -37,12 +59,17 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 	m->max_nt = nt;
 	m->v = malloc(1000+3 * nv * sizeof*(m->v));
 	m->t = malloc(1000+3 * nt * sizeof*(m->t));
+
+#ifdef TRIMESH_MORE_STUFF
+	m->ne = 0;
+	m->e = NULL;
+#endif//TRIMESH_MORE_STUFF
 }
 
 // add a vertex (and return its index)
 static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 {
-	//fprintf(stderr, "trimesh_add_vertex_%d : %g %g %g\n", m->nv, x, y, z);
+	//fprintf(stderr, "trimesh_add_vertex_%d : %g %g %g\n", m->nv, x,y,z);
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nv + 1 <= m->max_nv);
 
@@ -55,7 +82,7 @@ static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 // add a triangle (and return its index)
 static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
-	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a, b, c);
+	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a,b,c);
 	// TODO: instead of aborting, realloc more memory as necessary
 	assert(m->nt + 1 <= m->max_nt);
 
@@ -151,8 +178,10 @@ void trimesh_read_from_ply(struct trimesh *m, char *fname)
 	char buf[FILENAME_MAX] = {0};
 	while (fgets(buf, FILENAME_MAX, f)) { // read a line into "buf"
 		int tmp;
-		if (1 == sscanf(buf, "element vertex %d\n", &tmp)) n_vertices = tmp;
-		if (1 == sscanf(buf, "element face %d\n", &tmp)) n_triangles = tmp;
+		if (1 == sscanf(buf, "element vertex %d\n", &tmp))
+			n_vertices = tmp;
+		if (1 == sscanf(buf, "element face %d\n", &tmp))
+			n_triangles = tmp;
 		if (0 == strcmp(buf, "end_header\n"))
 			break;
 	}
@@ -188,6 +217,55 @@ void trimesh_read_from_ply(struct trimesh *m, char *fname)
 	fclose(f);
 }
 
+#ifdef TRIMESH_MORE_STUFF
+
+#define BAD_MIN(a,b) (a)<(b)?(a):(b);
+#define BAD_MAX(a,b) (a)>(b)?(a):(b);
+void trimesh_fill_edges(struct trimesh *m)
+{
+	// allocate space for the maximum possible number of edges
+	int *e = malloc(2 * 3 * m->nt * sizeof*e);
+
+	// add all edges in a canonical orientation, possibly repeated
+	int ne = 0;
+	for (int i = 0; i < m->nt; i++)
+	for (int k = 0; k < 3; k++)
+	{
+		e[2*ne+0] = BAD_MIN(m->t[3*i+k], m->t[3*i+(k%3)]);
+		e[2*ne+1] = BAD_MAX(m->t[3*i+k], m->t[3*i+(k%3)]);
+		ne += 1;
+	}
+
+	// sort the list of edges
+	qsort(e, ne, 2*sizeof*e, compare_int_pair);
+
+	// remove repeated edges
+	int *p = e;
+	int *q = e;
+	while (q < e + 2*ne)
+	{
+		if (p[0] != q[0] || p[1] != q[1])
+		{
+			p[0] = q[0];
+			p[1] = q[1];
+			p += 2;
+		}
+		q += 2;
+	}
+
+	// duplicate the list of edges
+	for (int i = 0; i < ne; i++)
+	{
+		e[2*(ne+i) + 0] = e[2*i + 1];
+		e[2*(ne+i) + 1] = e[2*i + 0];
+	}
+
+	// update struct, and finish
+	m->e = e;
+	m->ne = 2 * ne;
+}
+#endif//TRIMESH_MORE_STUFF
+
 #ifdef TRIMESH_DEMO_MAIN
 #include "iio.h"
 int main(int c, char *v[])
@@ -208,8 +286,6 @@ int main(int c, char *v[])
 
 	// save triangulation into ply flie
 	trimesh_write_to_ply(filename_out, m);
-
-
 
 
 	// cleanup and exit
