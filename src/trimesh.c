@@ -266,6 +266,57 @@ void trimesh_fill_edges(struct trimesh *m)
 }
 #endif//TRIMESH_MORE_STUFF
 
+
+#ifdef TRIMESH_CALCULUS
+void trimesh_gradient(
+		struct trimesh *m,  // base mesh
+		float *y,           // output gradient (array of length m->ne/2)
+		float *x            // input function (array of length m->nv)
+		)
+{
+	for (int i = 0; i < m->ne/2; i++)
+		y[i] = x[ m->e[2*i+1] ]  -  x[ m->e[2*i+1] ];
+}
+
+void trimesh_centering(
+		struct trimesh *m,  // base mesh
+		float *y,           // output field (array of length m->ne/2)
+		float *x            // input function (array of length m->nv)
+		)
+{
+	for (int i = 0; i < m->ne/2; i++)
+		y[i] = 0.5 * (  x[ m->e[2*i+1] ]  +  x[ m->e[2*i+1] ]  );
+}
+
+void trimesh_divergence(
+		struct trimesh *m,  // base mesh
+		float *y,           // output divergence (array of length m->nv)
+		float *x            // input field (array of length m->ne/2)
+		)
+{
+	for (int i = 0; i < m->nv; i++)
+		y[i] = 0;
+
+	for (int i = 0; i < m->ne/2; i++)
+	{
+		y[ m->e[2*i+1] ] += x[i];
+		y[ m->e[2*i+0] ] -= x[i];
+	}
+}
+
+void trimesh_laplacian(
+		struct trimesh *m,  // base mesh
+		float *y,           // output laplacian (array of length m->nv)
+		float *x            // input function (array of length m->nv)
+		)
+{
+	float *d = malloc(m->ne * sizeof*d);
+	trimesh_gradient(m, d, x);
+	trimesh_divergence(m, y, d);
+	free(d);
+}
+#endif//TRIMESH_CALCULUS
+
 #ifdef TRIMESH_DEMO_MAIN
 #include "iio.h"
 int main(int c, char *v[])
