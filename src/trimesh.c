@@ -1,7 +1,7 @@
-// data structure and functions for triangular mesh I/O
+// data structure and functions for triangular mesh I/O                     {{{1
 
 
-
+// #includes                                                                {{{1
 #include <assert.h>   // assert
 #include <math.h>     // isfinite
 #include <stdbool.h>  // bool
@@ -9,8 +9,7 @@
 #include <stdlib.h>   // malloc, realloc, free, exit
 #include <string.h>   // strcmp
 
-
-// data structure to store a triangular mesh
+// "struct trimesh" : a data structure to store a triangular mesh           {{{1
 struct trimesh {
 	// 1. essential data
 	int nv;       // number of vertices
@@ -42,14 +41,14 @@ struct trimesh {
 };
 
 
-// free the memory associated to the mesh
+// free the memory associated to the mesh                                   {{{1
 void trimesh_free_tables(struct trimesh *m)
 {
 	free(m->v);
 	free(m->t);
 }
 
-// allocate vertex and triangle tables
+// allocate vertex and triangle tables                                      {{{1
 // (this function is always called to construcit a mesh)
 static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 {
@@ -66,7 +65,7 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 #endif//TRIMESH_MORE_STUFF
 }
 
-// add a vertex (and return its index)
+// add a vertex (and return its index)                                      {{{1
 static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 {
 	//fprintf(stderr, "trimesh_add_vertex_%d : %g %g %g\n", m->nv, x,y,z);
@@ -79,7 +78,7 @@ static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 	return m->nv++;
 }
 
-// add a triangle (and return its index)
+// add a triangle (and return its index)                                    {{{1
 static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
 	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a,b,c);
@@ -96,7 +95,7 @@ static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 	return m->nt++;
 }
 
-// function to create a mesh from a digital elevation map
+// function to create a mesh from a digital elevation map                   {{{1
 void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 {
 	// initialize the mesh
@@ -131,7 +130,7 @@ void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 	free(t);
 }
 
-// function to save a triangulated surface to a ply file
+// function to save a triangulated surface to a ply file                    {{{1
 void trimesh_write_to_ply(char *fname, struct trimesh *m)
 {
 	// dump the ply file (with dsm-inherited connectivity)
@@ -165,6 +164,7 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fclose(f);
 }
 
+// function to read a triangulated surface from a ply file                  {{{1
 void trimesh_read_from_ply(struct trimesh *m, char *fname)
 {
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
@@ -219,6 +219,7 @@ void trimesh_read_from_ply(struct trimesh *m, char *fname)
 
 #ifdef TRIMESH_MORE_STUFF
 
+// function to compute the array of edges of a mesh                         {{{1
 #define BAD_MIN(a,b) (a)<(b)?(a):(b);
 #define BAD_MAX(a,b) (a)>(b)?(a):(b);
 void trimesh_fill_edges(struct trimesh *m)
@@ -268,7 +269,7 @@ void trimesh_fill_edges(struct trimesh *m)
 
 
 #ifdef TRIMESH_CALCULUS
-void trimesh_gradient(
+void trimesh_gradient(                                                   // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output gradient (array of length m->ne/2)
 		float *x            // input function (array of length m->nv)
@@ -278,7 +279,7 @@ void trimesh_gradient(
 		y[i] = x[ m->e[2*i+1] ]  -  x[ m->e[2*i+1] ];
 }
 
-void trimesh_centering(
+void trimesh_centering(                                                  // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output field (array of length m->ne/2)
 		float *x            // input function (array of length m->nv)
@@ -288,7 +289,7 @@ void trimesh_centering(
 		y[i] = 0.5 * (  x[ m->e[2*i+1] ]  +  x[ m->e[2*i+1] ]  );
 }
 
-void trimesh_divergence(
+void trimesh_divergence(                                                 // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output divergence (array of length m->nv)
 		float *x            // input field (array of length m->ne/2)
@@ -304,7 +305,7 @@ void trimesh_divergence(
 	}
 }
 
-void trimesh_laplacian(
+void trimesh_laplacian(                                                  // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output laplacian (array of length m->nv)
 		float *x            // input function (array of length m->nv)
@@ -317,6 +318,8 @@ void trimesh_laplacian(
 }
 #endif//TRIMESH_CALCULUS
 
+
+// example "main" function                                                  {{{1
 #ifdef TRIMESH_DEMO_MAIN
 #include "iio.h"
 int main(int c, char *v[])
@@ -354,3 +357,6 @@ int main(int c, char *v[])
 	return 0;
 }
 #endif//TRIMESH_DEMO_MAIN
+
+
+// vim:set foldmethod=marker:
