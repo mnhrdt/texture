@@ -20,8 +20,6 @@ struct trimesh {
 	float *v;     // vertices (3D points)
 	int *t;       // triangles (triplets of vertex indices)
 
-        // 3. color data, to be filled during colorisation.
-        float *vc; // vertices (RGB)
 #ifdef TRIMESH_MORE_STUFF
 	// 2. accessory data, that can be computed from the essential data
 
@@ -152,12 +150,6 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fprintf(f, "property float x\n");
 	fprintf(f, "property float y\n");
 	fprintf(f, "property float z\n");
-        if (m->vc)
-        {
-                fprintf(f, "property float red\n");
-                fprintf(f, "property float green\n");
-                fprintf(f, "property float blue\n");
-        }
 	fprintf(f, "element face %d\n", m->nt);
 	fprintf(f, "property list uchar int vertex_indices\n");
 	fprintf(f, "end_header\n");
@@ -166,6 +158,44 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	for (int i = 0; i < m->nv; i++)
                 fprintf(f, "%.16lf %.16lf %.16lf\n",
 				m->v[3*i+0], m->v[3*i+1], m->v[3*i+2]);
+
+	// print triangles
+	for (int i = 0; i < m->nt; i++)
+                fprintf(f, "3 %d %d %d\n",
+				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+
+	// cleanup
+	fclose(f);
+}
+
+// function to save a triangulated surface to a ply file
+void trimesh_write_to_coloured_ply(char *fname, struct trimesh *mi, double *c)
+{
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment bare triangulated surface\n");
+	fprintf(f, "element vertex %d\n", m->nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+        fprintf(f, "property float red\n");
+        fprintf(f, "property float green\n");
+        fprintf(f, "property float blue\n");
+	fprintf(f, "element face %d\n", m->nt);
+	fprintf(f, "property list uchar int vertex_indices\n");
+	fprintf(f, "end_header\n");
+
+	// print points
+	for (int i = 0; i < m->nv; i++)
+                fprintf(f, "%.16lf %.16lf %.16lf %lf %lf %lf\n",
+				m->v[3*i+0], m->v[3*i+1], m->v[3*i+2],
+                                c[i], c[i], c[i]);
 
 	// print triangles
 	for (int i = 0; i < m->nt; i++)
