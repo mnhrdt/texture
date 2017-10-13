@@ -27,6 +27,9 @@ $(BIN) : bin/% : src/%.o $(OBJ)
 clean: ; $(RM) $(BIN) src/*.o
 .PHONY: clean default
 
+-include .deps.mk
+.deps.mk:;cc -MM src/*.c|sed 's/^\([^[:blank:]]\)/src\/\1/g'>$@
+
 # unit test
 test: bin/colorize
 	./bin/colorize data/Challenge1_Lidar.tif -21 data/img_01.ntf data/img_01.rpc out_colors.tif
@@ -36,6 +39,8 @@ ifeq (,$(shell $(CC) -dM -E - < /dev/null | grep __STDC_VERSION__))
 CFLAGS := $(CFLAGS) -std=gnu99
 endif
 
+
+# other builds
 bin/ncc_apply_shift: src/ncc_apply_shift.cc src/img.cc src/point.cc
 	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
 
