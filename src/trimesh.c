@@ -37,11 +37,11 @@ struct trimesh {
 	// first edge around each vertex
 	// next edge in the edge list
 
-	// 2.4. triangle fans (two tables of length nv)
-	int *tfirst;  // first triangle around each vertex
-	int *tnext_a; // next triangle in the triangle list
-	int *tnext_b; // next triangle in the triangle list
-	int *tnext_c; // next triangle in the triangle list
+	// 2.4. triangle fans
+	int *tfirst;  // first triangle around each vertex (length nv)
+	int *tnext_a; // next triangle in the triangle list (length nt)
+	int *tnext_b; // next triangle in the triangle list (length nt)
+	int *tnext_c; // next triangle in the triangle list (length nt)
 
 #endif//TRIMESH_MORE_STUFF
 };
@@ -92,6 +92,12 @@ static int trimesh_add_vertex(struct trimesh *m, float x, float y, float z)
 }
 
 // add a triangle (and return its index)                                    {{{1
+static void swapint(int *a, int *b)
+{
+	int t = *a;
+	*a = *b;
+	*b = t;
+}
 static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
 	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a,b,c);
@@ -101,6 +107,10 @@ static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 	assert(a >= 0); assert(a < m->nv);
 	assert(b >= 0); assert(b < m->nv);
 	assert(c >= 0); assert(c < m->nv);
+
+	if (a > b) swapint(&a, &b);
+	if (b > c) swapint(&b, &c);
+	if (a > b) swapint(&a, &b);
 
 	m->t[3*m->nt + 0] = a;
 	m->t[3*m->nt + 1] = b;
@@ -203,11 +213,11 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
 	// print points
 	for (int i = 0; i < m->nv; i++)
                 fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
-				0.3*m->v[3*i+0], 0.3*m->v[3*i+1], 
+				0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
                                 m->v[3*i+2],
-                                (int) round(c[3*i+0]), 
-                                (int) round(c[3*i+1]), 
-                                (int) round(c[3*i+2])); 
+                                (int) round(c[3*i+0]),
+                                (int) round(c[3*i+1]),
+                                (int) round(c[3*i+2]));
 
 
 	// print triangles
@@ -328,6 +338,66 @@ void trimesh_fill_edges(struct trimesh *m)
 	m->e = e;
 	m->ne = 2 * ne;
 }
+
+static void list_add_triangle(int *first, int *next, int t, int v)
+{
+	// update a linked list
+	if (first[v] < 0) {
+		assert(next[t] < 0);
+		next[t] = t;
+		first[v] = t;
+	} else {
+		next[t] = first[v];
+		first[v] = t;
+	}
+}
+// function to compute the triangle fans of a mesh                         {{{1
+static void trimesh_fill_triangle_fans(struct trimesh *m)
+{
+	// allocate space
+	int *f = malloc(m->nv * sizeof*f);
+	int *a = malloc(m->nt * sizeof*a);
+	int *b = malloc(m->nt * sizeof*b);
+	int *c = malloc(m->nt * sizeof*c);
+
+	// initialize each linked list to empty
+	for (int i = 0; i < m->nv; i++) f[i] = -1;
+	for (int i = 0; i < m->nt; i++) a[i] = -1;
+	for (int i = 0; i < m->nt; i++) b[i] = -1;
+	for (int i = 0; i < m->nt; i++) c[i] = -1;
+
+	// add each triangle to its list
+	for (int i = 0; i < m->nt; i++) list_add_triangle(f, a, i, m->t[3*i+0]);
+	for (int i = 0; i < m->nt; i++) list_add_triangle(f, b, i, m->t[3*i+1]);
+	for (int i = 0; i < m->nt; i++) list_add_triangle(f, c, i, m->t[3*i+2]);
+
+	// update struct, and finish
+	m->tfirst  = f;
+	m->tnext_a = a;
+	m->tnext_b = b;
+	m->tnext_c = c;
+}
+int trimesh_get_triangle_fan(int *out, struct trimesh *m, int t)
+{
+	if (!m->tfirst) trimesh_fill_triangle_fans(m);
+
+	int r = 0;
+	// TODO : FIXME : XXX : implement this function
+//	if (m->tfirst[t])
+//	{
+//		out[0] = t;
+//		while(m->tnext // do stuff
+//				}
+	return r;
+}
+static void trimesh_test_triangle_fans(struct trimesh *m)
+{
+	printf("nv = %d\n", m->nv);
+	printf("nt = %d\n", m->nt);
+	for (int i = 0; i < m->nt; i++)
+		printf("t[%d] = %d %d %d\n",
+				i, m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+}
 #endif//TRIMESH_MORE_STUFF
 
 
@@ -346,6 +416,16 @@ void trimesh_centering(                                                  // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output field (array of length m->ne/2)
 		float *x            // input function (array of length m->nv)
+		)
+{
+	for (int i = 0; i < m->ne/2; i++)
+		y[i] = 0.5 * (  x[ m->e[2*i+1] ]  +  x[ m->e[2*i+1] ]  );
+}
+
+void trimesh_recentering(                                                // {{{1
+		struct trimesh *m,  // base mesh
+		float *y,           // output function (array of length m->nv)
+		float *x            // input field (array of length m->ne/2)
 		)
 {
 	for (int i = 0; i < m->ne/2; i++)
@@ -401,21 +481,28 @@ int main(int c, char *v[])
 	struct trimesh m[1];
 	trimesh_create_from_dem(m, x, w, h);
 
+#ifdef TRIMESH_MORE_STUFF
+	// stuff
+	trimesh_fill_triangle_fans(m);
+	trimesh_test_triangle_fans(m);
+#endif//TRIMESH_MORE_STUFF
+
 	// save triangulation into ply flie
 	trimesh_write_to_ply(filename_out, m);
-
 
 	// cleanup and exit
 	trimesh_free_tables(m);
 	free(x);
 
 	// do a silly consistency loop
-	struct trimesh n[1];
-	trimesh_read_from_ply(n, filename_out);
-	trimesh_write_to_ply("/tmp/plytmp.ply", n);
+	if (*filename_out != '-') {
+		struct trimesh n[1];
+		trimesh_read_from_ply(n, filename_out);
+		trimesh_write_to_ply("/tmp/plytmp.ply", n);
+		trimesh_free_tables(n);
+	}
 
 	// cleanup and exit
-	trimesh_free_tables(n);
 	//free(x);
 	return 0;
 }

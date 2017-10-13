@@ -1,6 +1,6 @@
 # the following two options are used to control all C and C++ compilations
-CFLAGS   ?= -march=native -O3 -g #-Wall -g
-CXXFLAGS ?= -march=native -O3 -g #-Wall -Wextra -g
+CFLAGS   ?= -march=native -O2 -g #-Wall -g
+CXXFLAGS ?= -march=native -O2 -g #-Wall -Wextra -g
 
 # required libraries
 IIOLIBS := -lz -ltiff -lpng -ljpeg -lm
@@ -24,11 +24,10 @@ $(BIN) : bin/% : src/%.o $(OBJ)
 
 
 # bureaucracy
-clean: ; $(RM) $(BIN) src/*.o
-.PHONY: clean default
-
 -include .deps.mk
-.deps.mk:;$(CC) -MM src/*.c|sed 's_^[a-z]_src/&_'>$@
+.deps.mk : ; $(CC) -MM src/*.c|sed 's_^[a-z]_src/&_'>$@
+clean    : ; $(RM) $(BIN) src/*.o
+.PHONY   : clean default
 
 # unit test
 test: bin/colorize
@@ -46,3 +45,6 @@ bin/ncc_apply_shift: src/ncc_apply_shift.cc src/img.cc src/point.cc
 
 bin/ncc_compute_shift: src/ncc_compute_shift.cc src/img.cc src/point.cc
 	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
+
+bin/trimesh: src/trimesh.c src/iio.o
+	$(CC) $(CFLAGS) -DTRIMESH_DEMO_MAIN $^ -o $@ $(IIOLIBS)
