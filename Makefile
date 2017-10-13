@@ -28,7 +28,7 @@ clean: ; $(RM) $(BIN) src/*.o
 .PHONY: clean default
 
 -include .deps.mk
-.deps.mk:;cc -MM src/*.c|sed 's/^\([^[:blank:]]\)/src\/\1/g'>$@
+.deps.mk:;$(CC) -MM src/*.c|sed 's_^[a-z]_src/&_'>$@
 
 # unit test
 test: bin/colorize
