@@ -216,6 +216,7 @@ int main_zbuffer(int c, char *v[])
         char *filename_img = v[3];
         char *filename_rpc= v[4];
         char *filename_out = v[6];
+        char *filename_mesh = v[7];
 
         // read the whole input DSM (typically, rather small)
         int w, h;
@@ -261,7 +262,6 @@ int main_zbuffer(int c, char *v[])
         fclose(corners);
 
 
-        printf("ligne 262\n");
         // allocate space for same size multispectral image for (e, n, z, nx, ny, nz)
         // initialise height to -100.
         double *img_copy = malloc(3 * wi * hi * sizeof(double));
@@ -359,7 +359,6 @@ int main_zbuffer(int c, char *v[])
                         if (!is_in_crop_int(ij_int, xywihi)) 
                         {
                             //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
-                                img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = 0;
                                 in_image = false;
                                 for (int k = 0; k < 2; k++)
                                         out[2*vertices[l] + k] = NAN;
@@ -423,11 +422,8 @@ int main_zbuffer(int c, char *v[])
                 int j = (int) round(m->v[3*nv + 1]);
 
                 if (!v_visibility[nv])
-                {
-                        out[2*(i+j*w)] = -20;
-                        out[2*(i+j*w)+1] = -20;
                         continue;
-                }
+               
                 double e = i*scale[0] + origin[0];
                 double n = j*scale[1] + origin[1];
                 double z = m->v[3*nv + 2];
@@ -470,9 +466,9 @@ int main_zbuffer(int c, char *v[])
 
                 }
         }
-        printf("w : %d, h : %d, wi : %d, hi : %d, nv : %d\n", w, h, wi, hi, m->nv);
         iio_save_image_double(filename_out, out, m->nv, 2);
         //iio_save_image_double_vec(filename_out, out, w, h, 2);
+        trimesh_write_to_ply(filename_mesh, m);
 
         free(img_copy); free(out); free(v_visibility);
         return 0;

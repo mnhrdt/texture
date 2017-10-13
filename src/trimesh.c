@@ -61,8 +61,6 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 	m->v = malloc(1000+3 * nv * sizeof*(m->v));
 	m->t = malloc(1000+3 * nt * sizeof*(m->t));
 
-        m->vc = NULL;
-
 #ifdef TRIMESH_MORE_STUFF
 	m->ne = 0;
 	m->e = NULL;
@@ -169,7 +167,7 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 }
 
 // function to save a triangulated surface to a ply file
-void trimesh_write_to_coloured_ply(char *fname, struct trimesh *mi, double *c)
+void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
 {
 	// dump the ply file (with dsm-inherited connectivity)
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
@@ -184,18 +182,22 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *mi, double *c)
 	fprintf(f, "property float x\n");
 	fprintf(f, "property float y\n");
 	fprintf(f, "property float z\n");
-        fprintf(f, "property float red\n");
-        fprintf(f, "property float green\n");
-        fprintf(f, "property float blue\n");
+        fprintf(f, "property uchar red\n");
+        fprintf(f, "property uchar green\n");
+        fprintf(f, "property uchar blue\n");
 	fprintf(f, "element face %d\n", m->nt);
 	fprintf(f, "property list uchar int vertex_indices\n");
 	fprintf(f, "end_header\n");
 
 	// print points
 	for (int i = 0; i < m->nv; i++)
-                fprintf(f, "%.16lf %.16lf %.16lf %lf %lf %lf\n",
-				m->v[3*i+0], m->v[3*i+1], m->v[3*i+2],
-                                c[i], c[i], c[i]);
+                fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
+				0.3*m->v[3*i+0], 0.3*m->v[3*i+1], 
+                                m->v[3*i+2],
+                                (int) round(c[3*i+0]), 
+                                (int) round(c[3*i+1]), 
+                                (int) round(c[3*i+2])); 
+
 
 	// print triangles
 	for (int i = 0; i < m->nt; i++)
