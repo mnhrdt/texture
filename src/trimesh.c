@@ -38,6 +38,9 @@ struct trimesh {
 	// 2.4. triangle fans
 	// first triangle around each vertex (two tables of length nv)
 	// next triangle in the triangle list
+
+        // 3. color data that has to be filled during colorisation.
+        float *vc; // vertices (RGB)
 #endif//TRIMESH_MORE_STUFF
 };
 
@@ -63,6 +66,7 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 #ifdef TRIMESH_MORE_STUFF
 	m->ne = 0;
 	m->e = NULL;
+        m->vc = NULL;
 #endif//TRIMESH_MORE_STUFF
 }
 
