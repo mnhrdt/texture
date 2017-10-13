@@ -9,6 +9,9 @@
 #include <stdlib.h>   // malloc, realloc, free, exit
 #include <string.h>   // strcmp
 
+// #defines                                                                 {{{1
+#define TRIMESH_MORE_STUFF
+
 // "struct trimesh" : a data structure to store a triangular mesh           {{{1
 struct trimesh {
 	// 1. essential data
@@ -32,11 +35,14 @@ struct trimesh {
 
 	// 2.3. edge fans (two tables of length nv)
 	// first edge around each vertex
-	// next edge in the triangle list
+	// next edge in the edge list
 
-	// 2.4. triangle fans
-	// first triangle around each vertex (two tables of length nv)
-	// next triangle in the triangle list
+	// 2.4. triangle fans (two tables of length nv)
+	int *tfirst;  // first triangle around each vertex
+	int *tnext_a; // next triangle in the triangle list
+	int *tnext_b; // next triangle in the triangle list
+	int *tnext_c; // next triangle in the triangle list
+
 #endif//TRIMESH_MORE_STUFF
 };
 
@@ -46,6 +52,12 @@ void trimesh_free_tables(struct trimesh *m)
 {
 	free(m->v);
 	free(m->t);
+#ifdef TRIMESH_MORE_STUFF
+	void *t[5] = {m->e, m->tfirst, m->tnext_a, m->tnext_b, m->tnext_c};
+	for (int i = 0; i < 5; i++)
+		if (t[i])
+			free(t[i]);
+#endif//TRIMESH_MORE_STUFF
 }
 
 // allocate vertex and triangle tables                                      {{{1
@@ -62,6 +74,7 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 #ifdef TRIMESH_MORE_STUFF
 	m->ne = 0;
 	m->e = NULL;
+	m->tfirst = m->tnext_a = m->tnext_b = m->tnext_c = NULL;
 #endif//TRIMESH_MORE_STUFF
 }
 
@@ -164,6 +177,48 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fclose(f);
 }
 
+// function to save a triangulated surface to a ply file                    {{{1
+void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
+{
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment bare triangulated surface\n");
+	fprintf(f, "element vertex %d\n", m->nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+        fprintf(f, "property uchar red\n");
+        fprintf(f, "property uchar green\n");
+        fprintf(f, "property uchar blue\n");
+	fprintf(f, "element face %d\n", m->nt);
+	fprintf(f, "property list uchar int vertex_indices\n");
+	fprintf(f, "end_header\n");
+
+	// print points
+	for (int i = 0; i < m->nv; i++)
+                fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
+				0.3*m->v[3*i+0], 0.3*m->v[3*i+1], 
+                                m->v[3*i+2],
+                                (int) round(c[3*i+0]), 
+                                (int) round(c[3*i+1]), 
+                                (int) round(c[3*i+2])); 
+
+
+	// print triangles
+	for (int i = 0; i < m->nt; i++)
+                fprintf(f, "3 %d %d %d\n",
+				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+
+	// cleanup
+	fclose(f);
+}
+
 // function to read a triangulated surface from a ply file                  {{{1
 void trimesh_read_from_ply(struct trimesh *m, char *fname)
 {
@@ -222,6 +277,14 @@ void trimesh_read_from_ply(struct trimesh *m, char *fname)
 // function to compute the array of edges of a mesh                         {{{1
 #define BAD_MIN(a,b) (a)<(b)?(a):(b);
 #define BAD_MAX(a,b) (a)>(b)?(a):(b);
+static int compare_int_pair(const void *aa, const void *bb)
+{
+	const int *a = (const int *)aa;
+	const int *b = (const int *)bb;
+	int x = (a[0] < b[0]) - (a[0] > b[0]);
+	int y = (a[1] < b[1]) - (a[1] > b[1]);
+	return x ? x : y;
+}
 void trimesh_fill_edges(struct trimesh *m)
 {
 	// allocate space for the maximum possible number of edges
