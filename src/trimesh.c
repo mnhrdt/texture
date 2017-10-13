@@ -20,6 +20,8 @@ struct trimesh {
 	float *v;     // vertices (3D points)
 	int *t;       // triangles (triplets of vertex indices)
 
+        // 3. color data, to be filled during colorisation.
+        float *vc; // vertices (RGB)
 #ifdef TRIMESH_MORE_STUFF
 	// 2. accessory data, that can be computed from the essential data
 
@@ -39,8 +41,6 @@ struct trimesh {
 	// first triangle around each vertex (two tables of length nv)
 	// next triangle in the triangle list
 
-        // 3. color data that has to be filled during colorisation.
-        float *vc; // vertices (RGB)
 #endif//TRIMESH_MORE_STUFF
 };
 
@@ -63,10 +63,11 @@ static void trimesh_alloc_tables(struct trimesh *m, int nv, int nt)
 	m->v = malloc(1000+3 * nv * sizeof*(m->v));
 	m->t = malloc(1000+3 * nt * sizeof*(m->t));
 
+        m->vc = NULL;
+
 #ifdef TRIMESH_MORE_STUFF
 	m->ne = 0;
 	m->e = NULL;
-        m->vc = NULL;
 #endif//TRIMESH_MORE_STUFF
 }
 
@@ -151,6 +152,12 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fprintf(f, "property float x\n");
 	fprintf(f, "property float y\n");
 	fprintf(f, "property float z\n");
+        if (m->vc)
+        {
+                fprintf(f, "property float red\n");
+                fprintf(f, "property float green\n");
+                fprintf(f, "property float blue\n");
+        }
 	fprintf(f, "element face %d\n", m->nt);
 	fprintf(f, "property list uchar int vertex_indices\n");
 	fprintf(f, "end_header\n");
