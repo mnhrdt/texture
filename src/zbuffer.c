@@ -8,6 +8,7 @@
 #include "drawtriangle.c"
 #include "trimesh.c"
 #include "rpc.c"
+#include "pickopt.c"
 
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
@@ -208,6 +209,7 @@ static void interpolate_vertices_values(int i, int j, void *ee)
 
 int main_zbuffer(int c, char *v[])
 {
+        double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
         char *filename_dsm = v[1];
         int signed_zone    = atoi(v[2]);
         char *filename_corners = v[5];
@@ -271,6 +273,9 @@ int main_zbuffer(int c, char *v[])
         }
 
         // allocate space for output image and initialise to -1.
+//        double *out = malloc(2 * w * h * sizeof(double));
+//        for (int i = 0; i < 2 * w * h; i++)
+//                out[i] = -1;
         double *out = malloc(2 * m->nv * sizeof(double));
         for (int i = 0; i < 2 * m->nv; i++)
                 out[i] = -1;
@@ -294,22 +299,7 @@ int main_zbuffer(int c, char *v[])
                         coins[k+2*l][0] = k*w;
                         coins[k+2*l][1] = l*h;
                 }
-        for (int k = 0; k < 4; k++)
-        {
-                int i = coins[k][0];
-                int j = coins[k][1];
-                double e = i * scale[0] + origin[0];
-                double n = j * scale[1] + origin[1];
-                double z = (double) x[i+j*w];
-                if (z<0)
-                        z = 20.0; // TO DO: put mean value
-                double lonlat[2] = {0, 0};
-                lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
-                double lonlatheight[3] = {lonlat[0], lonlat[1], z};
-                double ij[2] = {0, 0};
-                rpc_projection(ij, huge_rpc, lonlatheight);
-                printf("i %d j %d i_im %lf j_im %lf\n", i, j, ij[0], ij[1]);
-        }
+
         // loop over mesh faces and fill img_copy with height of lidar point
         // keep only the highest heigtht for each point to deal with occlusions
         for (int nt = 0; nt < m->nt; nt++)
@@ -369,9 +359,11 @@ int main_zbuffer(int c, char *v[])
                         if (!is_in_crop_int(ij_int, xywihi)) 
                         {
                             //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
+                                img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = 0;
                                 in_image = false;
                                 for (int k = 0; k < 2; k++)
                                         out[2*vertices[l] + k] = NAN;
+                                        //out[2*((int) round(i)+(int) round(j)*w) + k] = NAN;
                                 continue;
                         }
                         // indicate that the vertex is part of a well-oriented face
@@ -383,8 +375,7 @@ int main_zbuffer(int c, char *v[])
                                 v_coord_im[l][k] = ij_int[k];
 
                         // fill img_copy only if it is the highest point
-                        if (is_in_crop_int(ij_int, xywihi))
-                        if (img_copy[ij_int[1]*wi+ij_int[0]] <= z)
+                        if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
                         {
                                 img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
                                 img_copy[3*(ij_int[1]*wi+ij_int[0])+1] = n-origin[1];
@@ -427,11 +418,16 @@ int main_zbuffer(int c, char *v[])
                 // and is part of a well oriented triangle.
                 // Otherwise, go to the next vertex.
         {
-                if (!v_visibility[nv])
-                        continue;
         
                 int i = (int) round(m->v[3*nv + 0]);
                 int j = (int) round(m->v[3*nv + 1]);
+
+                if (!v_visibility[nv])
+                {
+                        out[2*(i+j*w)] = -20;
+                        out[2*(i+j*w)+1] = -20;
+                        continue;
+                }
                 double e = i*scale[0] + origin[0];
                 double n = j*scale[1] + origin[1];
                 double z = m->v[3*nv + 2];
@@ -451,9 +447,11 @@ int main_zbuffer(int c, char *v[])
                         ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
                 if (img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2] == z)
                         for (int k = 0; k < 2; k++)
-                                out[2*(i+j*w)+k] = ij[k]-xywh[k];
+                                out[2*nv+k] = ij[k]-xywh[k];
+                                //out[2*(i+j*w)+k] = ij[k]-xywh[k];
                 else
                 {
+                        //printf("img_copy %lf z %lf\n", img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2], z);
                         double enz[3] = {e-origin[0], n-origin[1], z};
                         for (int k = 0; k < 3; k++)
                                 enz_ref[k] = img_copy[3*(ij_int[1]*wi+ij_int[0])+k];
@@ -465,14 +463,16 @@ int main_zbuffer(int c, char *v[])
                                         * (1-pow(n_cam[k],2));
                         // By Pythagore the result should be less than 0.3^2
                         // (resolution is 30cm per pixel
-                        if (diff < 0.09)
+                        if (diff < 2 * pow(resolution,2))
                                 for (int k = 0; k < 2; k++)
-                                        out[2*(i+j*w)+k] = ij[k] - xywh[k];
+                                        out[2*nv+k] = ij[k] - xywh[k];
+                                        //out[2*(i+j*w)+k] = ij[k] - xywh[k];
 
                 }
         }
         printf("w : %d, h : %d, wi : %d, hi : %d, nv : %d\n", w, h, wi, hi, m->nv);
-        iio_save_image_double_vec(filename_out, out, w, h, 2);
+        iio_save_image_double(filename_out, out, m->nv, 2);
+        //iio_save_image_double_vec(filename_out, out, w, h, 2);
 
         free(img_copy); free(out); free(v_visibility);
         return 0;
