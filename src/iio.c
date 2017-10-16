@@ -209,8 +209,8 @@ static const char *myname(void)
 {
 #  define n 0x29a
 	static char buf[n];
-	pid_t p = getpid();
-	snprintf(buf, n, "/proc/%d/cmdline", p);
+	long p = getpid();
+	snprintf(buf, n, "/proc/%ld/cmdline", p);
 	FILE *f = fopen(buf, "r");
 	if (!f) return emptystring;
 	int c, i = 0;
@@ -553,18 +553,18 @@ static const char *iio_strtyp(int type)
 #undef M
 }
 
-static int iio_inttyp(const char *typename)
+static int iio_inttyp(const char *type_name)
 {
-	int n = strlen(typename);
+	int n = strlen(type_name);
 	char utyp[n+1]; utyp[n] = '\0';
 	for (int i = 0; i < n; i++)
-		utyp[i] = toupper(typename[i]);
+		utyp[i] = toupper(type_name[i]);
 #define M(t) if(!strcmp(utyp,#t))return IIO_TYPE_ ## t
 	M(INT8); M(UINT8); M(INT16); M(UINT16); M(INT32); M(UINT32); M(INT64);
 	M(UINT64); M(FLOAT); M(DOUBLE); M(LONGDOUBLE); M(HALF); M(UINT1);
 	M(UINT2); M(UINT4); M(CHAR); M(SHORT); M(INT); M(LONG); M(LONGLONG);
 #undef M
-	fail("unrecognized typename \"%s\"", typename);
+	fail("unrecognized typename \"%s\"", type_name);
 }
 
 static const char *iio_strfmt(int format)
@@ -704,6 +704,32 @@ static void inplace_reorient(struct iio_image *x, int orientation)
 		inplace_transpose(x);
 }
 
+static void inplace_trim(struct iio_image *x,
+		int trim_left, int trim_bottom, int trim_right, int trim_top)
+{
+	assert(2 == x->dimension);
+	int ps = x->pixel_dimension * iio_image_sample_size(x); // pixel_size
+	int w = x->sizes[0];
+	int h = x->sizes[1];
+	int nw = w - trim_left - trim_right; // new width
+	int nh = h - trim_bottom - trim_top; // new height
+	assert(nw > 0 && nh > 0);
+	char *old_data = x->data;
+	char *new_data = xmalloc(nw * nh * ps);
+	for (int j = 0; j < nh; j++)
+	for (int i = 0; i < nw; i++)
+		memcpy(
+			new_data + ps * (j*nw+i),
+			old_data + ps * ((j+trim_top)*w+(i+trim_left)),
+			ps
+		);
+	x->sizes[0] = nw;
+	x->sizes[1] = nh;
+	x->data = new_data;
+	xfree(old_data);
+}
+
+
 
 // data conversion                                                          {{{1
 
@@ -748,7 +774,7 @@ static void convert_datum(void *dest, void *src, int dest_fmt, int src_fmt)
 	case CC(I2,I6): *( int32_t*)dest = *( int16_t*)src; break;
 
 	// different size unsigned integers (3 lossy, 3 lossless)
-	case CC(U8,U6): *( uint8_t*)dest = *(uint16_t*)src; break;//iw810
+	case CC(U8,U6): *( uint8_t*)dest = T8(*(uint16_t*)src); break;//iw810
 	case CC(U8,U2): *( uint8_t*)dest = *(uint32_t*)src; break;//iw810
 	case CC(U6,U2): *(uint16_t*)dest = *(uint32_t*)src; break;//iw810
 	case CC(U6,U8): *(uint16_t*)dest = *( uint8_t*)src; break;
@@ -895,14 +921,13 @@ static void *convert_data(void *src, int n, int dest_fmt, int src_fmt)
 	char *r = xmalloc(n * dest_width);
 	// NOTE: the switch inside "convert_datum" should be optimized
 	// outside of this loop
-	FORI(n) {
-		void *to  = i * dest_width + r;
-		void *from = i * src_width + (char *)src;
+	for (int i = 0; i < n; i++)
+	{
+		void *to   = i * dest_width + r;
+		void *from = i * src_width  + (char *)src;
 		convert_datum(to, from, dest_fmt, src_fmt);
 	}
 	xfree(src);
-	if (dest_fmt == IIO_TYPE_INT16)
-		IIO_DEBUG("first short sample = %d\n", *(int16_t*)r);
 	return r;
 }
 
@@ -1177,6 +1202,27 @@ recover_broken_pixels_float(float *clear, float *broken, int n, int pd)
 		clear[pd*i + l] = broken[n*l + i];
 }
 
+
+static void break_pixels_uint8(uint8_t *broken, uint8_t *clear, int n, int pd)
+{
+	FORI(n) FORL(pd)
+		broken[n*l + i] = clear[pd*i + l];
+}
+
+static void break_pixels_double(double *broken, double *clear, int n, int pd)
+{
+	FORI(n) FORL(pd)
+		broken[n*l + i] = clear[pd*i + l];
+}
+
+static void
+recover_broken_pixels_uint8(uint8_t *clear, uint8_t *broken, int n, int pd)
+{
+	FORL(pd) FORI(n)
+		clear[pd*i + l] = broken[n*l + i];
+}
+
+
 static
 void repair_broken_pixels(void *clear, void *broken, int n, int pd, int sz)
 {
@@ -1382,7 +1428,7 @@ static int read_whole_tiff(struct iio_image *x, const char *filename)
 	TIFFSetWarningHandler(NULL);//suppress warnings
 
 	//fprintf(stderr, "TIFFOpen \"%s\"\n", filename);
-	TIFF *tif = tiffopen_fancy(filename, "r");
+	TIFF *tif = tiffopen_fancy(filename, "rm");
 	if (!tif) fail("could not open TIFF file \"%s\"", filename);
 	uint32_t w, h;
 	uint16_t spp, bps, fmt;
@@ -1408,6 +1454,17 @@ static int read_whole_tiff(struct iio_image *x, const char *filename)
 	// TODO: consider the missing cases (run through PerlMagick's format database)
 
 	IIO_DEBUG("fmt  = %d\n", fmt);
+
+	// deal with complex issues
+	if (fmt == SAMPLEFORMAT_COMPLEXINT || fmt == SAMPLEFORMAT_COMPLEXIEEEFP)
+	{
+		IIO_DEBUG("complex TIFF!\n");
+		spp *= 2;
+		bps /= 2;
+	}
+	if (fmt == SAMPLEFORMAT_COMPLEXINT   ) fmt = SAMPLEFORMAT_INT;
+	if (fmt == SAMPLEFORMAT_COMPLEXIEEEFP) fmt = SAMPLEFORMAT_IEEEFP;
+
 	// set appropriate size and type flags
 	if (fmt == SAMPLEFORMAT_UINT) {
 		if (1 == bps) fmt_iio = IIO_TYPE_UINT1;
@@ -2232,7 +2289,7 @@ static void pds_parse_line(char *key, char *value, char *line)
 }
 
 #ifndef SAMPLEFORMAT_UINT
-// definitions form tiff.h, needed for pds
+// definitions from tiff.h, needed also for pds
 #define SAMPLEFORMAT_UINT  1
 #define SAMPLEFORMAT_INT  2
 #define SAMPLEFORMAT_IEEEFP  3
@@ -2260,6 +2317,7 @@ static int read_beheaded_pds(struct iio_image *x,
 	int n, nmax = 1000, cx = 0;
 	char line[nmax], key[nmax], value[nmax];
 	int rbytes = -1, w = -1, h = -1, spp = 1, bps = 1, obj = -1;
+	int crop_left = 0, crop_right = 0;
 	int sfmt = SAMPLEFORMAT_UINT;
 	bool in_object = false;
 	bool flip_h = false, flip_v = false, allturn = false;
@@ -2269,6 +2327,8 @@ static int read_beheaded_pds(struct iio_image *x,
 		if (!*key || !*value) continue;
 		IIO_DEBUG("PDS \"%s\" = \"%s\"\n", key, value);
 		if (!strcmp(key, "RECORD_BYTES")) rbytes = atoi(value);
+		if (!strcmp(key, "RECORD_TYPE"))
+			if (strstr(value, "UNDEFINED")) rbytes = 1;
 		if (!strcmp(key, object_id))      obj = atoi(value);
 		if (!strcmp(key, "OBJECT") && !strcmp(value, object_id+1))
 			in_object = true;
@@ -2286,11 +2346,14 @@ static int read_beheaded_pds(struct iio_image *x,
 			flip_h = allturn !=! strcmp(value, "RIGHT");
 		if (!strcmp(key, "LINE_DISPLAY_DIRECTION"))
 			flip_v = allturn !=! strcmp(value, "DOWN");
+		if (!strcmp(key, "LINE_PREFIX_BYTES")) crop_left = atoi(value);
+		if (!strcmp(key, "LINE_SUFFIX_BYTES")) crop_right = atoi(value);
 		// TODO: support the 8 possible rotations and orientations
 		// (RAW-equivalents: xy xY Xy XY yx yX Yx YX)
 		if (!strcmp(key, "END_OBJECT") && !strcmp(value, object_id+1))
 			break;
 	}
+	w = w + crop_left + crop_right;
 
 	IIO_DEBUG("rbytes = %d\n", rbytes);
 	IIO_DEBUG("object_id = %s\n", object_id);
@@ -2299,6 +2362,7 @@ static int read_beheaded_pds(struct iio_image *x,
 	IIO_DEBUG("h = %d\n", h);
 	IIO_DEBUG("bps = %d\n", bps);
 	IIO_DEBUG("spp = %d\n", spp);
+	IIO_DEBUG("sfmt = %d\n", sfmt);
 
 	// identify the sample type
 	int typ = -1;
@@ -2327,9 +2391,11 @@ static int read_beheaded_pds(struct iio_image *x,
 	n = fread(x->data, size, 1, f);
 	if (n != 1) { free(x->data); return 3; }
 
-	// if necessary, transpose data
+	// if necessary, transpose and trim data
 	if (flip_h) inplace_flip_horizontal(x);
 	if (flip_v) inplace_flip_vertical(x);
+	if (crop_left || crop_right)
+		inplace_trim(x, crop_left, 0, crop_right, 0);
 
 	// return
 	return 0;
@@ -2436,7 +2502,7 @@ static int read_beheaded_vrt(struct iio_image *x,
 	if (!sl) return 1;
 	cx += xml_get_numeric_attr(&w, line, "Dataset", "rasterXSize");
 	cx += xml_get_numeric_attr(&h, line, "Dataset", "rasterYSize");
-	if (!w*h) return 2;
+	if (!w || !h) return 2;
 	if (cx != 2) return 3;
 	x->dimension = 2;
 	x->sizes[0] = w;
@@ -3021,20 +3087,22 @@ static void iio_write_image_as_pfm(const char *filename, struct iio_image *x)
 }
 
 // ASC writer                                                               {{{2
-//static void iio_write_image_as_asc(const char *filename, struct iio_image *x)
-//{
-//	FILE *f = xfopen(filename, "w");
-//	int w = x->sizes[0];
-//	int h = x->sizes[1];
-//	int d = x->sizes[2];
-//	int pd = x->pixel_dimension;
-//	float *t = x->data;
-//	fprintf(f, "%d %d %d %d\n", w, h, d, pd);
-//	for (int i = 0; i < w*h*d*pd; i++)
-//		fprintf(f, "%a\n", t[i]);
-//	fwrite(x->data, w * h * x->pixel_dimension * sizeof(float), 1 ,f);
-//	xfclose(f);
-//}
+static void iio_write_image_as_asc(const char *filename, struct iio_image *x)
+{
+	assert(x->type == IIO_TYPE_FLOAT);
+	assert(x->dimension == 2);
+	FILE *f = xfopen(filename, "w");
+	int w = x->sizes[0];
+	int h = x->sizes[1];
+	int pd = x->pixel_dimension;
+	fprintf(f, "%d %d 1 %d\n", w, h, pd);
+	float *t = xmalloc(w*h*pd*sizeof*t);
+	break_pixels_float(t, x->data, w*h, pd);
+	for (int i = 0; i < w*h*pd; i++)
+		fprintf(f, "%.9g\n", t[i]);
+	xfree(t);
+	xfclose(f);
+}
 
 // CSV writer                                                               {{{2
 static void iio_write_image_as_csv(const char *filename, struct iio_image *x)
@@ -3209,15 +3277,29 @@ static int guess_format(FILE *f, char *buf, int *nbuf, int bufmax)
 #endif//I_CAN_HAS_LIBPNG
 
 
-	b[8] = add_to_header_buffer(f, b, nbuf, bufmax);
-	b[9] = add_to_header_buffer(f, b, nbuf, bufmax);
-	b[10] = add_to_header_buffer(f, b, nbuf, bufmax);
-	b[11] = add_to_header_buffer(f, b, nbuf, bufmax);
+	if (!strchr((char*)b, '\n')) // protect against very short ASC headers
+	{
+		int cx = 8;
+		for (; cx <= 11; cx++)
+		{
+			b[cx] = add_to_header_buffer(f, b, nbuf, bufmax);
+			if (b[cx] == '\n')
+				break;
+		}
+		if (cx == 12)
+		{
+			if (b[8]=='F'&&b[9]=='L'&&b[10]=='O'&&b[11]=='A')
+				return IIO_FORMAT_LUM;
+			if (b[8]=='1'&&b[9]=='2'&&b[10]=='L'&&b[11]=='I')
+				return IIO_FORMAT_LUM;
+		}
+	}
 
-	if (b[8]=='F'&&b[9]=='L'&&b[10]=='O'&&b[11]=='A')
-		return IIO_FORMAT_LUM;
-	if (b[8]=='1'&&b[9]=='2'&&b[10]=='L'&&b[11]=='I')
-		return IIO_FORMAT_LUM;
+	//b[8] = add_to_header_buffer(f, b, nbuf, bufmax);
+	//b[9] = add_to_header_buffer(f, b, nbuf, bufmax);
+	//b[10] = add_to_header_buffer(f, b, nbuf, bufmax);
+	//b[11] = add_to_header_buffer(f, b, nbuf, bufmax);
+
 
 	if (!strchr((char*)b, '\n'))
 		line_to_header_buffer(f, b, nbuf, bufmax);
@@ -3621,6 +3703,17 @@ uint16_t *iio_read_image_uint16_vec(const char *fname, int *w, int *h, int *pd)
 }
 
 // API 2D
+double *iio_read_image_double_split(const char *fname, int *w, int *h, int *pd)
+{
+	double *r = iio_read_image_double_vec(fname, w, h, pd);
+	if (!r) return rfail("could not read image");
+	double *rbroken = xmalloc(*w**h**pd*sizeof*rbroken);
+	break_pixels_double(rbroken, r, *w**h, *pd);
+	xfree(r);
+	return rbroken;
+}
+
+// API 2D
 uint8_t (*iio_read_image_uint8_rgb(const char *fname, int *w, int *h))[3]
 {
 	struct iio_image x[1];
@@ -3915,6 +4008,7 @@ static bool string_suffix(const char *s, const char *suf)
 // an attempt at designing it.
 static void iio_write_image_default(const char *filename, struct iio_image *x)
 {
+	IIO_DEBUG("going to write into filename \"%s\"\n", filename);
 	int typ = normalize_type(x->type);
 	if (x->dimension != 2) fail("de moment només escrivim 2D");
 	//if (raw_prefix(fname)) {
@@ -3951,9 +4045,15 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 		iio_write_image_as_rim_cimage(filename, x);
 		return;
 	}
+	if (string_suffix(filename, ".asc") && typ == IIO_TYPE_FLOAT) {
+		iio_write_image_as_asc(filename, x);
+		return;
+	}
 #ifdef I_CAN_HAS_LIBTIFF
 	if (x->pixel_dimension != 1 && x->pixel_dimension != 3 && x->pixel_dimension != 4 && x->pixel_dimension != 2 )
 	{
+		IIO_DEBUG("strange case (pd=%d), forcing tiff format\n",
+				x->pixel_dimension);
 		iio_write_image_as_tiff_smarter(filename, x);
 		return;
 	}
@@ -3982,6 +4082,7 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 				|| string_suffix(filename, ".TIF")
 		   )
 		{
+			IIO_DEBUG("tiff extension detected\n");
 			iio_write_image_as_tiff_smarter(filename, x);
 			return;
 		}
@@ -3989,6 +4090,7 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 	if (true) {
 		char *tiffname = strstr(filename, "TIFF:");
 		if (tiffname == filename) {
+			IIO_DEBUG("TIFF prefix detected\n");
 			iio_write_image_as_tiff_smarter(filename+5, x);
 			return;
 		}
@@ -3998,20 +4100,12 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 	if (true) {
 		char *pngname = strstr(filename, "PNG:");
 		if (pngname == filename) {
-			if (typ == IIO_TYPE_FLOAT) {
+			IIO_DEBUG("PNG prefix detected\n");
+			if (typ != IIO_TYPE_UINT8) {
 				void *old_data = x->data;
-				x->data = xmalloc(nsamp*sizeof(float));
-				memcpy(x->data, old_data, nsamp*sizeof(float));
-				iio_convert_samples(x, IIO_TYPE_UINT8);
-				iio_write_image_default(filename, x);//recursive
-				xfree(x->data);
-				x->data = old_data;
-				return;
-			}
-			if (typ == IIO_TYPE_INT || typ == IIO_TYPE_UINT32) {
-				void *old_data = x->data;
-				x->data = xmalloc(nsamp*sizeof(int));
-				memcpy(x->data, old_data, nsamp*sizeof(int));
+				int ss = iio_image_sample_size(x);
+				x->data = xmalloc(nsamp*ss);
+				memcpy(x->data, old_data, nsamp*ss);
 				iio_convert_samples(x, IIO_TYPE_UINT8);
 				iio_write_image_default(filename, x);//recursive
 				xfree(x->data);
@@ -4025,10 +4119,12 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 	if (true) {
 		char *pngname = strstr(filename, "PNG16:");
 		if (pngname == filename) {
+			IIO_DEBUG("PNG16 prefix detected\n");
 			if (typ != IIO_TYPE_UINT16) {
 				void *old_data = x->data;
-				x->data = xmalloc(nsamp*sizeof(float));
-				memcpy(x->data, old_data, nsamp*sizeof(float));
+				int ss = iio_image_sample_size(x);
+				x->data = xmalloc(nsamp*ss);
+				memcpy(x->data, old_data, nsamp*ss);
 				iio_convert_samples(x, IIO_TYPE_UINT16);
 				iio_write_image_default(filename, x);//recursive
 				xfree(x->data);
@@ -4043,24 +4139,18 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 		if (false
 				|| string_suffix(filename, ".png")
 				|| string_suffix(filename, ".PNG")
-				|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==4)
-				|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==2)
+			//	|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==4)
+			//	|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==2)
+			//	|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==1)
+			//	|| (typ==IIO_TYPE_UINT8&&x->pixel_dimension==3)
 		   )
 		{
-			if (typ == IIO_TYPE_FLOAT) {
+			IIO_DEBUG("png extension detected or 8bint thing\n");
+			if (typ != IIO_TYPE_UINT8) {
 				void *old_data = x->data;
-				x->data = xmalloc(nsamp*sizeof(float));
-				memcpy(x->data, old_data, nsamp*sizeof(float));
-				iio_convert_samples(x, IIO_TYPE_UINT8);
-				iio_write_image_default(filename, x);//recursive
-				xfree(x->data);
-				x->data = old_data;
-				return;
-			}
-			if (typ == IIO_TYPE_INT || typ == IIO_TYPE_UINT32) {
-				void *old_data = x->data;
-				x->data = xmalloc(nsamp*sizeof(int));
-				memcpy(x->data, old_data, nsamp*sizeof(int));
+				int ss = iio_image_sample_size(x);
+				x->data = xmalloc(nsamp*ss);
+				memcpy(x->data, old_data, nsamp*ss);
 				iio_convert_samples(x, IIO_TYPE_UINT8);
 				iio_write_image_default(filename, x);//recursive
 				xfree(x->data);
@@ -4261,7 +4351,6 @@ void iio_write_image_int(char *filename, int *data, int w, int h)
 	iio_write_image_default(filename, x);
 }
 
-
 void iio_write_image_uint8_vec(char *filename, uint8_t *data,
 		int w, int h, int pd)
 {
@@ -4274,6 +4363,15 @@ void iio_write_image_uint8_vec(char *filename, uint8_t *data,
 	x->data = data;
 	x->contiguous_data = false;
 	iio_write_image_default(filename, x);
+}
+
+void iio_write_image_uint8_split(char *filename, uint8_t *data,
+		int w, int h, int pd)
+{
+	uint8_t *rdata = xmalloc(w*h*pd*sizeof*rdata);
+	recover_broken_pixels_uint8(rdata, data, w*h, pd);
+	iio_write_image_uint8_vec(filename, rdata, w, h, pd);
+	xfree(rdata);
 }
 
 void iio_write_image_uint16_vec(char *filename, uint16_t *data,
