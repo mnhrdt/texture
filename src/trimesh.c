@@ -98,6 +98,15 @@ static void swapint(int *a, int *b)
 	*a = *b;
 	*b = t;
 }
+static void sort_three_ints(int *y, int *x)
+{
+	y[0]=x[0];
+	y[1]=x[1];
+	y[2]=x[2];
+	if (y[0] > y[1]) swapint(y+0, y+1);
+	if (y[1] > y[2]) swapint(y+1, y+2);
+	if (y[0] > y[1]) swapint(y+0, y+1);
+}
 static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 {
 	//fprintf(stderr, "trimesh_add_triangle_%d : %d %d %d\n", m->nt, a,b,c);
@@ -108,9 +117,11 @@ static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 	assert(b >= 0); assert(b < m->nv);
 	assert(c >= 0); assert(c < m->nv);
 
-	if (a > b) swapint(&a, &b);
-	if (b > c) swapint(&b, &c);
-	if (a > b) swapint(&a, &b);
+	// XXX : the following three lines must remain commented,
+	// otherwise, the orientation of the mesh is lost
+	//if (a > b) swapint(&a, &b);
+	//if (b > c) swapint(&b, &c);
+	//if (a > b) swapint(&a, &b);
 
 	m->t[3*m->nt + 0] = a;
 	m->t[3*m->nt + 1] = b;
@@ -339,18 +350,16 @@ void trimesh_fill_edges(struct trimesh *m)
 	m->ne = 2 * ne;
 }
 
-static void list_add_triangle(int *first, int *next, int t, int v)
+static void add_triangle_to_list(int *first, int *next, int t, int v, char *s)
 {
-	// update a linked list
-	if (first[v] < 0) {
-		assert(next[t] < 0);
-		next[t] = t;
+	// update a linked list (with -1 to indicate the end of each chains)
+	if (first[v] < 0)
 		first[v] = t;
-	} else {
+	else
 		next[t] = first[v];
-		first[v] = t;
-	}
+	first[v] = t;
 }
+
 // function to compute the triangle fans of a mesh                         {{{1
 static void trimesh_fill_triangle_fans(struct trimesh *m)
 {
@@ -367,9 +376,14 @@ static void trimesh_fill_triangle_fans(struct trimesh *m)
 	for (int i = 0; i < m->nt; i++) c[i] = -1;
 
 	// add each triangle to its list
-	for (int i = 0; i < m->nt; i++) list_add_triangle(f, a, i, m->t[3*i+0]);
-	for (int i = 0; i < m->nt; i++) list_add_triangle(f, b, i, m->t[3*i+1]);
-	for (int i = 0; i < m->nt; i++) list_add_triangle(f, c, i, m->t[3*i+2]);
+	for (int i=0; i < m->nt; i++)
+	{
+		int abc[3];
+		sort_three_ints(abc, m->t + 3*i);
+		add_triangle_to_list(f, a, i, abc[0], "a");
+		add_triangle_to_list(f, b, i, abc[1], "b");
+		add_triangle_to_list(f, c, i, abc[2], "c");
+	}
 
 	// update struct, and finish
 	m->tfirst  = f;
@@ -377,19 +391,23 @@ static void trimesh_fill_triangle_fans(struct trimesh *m)
 	m->tnext_b = b;
 	m->tnext_c = c;
 }
-int trimesh_get_triangle_fan(int *out, struct trimesh *m, int t)
+int trimesh_get_triangle_fan(int *out, struct trimesh *m, int v)
 {
 	if (!m->tfirst) trimesh_fill_triangle_fans(m);
 
 	int r = 0;
-	// TODO : FIXME : XXX : implement this function
-//	if (m->tfirst[t])
-//	{
-//		out[0] = t;
-//		while(m->tnext // do stuff
-//				}
+	int t = m->tfirst[v];
+	while (t >= 0) {
+		out[r++] = t;
+		int T[3];
+		sort_three_ints(T, m->t + 3*t);
+		if (v == T[0]) t = m->tnext_a[t];
+		if (v == T[1]) t = m->tnext_b[t];
+		if (v == T[2]) t = m->tnext_c[t];
+	}
 	return r;
 }
+
 static void trimesh_test_triangle_fans(struct trimesh *m)
 {
 	printf("nv = %d\n", m->nv);
@@ -397,6 +415,22 @@ static void trimesh_test_triangle_fans(struct trimesh *m)
 	for (int i = 0; i < m->nt; i++)
 		printf("t[%d] = %d %d %d\n",
 				i, m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+	for (int i = 0; i < m->nv; i++)
+		printf("v[%d] = %d\n", i, m->tfirst[i]);
+	for (int i = 0; i < m->nt; i++)
+		printf("abc[%d] = %d %d %d\n", i,
+				m->tnext_a[i], m->tnext_b[i], m->tnext_c[i]);
+
+	for (int i = 0; i < m->nv; i++)
+	{
+		int out[m->nt];
+		int nout = trimesh_get_triangle_fan(out, m, i);
+		fprintf(stderr, "trifan[%d] (%d) :", i, nout);
+		for (int j = 0; j < nout; j++)
+			fprintf(stderr, " %d", out[j]);
+		fprintf(stderr, "\n");
+	}
+
 }
 #endif//TRIMESH_MORE_STUFF
 
@@ -473,13 +507,15 @@ int main(int c, char *v[])
 	char *filename_in  = v[1];
 	char *filename_out = c > 2 ? v[2] : "-";
 
-	// read input DSM
-	int w, h;
-	float *x = iio_read_image_float(filename_in, &w, &h);
+	//// read input DSM
+	//int w, h;
+	//float *x = iio_read_image_float(filename_in, &w, &h);
 
-	// create triangulation
+	//// create triangulation
+	//struct trimesh m[1];
+	//trimesh_create_from_dem(m, x, w, h);
 	struct trimesh m[1];
-	trimesh_create_from_dem(m, x, w, h);
+	trimesh_read_from_ply(m, filename_in);
 
 #ifdef TRIMESH_MORE_STUFF
 	// stuff
@@ -492,7 +528,7 @@ int main(int c, char *v[])
 
 	// cleanup and exit
 	trimesh_free_tables(m);
-	free(x);
+	//free(x);
 
 	// do a silly consistency loop
 	if (*filename_out != '-') {
