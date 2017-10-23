@@ -163,6 +163,46 @@ void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 	free(t);
 }
 
+// function to create a mesh from a digital elevation map with offset       {{{1
+void trimesh_create_from_dem_with_offset(struct trimesh *m, 
+        float *x, 
+        int w, 
+        int h,
+        double ox,
+        double oy)
+{
+	// initialize the mesh
+	trimesh_alloc_tables(m, w*h, 2*(w-1)*(h-1));
+
+	// build a table of vertex correspondences
+	int *t = malloc(w * h * sizeof*t);
+	for (int j = 0; j < h; j++)
+	for (int i = 0; i < w; i++)
+	if (isfinite(x[j*w + i]))
+		t[j*w + i] = trimesh_add_vertex(m, i+ox, j+oy, x[j*w + i]+oz);
+	else
+		t[j*w + i] = -1;
+
+	// add the triangles all of whose whose vertices are good
+	for (int j = 0; j < h-1; j++)
+	for (int i = 0; i < w-1; i++)
+	{
+		int a = (j+0)*w + (i+0);
+		int b = (j+0)*w + (i+1);
+		int c = (j+1)*w + (i+0);
+		int d = (j+1)*w + (i+1);
+
+		// TODO: criteria to choose the appropriate diagonal
+		if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
+			trimesh_add_triangle(m, t[a], t[b], t[c]);
+		if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
+			trimesh_add_triangle(m, t[c], t[b], t[d]);
+	}
+
+	// cleanup
+	free(t);
+}
+
 // function to save a triangulated surface to a ply file                    {{{1
 void trimesh_write_to_ply(char *fname, struct trimesh *m)
 {
