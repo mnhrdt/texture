@@ -250,10 +250,10 @@ int main_colormultiple(int c, char *v[])
         int ij[2];
         int xywh[4] = {0, 0, wi, hi};
         for (int i = 0; i < 2; i++)
-            ij[i] = (int) round(match[2*nv+i] + offset[i]);
+            ij[i] = (int) round(match[2*nv+i] - offset[i]);
         if (is_in_crop_int(ij, xywh))
             for (int k = 0; k < 3; k++)
-                vc[3*nv+k] = im[ij[0]+ij[1]*wi];
+                vc[3*nv+k] = im[ij[0]+(ij[1])*wi];
         else 
         {
             vc[3*nv+0] = NAN;

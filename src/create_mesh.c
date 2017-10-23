@@ -14,13 +14,14 @@ int main(int c, char *v[])
     double ox = atof(pick_option(&c, &v, "ox", "0"));
     double oy = atof(pick_option(&c, &v, "oy", "0"));
     double oz = atof(pick_option(&c, &v, "oz", "0"));
-    if (c < 3)
+    if (c < 4)
         return fprintf(stderr, "usage:\n\t"
-                "%s dsm.tif zone mesh.off\n", *v);
+                "%s dsm.tif zone mesh.off mesh.ply\n", *v);
                 //0 1       2    3    
     char *filename_dsm = v[1];
     int signed_zone    = atoi(v[2]);
-    char *filename_mesh = v[3];
+    char *filename_off = v[3];
+    char *filename_ply = v[4];
 
     // read the whole input DSM (typically, rather small)
     int w, h;
@@ -45,9 +46,10 @@ int main(int c, char *v[])
     }
 
     struct trimesh m[1];
-    trimesh_create_from_dem_with_offset(m, x, w, h, ox/0.3, oy/0.3, oz);
+    trimesh_create_from_dem_with_offset(m, x, w, h, ox, oy, oz);
 
-    trimesh_write_to_off(filename_mesh, m);
+    trimesh_write_to_off(filename_off, m);
+    trimesh_write_to_ply(filename_ply, m);
 
     return 0;
 }
