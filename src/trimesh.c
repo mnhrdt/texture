@@ -169,7 +169,8 @@ void trimesh_create_from_dem_with_offset(struct trimesh *m,
         int w, 
         int h,
         double ox,
-        double oy)
+        double oy,
+        double oz)
 {
 	// initialize the mesh
 	trimesh_alloc_tables(m, w*h, 2*(w-1)*(h-1));

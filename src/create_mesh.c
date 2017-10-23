@@ -11,9 +11,9 @@
 
 int main(int c, char *v[])
 {
-    double ox = atof(pick_options(&c, &v, "ox", "0"));
-    double oy = atof(pick_options(&c, &v, "oy", "0"));
-    double oz = atof(pick_options(&c, &v, "oz", "0"));
+    double ox = atof(pick_option(&c, &v, "ox", "0"));
+    double oy = atof(pick_option(&c, &v, "oy", "0"));
+    double oz = atof(pick_option(&c, &v, "oz", "0"));
     if (c < 3)
         return fprintf(stderr, "usage:\n\t"
                 "%s dsm.tif zone mesh.off\n", *v);
