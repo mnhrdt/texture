@@ -30,9 +30,9 @@ int main_get_corners(int c, char *v[])
         double bias_x = atof(pick_option(&c, &v, "bx", "0"));
         double bias_y = atof(pick_option(&c, &v, "by", "0"));
         if (c < 4)
-                return fprintf(stderr, "usage:\n\t"
-                                "%s dsm_nan.tif zone rpc \n",*v);
-                                //0 1           2    3
+                return fprintf(stderr, "usage:\n\t" 
+                        "%s dsm_nan.tif zone rpc \n",*v);
+                        //0 1           2    3
         char *filename_dsm = v[1];
         int signed_zone    = atoi(v[2]);
         char *filename_rpc = v[3];
