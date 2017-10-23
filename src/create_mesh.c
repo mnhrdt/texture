@@ -45,7 +45,7 @@ int main(int c, char *v[])
     }
 
     struct trimesh m[1];
-    trimesh_create_from_dem_with_offset(m, x, w, h, ox, oy, oz);
+    trimesh_create_from_dem_with_offset(m, x, w, h, ox/0.3, oy/0.3, oz);
 
     trimesh_write_to_off(filename_mesh, m);
 
