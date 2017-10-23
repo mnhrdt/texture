@@ -264,7 +264,7 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
 	fclose(f);
 }
 
-// function to read a triangulated surface from a ply file                  {{{1
+// function to read a triangulated surface from a off file                  {{{1
 void trimesh_read_from_off(struct trimesh *m, char *fname)
 {
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
@@ -277,13 +277,8 @@ void trimesh_read_from_off(struct trimesh *m, char *fname)
 	// process header lines
 	char buf[FILENAME_MAX] = {0};
 
-        fgets(buf, FILENAME_MAX, f);
-        if (0 != strcmp(buf, "OFF\n"))
-            exit(fprintf(stderr, "ERROR: Wrong file type %s\n", fname));
-        int tmp1 = -1, tmp2 = -1, tmp;
-        sscanf(buf, "%d %d %d\n", &tmp1, &tmp2, &tmp);
-        n_vertices = tmp1;
-        n_triangles = tmp2;
+        if (2 != fscanf(f, "OFF\n%d %d 0\n", &n_vertices, &n_triangles))
+            exit(fprintf(stderr, "ERROR: cannot read number of vertices and triangles\n"));
 	//fprintf(stderr, "n_vertices = %d\n", n_vertices);
 	//fprintf(stderr, "n_triangles = %d\n", n_triangles);
 
@@ -296,7 +291,7 @@ void trimesh_read_from_off(struct trimesh *m, char *fname)
 		double x[3];
 		if (3 != sscanf(buf, "%lf %lf %lf\n", x, x+1, x+2))
 			exit(fprintf(stderr, "ERROR: vfail_1 \"%s\"\n", buf));
-		trimesh_add_vertex(m, x[0], x[1], x[2]);
+		trimesh_add_vertex(m, x[0]/0.3, x[1]/0.3, x[2]);
 	}
 	if (n_vertices != m->nv)
 		exit(fprintf(stderr, "ERROR: nv %d %d\n", n_vertices, m->nv));
@@ -316,7 +311,7 @@ void trimesh_read_from_off(struct trimesh *m, char *fname)
 	fclose(f);
 }
 
-// function to read a triangulated surface from an off file                  {{{1
+// function to read a triangulated surface from an ply file                  {{{1
 void trimesh_read_from_ply(struct trimesh *m, char *fname)
 {
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
