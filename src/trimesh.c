@@ -253,6 +253,32 @@ void trimesh_write_to_off(char *fname, struct trimesh *m)
 	// print points
 	for (int i = 0; i < m->nv; i++)
                 fprintf(f, "%.16lf %.16lf %.16lf\n",
+				m->v[3*i+0], m->v[3*i+1], m->v[3*i+2]);
+
+	// print triangles
+	for (int i = 0; i < m->nt; i++)
+                fprintf(f, "3 %d %d %d\n",
+				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+
+	// cleanup
+	fclose(f);
+}
+// function to save a triangulated surface to an off file                    {{{1
+// with dimensions in meters
+void trimesh_write_to_scaled_off(char *fname, struct trimesh *m)
+{
+	// dump the off file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "OFF\n");
+	fprintf(f, "%d %d 0\n", m->nv, m->nt);
+
+	// print points
+	for (int i = 0; i < m->nv; i++)
+                fprintf(f, "%.16lf %.16lf %.16lf\n",
 				0.3*m->v[3*i+0], 0.3*m->v[3*i+1], m->v[3*i+2]);
 
 	// print triangles
@@ -307,6 +333,53 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
 
 // function to read a triangulated surface from a off file                  {{{1
 void trimesh_read_from_off(struct trimesh *m, char *fname)
+{
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	int n_vertices = -1;
+	int n_triangles = -1;
+
+	// process header lines
+	char buf[FILENAME_MAX] = {0};
+
+        if (2 != fscanf(f, "OFF\n%d %d 0\n", &n_vertices, &n_triangles))
+            exit(fprintf(stderr, "ERROR: cannot read number of vertices and triangles\n"));
+	//fprintf(stderr, "n_vertices = %d\n", n_vertices);
+	//fprintf(stderr, "n_triangles = %d\n", n_triangles);
+
+	// create mesh structure
+	trimesh_alloc_tables(m, n_vertices, n_triangles);
+
+	// read vertices
+	while (m->nv < n_vertices && fgets(buf, FILENAME_MAX, f))
+	{
+		double x[3];
+		if (3 != sscanf(buf, "%lf %lf %lf\n", x, x+1, x+2))
+			exit(fprintf(stderr, "ERROR: vfail_1 \"%s\"\n", buf));
+		trimesh_add_vertex(m, x[0], x[1], x[2]);
+	}
+	if (n_vertices != m->nv)
+		exit(fprintf(stderr, "ERROR: nv %d %d\n", n_vertices, m->nv));
+
+	// read triangles
+	while (m->nt < n_triangles && fgets(buf, FILENAME_MAX, f))
+	{
+		int x[3];
+		if (3 != sscanf(buf, "3 %d %d %d\n", x, x+1, x+2))
+			exit(fprintf(stderr, "ERROR: tfail_1 \"%s\"\n", buf));
+		trimesh_add_triangle(m, x[0], x[1], x[2]);
+	}
+	if (n_triangles != m->nt)
+		exit(fprintf(stderr, "ERROR: nt %d %d\n", n_triangles, m->nt));
+
+	// cleanup and exit
+	fclose(f);
+}
+
+// function to read a triangulated surface from a off file                  {{{1
+void trimesh_read_from_scaled_off(struct trimesh *m, char *fname)
 {
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
 	if (!f)

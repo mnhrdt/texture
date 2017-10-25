@@ -202,35 +202,9 @@ static void interpolate_vertices_values(int i, int j, void *ee)
 }
 
 
-
-
-
-
-int main_zbuffer(int c, char *v[])
+static void get_scale_and_origin_from_gdal(double scale[2], double origin[2],
+        char *filename_dsm)
 {
-    if (c < 8)
-        return fprintf(stderr, "usage:\n\t"
-                "%s dsm.tif zone img_i.tif rpc_i xywh_i.txt out.tif mesh.off\n", *v);
-                //0 1       2    3         4     5          6       7
-    double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
-    char *filename_dsm = v[1];
-    int signed_zone    = atoi(v[2]);
-    char *filename_corners = v[5];
-    char *filename_img = v[3];
-    char *filename_rpc= v[4];
-    char *filename_out = v[6];
-    char *filename_mesh = v[7];
-
-    // read the whole input DSM (typically, rather small)
-    int w, h;
-    float *x = iio_read_image_float(filename_dsm, &w, &h);
-    if (!x)
-        return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
-
-    // read georeferencing transform using GDAL
-    double origin[2] = {0, 0};
-    double scale[2] = {1, 1};
-
     GDALAllRegister();
     GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
     if (gdal_dataset == NULL)
@@ -242,9 +216,37 @@ int main_zbuffer(int c, char *v[])
     } else {
         fprintf(stderr, "WARNING: not found origin and scale info\n");
     }
+}
+
+
+int main_zbuffer(int c, char *v[])
+{
+    if (c < 8)
+        return fprintf(stderr, "usage:\n\t"
+                "%s dsm.tif zone img_i.tif rpc_i xywh_i.txt mesh.off out.tif\n", *v);
+                //0 1       2    3         4     5          6       7
+    double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
+    char *filename_dsm = v[1];
+    int signed_zone    = atoi(v[2]);
+    char *filename_corners = v[5];
+    char *filename_img = v[3];
+    char *filename_rpc= v[4];
+    char *filename_out = v[7];
+    char *filename_mesh = v[6];
+
+    // read the whole input DSM (typically, rather small)
+    int w, h;
+    float *x = iio_read_image_float(filename_dsm, &w, &h);
+    if (!x)
+        return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
+
+    // read georeferencing transform using GDAL
+    double origin[2] = {0, 0};
+    double scale[2] = {1, 1};
+    get_scale_and_origin_from_gdal(scale, origin, filename_dsm);
 
     struct trimesh m[1];
-    trimesh_create_from_dem(m, x, w, h);
+    trimesh_read_from_off(m, filename_mesh);
 
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
     int wi, hi;
@@ -464,13 +466,6 @@ int main_zbuffer(int c, char *v[])
     }
     iio_save_image_double(filename_out, out, m->nv, 2);
     //iio_save_image_double_vec(filename_out, out, w, h, 2);
-    char filename_ply[100];
-    sprintf(filename_ply, "%s.ply", filename_mesh);
-    trimesh_write_to_ply(filename_ply, m);
-
-    char filename_off[100];
-    sprintf(filename_off, "%s.off", filename_mesh);
-    trimesh_write_to_off(filename_off, m);
 
     free(img_copy); free(out); free(v_visibility);
     return 0;
