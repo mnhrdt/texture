@@ -221,6 +221,12 @@ static void get_scale_and_origin_from_gdal(double scale[2], double origin[2],
 
 int main_zbuffer(int c, char *v[])
 {
+    double ox = atof(pick_option(&c, &v, "ox", "0"));
+    double oy = atof(pick_option(&c, &v, "oy", "0"));
+    double oz = atof(pick_option(&c, &v, "oz", "0"));
+    double xmin = atof(pick_option(&c, &v, "xmin", "0"));
+    double ymin = atof(pick_option(&c, &v, "ymin", "0"));
+    double offset[3] = {xmin-ox, ymin-oy, -oz};
     if (c < 8)
         return fprintf(stderr, "usage:\n\t"
                 "%s dsm.tif zone img_i.tif rpc_i xywh_i.txt mesh.off out.tif\n", *v);
@@ -244,6 +250,7 @@ int main_zbuffer(int c, char *v[])
     double origin[2] = {0, 0};
     double scale[2] = {1, 1};
     get_scale_and_origin_from_gdal(scale, origin, filename_dsm);
+    printf("scale %lf %lf origin %lf %lf\n",  scale[0], scale[1], origin[0], origin[1]);
 
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
@@ -307,8 +314,8 @@ int main_zbuffer(int c, char *v[])
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 2; j++)
-                v_coord_scaled[i][j] = m->v[3 * vertices[i] + j] * scale[j];
-            v_coord_scaled[i][2] = m->v[3 * vertices[i] + 2];
+                v_coord_scaled[i][j] = (m->v[3 * vertices[i] + j]+offset[j]) * scale[j];
+            v_coord_scaled[i][2] = m->v[3 * vertices[i] + 2]+offset[2];
         }
 
         // get triangle normal
@@ -330,11 +337,11 @@ int main_zbuffer(int c, char *v[])
         for (int l = 0; l < 3; l++)
         {
             // get vertices coordinates in pixel and utm
-            double i = m->v[3 * vertices[l] + 0];
-            double j = m->v[3 * vertices[l] + 1];
+            double i = m->v[3 * vertices[l] + 0]+offset[0];
+            double j = m->v[3 * vertices[l] + 1]+offset[1];
             double e = i * scale[0] + origin[0];
             double n = j * scale[1] + origin[1];
-            double z = m->v[3 * vertices[l] + 2];
+            double z = m->v[3 * vertices[l] + 2]+offset[2];
             if (z<0)
                 z = 20.0; // TO DO: put mean value
 
@@ -403,7 +410,6 @@ int main_zbuffer(int c, char *v[])
     }
 //    iio_save_image_double_vec("essai_curve/data/img_copy.tif", img_copy, wi, hi,3);
 
-
     // loop over triangle vertices and give them coordinate of projection on 
     // image only if there are no occlusions (they are part of a well oriented
     // triangle and are close enough to the highest point projected on 
@@ -416,15 +422,15 @@ int main_zbuffer(int c, char *v[])
         // Otherwise, go to the next vertex.
     {
 
-        int i = (int) round(m->v[3*nv + 0]);
-        int j = (int) round(m->v[3*nv + 1]);
+        int i = (int) round(m->v[3*nv + 0]+offset[0]);
+        int j = (int) round(m->v[3*nv + 1]+offset[1]);
 
         if (!v_visibility[nv])
             continue;
 
         double e = i*scale[0] + origin[0];
         double n = j*scale[1] + origin[1];
-        double z = m->v[3*nv + 2];
+        double z = m->v[3*nv + 2]+offset[2];
         if (z<0)
             z = 20.0; // TO DO: put mean value
 

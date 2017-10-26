@@ -1,6 +1,7 @@
 // data structure and functions for triangular mesh I/O                     {{{1
 
 // #includes                                                                {{{1
+
 #include <assert.h>   // assert
 #include <math.h>     // isfinite
 #include <stdbool.h>  // bool
@@ -194,10 +195,21 @@ void trimesh_create_from_dem_with_offset(struct trimesh *m,
 		int d = (j+1)*w + (i+1);
 
 		// TODO: criteria to choose the appropriate diagonal
+                if (fabs(x[b]-x[c]) < fabs(x[a]-x[d]))
+                {
 		if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
 			trimesh_add_triangle(m, t[a], t[b], t[c]);
 		if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
 			trimesh_add_triangle(m, t[c], t[b], t[d]);
+                }
+                else
+                {
+		if (t[a] >= 0 && t[b] >= 0 && t[d] >= 0)
+			trimesh_add_triangle(m, t[a], t[b], t[d]);
+		if (t[a] >= 0 && t[c] >= 0 && t[d] >= 0)
+			trimesh_add_triangle(m, t[a], t[d], t[c]);
+                }
+
 	}
 
 	// cleanup
