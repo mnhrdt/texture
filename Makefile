@@ -8,8 +8,8 @@ GEOLIBS := -lstdc++ -lGeographic
 # variables for implicit rules
 CFLAGS = $(FLAGS)
 CXXFLAGS = $(FLAGS)
-override CFLAGS := $(CFLAGS) $(shell gdal-config --cflags)
-override LDLIBS := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
+override CPPFLAGS := $(shell gdal-config --cflags)
+override LDLIBS   := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
 
 # binaries
 BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle \
@@ -29,7 +29,7 @@ $(BIN) : bin/% : src/%.o $(OBJ)
 
 # bureaucracy
 -include .deps.mk
-.deps.mk : ; $(CC) -MM src/*.c|sed 's_^[a-z]_src/&_'>$@
+.deps.mk : ; $(CC) $(CPPFLAGS) -MM src/*.c|sed 's_^[a-z]_src/&_'>$@
 clean    : ; $(RM) $(BIN) src/*.o
 .PHONY   : clean default
 
@@ -47,10 +47,10 @@ endif
 
 # other builds
 bin/ncc_apply_shift: src/ncc_apply_shift.cc src/img.cc src/point.cc
-	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
 
 bin/ncc_compute_shift: src/ncc_compute_shift.cc src/img.cc src/point.cc
-	$(CXX) $(CXXFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $^ src/iio.o -lpng -ltiff -ljpeg -o $@
 
 bin/trimesh: src/trimesh.c src/iio.o
-	$(CC) $(CFLAGS) -DTRIMESH_DEMO_MAIN $^ -o $@ $(IIOLIBS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -DTRIMESH_DEMO_MAIN $^ -o $@ $(IIOLIBS)
