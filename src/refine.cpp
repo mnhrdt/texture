@@ -9,8 +9,6 @@
 #include <boost/function_output_iterator.hpp>
 #include <vector>
 
-#include "pickopt.c"
-
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Polyhedron_3<Kernel>  Polyhedron;
 typedef Polyhedron::Vertex_handle   Vertex_handle;
@@ -98,6 +96,27 @@ int main_refine(int c, char* v[])
     refined_off.close();
     std::cout << "Refinement added " << new_vertices.size() << " vertices." << std::endl;
     return 0;
+}
+
+// c: pointer to original argc
+// v: pointer to original argv
+// o: option name (after hyphen)
+// d: default value
+const char *pick_option(int *c, char ***v, const char *o, const char *d)
+{
+	int argc = *c;
+	char **argv = *v;
+	int id = d ? 1 : 0;
+	for (int i = 0; i < argc - id; i++)
+		if (argv[i][0] == '-' && 0 == strcmp(argv[i]+1, o))
+		{
+			char *r = argv[i+id]+1-id;
+			*c -= id+1;
+			for (int j = i; j < argc - id; j++)
+				(*v)[j] = (*v)[j+id+1];
+			return r;
+		}
+	return d;
 }
 
 int main(int c, char *v[])
