@@ -33,6 +33,7 @@ int main(int c, char *v[])
     double origin[2] = {0, 0};
     double scale[2] = {1, 1};
 
+
     GDALAllRegister();
     GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
     if (gdal_dataset == NULL)
@@ -48,8 +49,8 @@ int main(int c, char *v[])
     struct trimesh m[1];
     trimesh_create_from_dem_with_offset(m, x, w, h, ox, oy, oz);
 
-    trimesh_write_to_off(filename_off, m);
     trimesh_write_to_ply(filename_ply, m);
+    trimesh_write_to_off(filename_off, m);
 
     return 0;
 }

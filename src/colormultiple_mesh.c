@@ -236,8 +236,9 @@ int main_colormultiple(int c, char *v[])
     printf("matchs chargés\n");
 
     struct trimesh m;
-    trimesh_read_from_ply(&m, filename_mesh);
+    trimesh_read_from_off(&m, filename_mesh);
     printf("trimesh chargé\n");
+
 
     if (m.nv != wh)
         return fprintf(stderr, "mesh and matches dimensions mismatch : m.nv %d wh %d \n", m.nv, wh);
@@ -250,7 +251,7 @@ int main_colormultiple(int c, char *v[])
         int ij[2];
         int xywh[4] = {0, 0, wi, hi};
         for (int i = 0; i < 2; i++)
-            ij[i] = (int) round(match[2*nv+i] - offset[i]);
+            ij[i] = (int) round(match[2*nv+i] + offset[i]);
         if (is_in_crop_int(ij, xywh))
             for (int k = 0; k < 3; k++)
                 vc[3*nv+k] = im[ij[0]+(ij[1])*wi];
