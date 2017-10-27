@@ -236,23 +236,10 @@ int main_zbuffer(int c, char *v[])
     char *filename_dsm = v[1];
     int signed_zone    = atoi(v[2]);
     char *filename_corners = v[5];
-    char *filename_xysz = v[6];
     char *filename_img = v[3];
     char *filename_rpc= v[4];
-    char *filename_out = v[8];
-    char *filename_mesh = v[7];
-
-    // get the offset with respect to image 37
-    FILE *shift_37;
-    shift_37 = fopen(filename_xysz,"r");
-    if (!shift_37)
-        return fprintf(stderr, "fopen(%s) failed\n", filename_xysz);
-
-    double xysz[4];
-    for (int i = 0; i < 4; i++)
-        if ((fscanf(shift_37, "%lf", &xysz[i])) != 1)
-            return fprintf(stderr, "could not read element %d of %s\n", i, filename_xysz);
-    fclose(shift_37);
+    char *filename_out = v[7];
+    char *filename_mesh = v[6];
 
     // read the whole input DSM (typically, rather small)
     int w, h;
@@ -264,8 +251,6 @@ int main_zbuffer(int c, char *v[])
     double origin[2] = {0, 0};
     double scale[2] = {1, 1};
     get_scale_and_origin_from_gdal(scale, origin, filename_dsm);
-    for (int i = 0; i < 2; i++)
-        origin[i] = origin[i] + scale[i] * xysz[i];
     printf("scale %lf %lf origin %lf %lf\n",  scale[0], scale[1], origin[0], origin[1]);
     printf("offset 1 %lf  2 %lf 3 %lf\n", offset[0], offset[1], offset[2]);
 
@@ -364,7 +349,7 @@ int main_zbuffer(int c, char *v[])
             double j = m->v[3 * vertices[l] + 1]+offset[1];
             double e = i * scale[0] + origin[0];
             double n = j * scale[1] + origin[1];
-            double z = m->v[3 * vertices[l] + 2]+offset[2]-xysz[3];
+            double z = m->v[3 * vertices[l] + 2]+offset[2];
             if (z<-100)
                 z = 20.0; // TO DO: put mean value
 
@@ -455,7 +440,7 @@ int main_zbuffer(int c, char *v[])
 
         double e = i*scale[0] + origin[0];
         double n = j*scale[1] + origin[1];
-        double z = m->v[3*nv + 2]+offset[2]-xysz[3];
+        double z = m->v[3*nv + 2]+offset[2];
         if (z<-100)
             z = 20.0; // TO DO: put mean value
 
