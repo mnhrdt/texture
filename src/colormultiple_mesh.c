@@ -257,9 +257,9 @@ int main_colormultiple(int c, char *v[])
                 vc[3*nv+k] = im[ij[0]+(ij[1])*wi];
         else 
         {
-            vc[3*nv+0] = NAN;
-            vc[3*nv+1] = NAN;
-            vc[3*nv+2] = NAN;
+            vc[3*nv+0] = 255;
+            vc[3*nv+1] = 0;
+            vc[3*nv+2] = 0;
         }
     }
 
