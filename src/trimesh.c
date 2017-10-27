@@ -173,49 +173,47 @@ void trimesh_create_from_dem_with_offset(struct trimesh *m,
         double oy,
         double oz)
 {
-	// initialize the mesh
-	trimesh_alloc_tables(m, w*h, 2*(w-1)*(h-1));
+       // initialize the mesh
+       trimesh_alloc_tables(m, w*h, 2*(w-1)*(h-1));
 
-	// build a table of vertex correspondences
-	int *t = malloc(w * h * sizeof*t);
-	for (int j = 0; j < h; j++)
-	for (int i = 0; i < w; i++)
-	if (isfinite(x[j*w + i]))
-		t[j*w + i] = trimesh_add_vertex(m, i+ox, j+oy, x[j*w + i]+oz);
-	else
-		t[j*w + i] = -1;
+       // build a table of vertex correspondences
+       int *t = malloc(w * h * sizeof*t);
+       for (int j = oy; j < h+oy; j++)
+       for (int i = ox; i < w+ox; i++)
+       if (isfinite(x[(j*w+i)%(w*h)]))
+               t[(j*w+i)%(w*h)] = trimesh_add_vertex(m, i, j, x[(j*w+i)%(w*h)]);
+       else
+               t[(j*w+i)%(w*h)] = -1;
 
-	// add the triangles all of whose whose vertices are good
-	for (int j = 0; j < h-1; j++)
-	for (int i = 0; i < w-1; i++)
-	{
-		int a = (j+0)*w + (i+0);
-		int b = (j+0)*w + (i+1);
-		int c = (j+1)*w + (i+0);
-		int d = (j+1)*w + (i+1);
+       // add the triangles all of those whose vertices are good
+       for (int j = oy; j < h-1+oy; j++)
+       for (int i = ox; i < w-1+ox; i++)
+       {
+               int a = ((j+0)*w + (i+0))%(w*h);
+               int b = ((j+0)*w + (i+1))%(w*h);
+               int c = ((j+1)*w + (i+0))%(w*h);
+               int d = ((j+1)*w + (i+1))%(w*h);
 
-		// TODO: criteria to choose the appropriate diagonal
                 if (fabs(x[b]-x[c]) < fabs(x[a]-x[d]))
                 {
-		if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
-			trimesh_add_triangle(m, t[a], t[b], t[c]);
-		if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
-			trimesh_add_triangle(m, t[c], t[b], t[d]);
+               if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
+                       trimesh_add_triangle(m, t[a], t[b], t[c]);
+               if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[c], t[b], t[d]);
                 }
                 else
                 {
-		if (t[a] >= 0 && t[b] >= 0 && t[d] >= 0)
-			trimesh_add_triangle(m, t[a], t[b], t[d]);
-		if (t[a] >= 0 && t[c] >= 0 && t[d] >= 0)
-			trimesh_add_triangle(m, t[a], t[d], t[c]);
+               if (t[a] >= 0 && t[b] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[a], t[b], t[d]);
+               if (t[a] >= 0 && t[c] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[a], t[d], t[c]);
                 }
 
-	}
+       }
 
-	// cleanup
-	free(t);
+       // cleanup
+       free(t);
 }
-
 // function to save a triangulated surface to a ply file                    {{{1
 void trimesh_write_to_ply(char *fname, struct trimesh *m)
 {
@@ -250,6 +248,34 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 	fclose(f);
 }
 
+// function to save a triangulated surface to an off file with offset        {{{1
+void trimesh_write_to_off_with_offset(char *fname, struct trimesh *m, 
+        double ox, double oy, double oz)
+{
+	// dump the off file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "OFF\n");
+	fprintf(f, "%d %d 0\n", m->nv, m->nt);
+
+	// print points
+	for (int i = 0; i < m->nv; i++)
+                fprintf(f, "%.16lf %.16lf %.16lf\n",
+				m->v[3*i+0] + ox, 
+                                m->v[3*i+1] + oy, 
+                                m->v[3*i+2] + oz);
+
+	// print triangles
+	for (int i = 0; i < m->nt; i++)
+                fprintf(f, "3 %d %d %d\n",
+				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+
+	// cleanup
+	fclose(f);
+}
 // function to save a triangulated surface to an off file                    {{{1
 void trimesh_write_to_off(char *fname, struct trimesh *m)
 {
