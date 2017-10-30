@@ -226,21 +226,20 @@ int main_zbuffer(int c, char *v[])
     double oz = atof(pick_option(&c, &v, "oz", "0"));
     double xmin = atof(pick_option(&c, &v, "xmin", "0"));
     double ymin = atof(pick_option(&c, &v, "ymin", "0"));
-    double offset[3] = {xmin-ox, ymin-oy, -oz};
+    double offset[3] = {xmin-ox, ymin-oy, oz};
     double debug = atoi(pick_option(&c, &v, "g", "0"));
     if (c < 8)
         return fprintf(stderr, "usage:\n\t"
                 "%s dsm.tif zone img_i.tif rpc_i xywh_i.txt mesh.off out.tif\n", *v);
                 //0 1       2    3         4     5          6       7
-    double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
+    double resolution = atof(pick_option(&c, &v, "-lmax", "0.3"));
     char *filename_dsm = v[1];
     int signed_zone    = atoi(v[2]);
     char *filename_corners = v[5];
     char *filename_img = v[3];
     char *filename_rpc= v[4];
-    char *filename_xysz = v[6];
-    char *filename_out = v[8];
-    char *filename_mesh = v[7];
+    char *filename_out = v[7];
+    char *filename_mesh = v[6];
 
     // read the whole input DSM (typically, rather small)
     int w, h;
@@ -248,24 +247,11 @@ int main_zbuffer(int c, char *v[])
     if (!x)
         return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
 
-// get the offset with respect to image 37
-    FILE *shift_37;
-    shift_37 = fopen(filename_xysz,"r");
-    if (!shift_37)
-        return fprintf(stderr, "fopen(%s) failed\n", filename_xysz);
-
-    double xysz[4];
-    for (int i = 0; i < 4; i++)
-        if ((fscanf(shift_37, "%lf", &xysz[i])) != 1)
-            return fprintf(stderr, "could not read element %d of %s\n", i, filename_xysz);
-    fclose(shift_37);
 
     // read georeferencing transform using GDAL
     double origin[2] = {0, 0};
     double scale[2] = {1, 1};
     get_scale_and_origin_from_gdal(scale, origin, filename_dsm);
-    for (int i = 0; i < 2; i++)
-        origin[i] = origin[i] + scale[i] * xysz[i];
     printf("scale %lf %lf origin %lf %lf\n",  scale[0], scale[1], origin[0], origin[1]);
     printf("offset 1 %lf  2 %lf 3 %lf\n", offset[0], offset[1], offset[2]);
 
@@ -310,8 +296,8 @@ int main_zbuffer(int c, char *v[])
     }
     else
     {
-        out = malloc(2 * m->nv * sizeof(double));
-        for (int i = 0; i < 2 * m->nv; i++)
+        out = malloc(5 * m->nv * sizeof(double));
+        for (int i = 0; i < 5 * m->nv; i++)
             out[i] = -1;
     }
 
@@ -364,7 +350,7 @@ int main_zbuffer(int c, char *v[])
             double j = m->v[3 * vertices[l] + 1]+offset[1];
             double e = i * scale[0] + origin[0];
             double n = j * scale[1] + origin[1];
-            double z = m->v[3 * vertices[l] + 2]+offset[2]-xysz[3];
+            double z = m->v[3 * vertices[l] + 2]+offset[2];
             if (z<-100)
                 z = 20.0; // TO DO: put mean value
 
@@ -392,7 +378,7 @@ int main_zbuffer(int c, char *v[])
                     if (debug == 1)
                         out[2*((int) round(i)+(int) round(j)*w) + k] = NAN;
                     else
-                        out[2*vertices[l] + k] = NAN;
+                        out[5*vertices[l] + k] = NAN;
                 continue;
             }
             // indicate that the vertex is part of a well-oriented face
@@ -455,7 +441,7 @@ int main_zbuffer(int c, char *v[])
 
         double e = i*scale[0] + origin[0];
         double n = j*scale[1] + origin[1];
-        double z = m->v[3*nv + 2]+offset[2]-xysz[3];
+        double z = m->v[3*nv + 2]+offset[2];
         if (z<-100)
             z = 20.0; // TO DO: put mean value
 
@@ -471,13 +457,21 @@ int main_zbuffer(int c, char *v[])
         for (int k = 0; k < 2; k++)
             ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
         if (img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2] == z)
+        {
             for (int k = 0; k < 2; k++)
             {
                 if (debug == 1)
                     out[2*(i+j*w)+k] = ij[k]-xywh[k];
-                else
-                    out[2*nv+k] = ij[k]-xywh[k];
+                else 
+                    out[5*nv+k] = ij[k]-xywh[k];
             }
+            if (debug == 0)
+            {
+                out[5*nv+2] = lonlat[0]; 
+                out[5*nv+3] = lonlat[1]; 
+                out[5*nv+4] = z; 
+            }
+        }
         else
         {
             //printf("img_copy %lf z %lf\n", img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2], z);
@@ -493,14 +487,21 @@ int main_zbuffer(int c, char *v[])
             // By Pythagore the result should be less than 0.3^2
             // (resolution is 30cm per pixel
             if (diff < 2 * pow(resolution,2))
+            {
                 for (int k = 0; k < 2; k++)
                 {
                     if (debug == 1)
                         out[2*(i+j*w)+k] = ij[k] - xywh[k];
                     else
-                        out[2*nv+k] = ij[k] - xywh[k];
+                        out[5*nv+k] = ij[k] - xywh[k];
                 }
-
+                if (debug == 0)
+                {
+                    out[5*nv+2] = lonlat[0]; 
+                    out[5*nv+3] = lonlat[1]; 
+                    out[5*nv+4] = z; 
+                }
+            }
         }
     }
     iio_save_image_double_vec("tmp/soutput/image_copy.tif", img_copy, wi, hi, 3);
@@ -508,7 +509,7 @@ int main_zbuffer(int c, char *v[])
     if (debug == 1)
         iio_save_image_double_vec(filename_out, out, w, h, 2);
     else
-        iio_save_image_double(filename_out, out, m->nv, 2);
+        iio_save_image_double(filename_out, out, m->nv, 5);
 
     free(img_copy); free(out); free(v_visibility);
     return 0;
