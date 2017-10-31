@@ -228,7 +228,7 @@ int main_colormultiple(int c, char *v[])
     float offset[2] = {ox, oy};
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.ply pan_i.tif msi_i.ntf msi_i.rpc match_i.tif out.ply\n",*v);
+                "%s mesh.ply pan_i.tif msi_i.ntf msi_i.xml match_i.tif vc.tif\n",*v);
                 //0 1        2         3         4         5           6            
     char *filename_mesh = v[1];
     char *filename_pan = v[2];
@@ -243,6 +243,16 @@ int main_colormultiple(int c, char *v[])
     if (!pan)
         return fprintf(stderr, "iio_read(%s) failed\n", filename_pan);
     printf("image chargée\n");
+    GDALAllRegister();
+    GDALDatasetH gdal_dataset = GDALOpen(filename_msi, GA_ReadOnly);
+    if (gdal_dataset == NULL)
+        return fprintf(stderr, "GDALOpen(%s) failed\n", filename_msi);
+//    double tmp[6];
+//    if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
+//        tmp[0] = 0;
+//    } else {
+//        fprintf(stderr, "WARNING: not found origin and scale info\n");
+//    }
 
     // open the reference image and obtain its pixel dimension "pd"
     GDALDatasetH huge_dataset = GDALOpen(filename_msi, GA_ReadOnly);
@@ -303,18 +313,14 @@ int main_colormultiple(int c, char *v[])
         }
         else 
         {
-            vc[3*nv+0] = 1000;
-            vc[3*nv+1] = 0;
-            vc[3*nv+2] = 0;
+            vc[3*nv+0] = NAN;
+            vc[3*nv+1] = NAN;
+            vc[3*nv+2] = NAN;
         }
     }
     printf("sauvegarde vecteur couleur\n");
     iio_save_image_double_vec(filename_vc, vc, m.nv, 1, 3);
-
-//    printf("avant écriture\n");
-//    trimesh_write_to_coloured_ply(filename_ply, &m, vc); 
-//
-//    printf("fini !\n");
+    printf("fini !\n");
     return 0;
 }
 

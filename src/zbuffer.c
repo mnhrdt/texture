@@ -509,7 +509,7 @@ int main_zbuffer(int c, char *v[])
     if (debug == 1)
         iio_save_image_double_vec(filename_out, out, w, h, 2);
     else
-        iio_save_image_double(filename_out, out, m->nv, 5);
+        iio_save_image_double_vec(filename_out, out, m->nv, 1, 5);
 
     free(img_copy); free(out); free(v_visibility);
     return 0;
