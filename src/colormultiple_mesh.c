@@ -14,6 +14,19 @@
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
 
+static float gdal_getpixel(GDALRasterBandH img, double pi, double pj)
+{
+	// caching of a silly malloc
+	static float *roi = NULL;
+	if (!roi) roi = CPLMalloc(1*1*sizeof*roi);
+
+	// TODO: some sort of bilinear or bicubic interpolation ?
+	int i = round(pi);
+	int j = round(pj);
+	int r = GDALRasterIO(img, GF_Read, i,j,1, 1, roi,1,1, GDT_Float32, 0,0);
+	return roi[0*0+0];
+}
+
 // extrapolate by nearest value
 static float getpixel_f(float *I, int w, int h, int i, int j)
 {
@@ -215,19 +228,32 @@ int main_colormultiple(int c, char *v[])
     float offset[2] = {ox, oy};
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.ply img_i.tif match_i.tif out.ply\n",*v);
-    //0 1        2         3           4      
+                "%s mesh.ply pan_i.tif msi_i.ntf msi_i.rpc match_i.tif out.ply\n",*v);
+                //0 1        2         3         4         5           6            
     char *filename_mesh = v[1];
-    char *filename_im = v[2];
-    char *filename_m = v[3];
-    char *filename_ply = v[4];
+    char *filename_pan = v[2];
+    char *filename_msi = v[3];
+    char *filename_msi_rpc = v[4];
+    char *filename_m = v[5];
+    char *filename_vc = v[6];
 
     printf("début\n");
     int wi, hi;
-    float *im = iio_read_image_float(filename_im, &wi, &hi);
-    if (!im)
-        return fprintf(stderr, "iio_read(%s) failed\n", filename_im);
+    float *pan = iio_read_image_float(filename_pan, &wi, &hi);
+    if (!pan)
+        return fprintf(stderr, "iio_read(%s) failed\n", filename_pan);
     printf("image chargée\n");
+
+    // open the reference image and obtain its pixel dimension "pd"
+    GDALDatasetH huge_dataset = GDALOpen(filename_msi, GA_ReadOnly);
+    int pdm = GDALGetRasterCount(huge_dataset);
+    GDALRasterBandH huge_img[pdm];
+    for (int i = 0; i < pdm; i++)
+        huge_img[i] = GDALGetRasterBand(huge_dataset, i+1);
+
+    // open the reference rpc
+    struct rpc huge_rpc[1];
+    read_rpc_file_xml(huge_rpc, filename_msi_rpc);
 
     int wh, un, pd;
     double *match = iio_read_image_double_vec(filename_m, &wh, &un, &pd);
@@ -246,27 +272,49 @@ int main_colormultiple(int c, char *v[])
     double *vc = malloc(3 * m.nv * sizeof(double));
     printf("création vecteur couleur\n");
 
+    double intensity;
+    double lonlatheight[3];
+    double msi[pdm];
+    double rgb[3];
+    double a;
+    double ij_msi[2];
     for (int nv = 0; nv < m.nv; nv++)
     {
         int ij[2];
         int xywh[4] = {0, 0, wi, hi};
         for (int i = 0; i < 2; i++)
-            ij[i] = (int) round(match[2*nv+i] + offset[i]);
-        if (is_in_crop_int(ij, xywh))
-            for (int k = 0; k < 3; k++)
-                vc[3*nv+k] = im[ij[0]+(ij[1])*wi];
+            ij[i] = (int) round(match[pd*nv+i] + offset[i]);
+        if (is_in_crop_int(ij, xywh)) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
+        {
+           intensity = pan[ij[0]+(ij[1])*wi]; 
+           for (int i = 0; i < 3; i++)
+               lonlatheight[i] = match[pd*nv+2+i];
+           rpc_projection(ij_msi, huge_rpc, lonlatheight);
+           for (int l = 0; l < pdm; l++)
+               msi[l] = gdal_getpixel(huge_img[l],ij_msi[0],ij_msi[1]);
+           rgb[0] = msi[4];
+           rgb[1] = 0.8 * msi[2] + 0.1 * msi[5];
+           rgb[2] = 1.2 * msi[1];
+           a = intensity/(rgb[0]+rgb[1]+rgb[2]);
+           for (int i = 0; i < 3; i++)
+               rgb[i] = a * rgb[i]; 
+           for (int k = 0; k < 3; k++)
+               vc[3*nv+k] = rgb[k];
+        }
         else 
         {
-            vc[3*nv+0] = 255;
+            vc[3*nv+0] = 1000;
             vc[3*nv+1] = 0;
             vc[3*nv+2] = 0;
         }
     }
+    printf("sauvegarde vecteur couleur\n");
+    iio_save_image_double_vec(filename_vc, vc, m.nv, 1, 3);
 
-    printf("avant écriture\n");
-    trimesh_write_to_coloured_ply(filename_ply, &m, vc); 
-
-    printf("fini !\n");
+//    printf("avant écriture\n");
+//    trimesh_write_to_coloured_ply(filename_ply, &m, vc); 
+//
+//    printf("fini !\n");
     return 0;
 }
 
