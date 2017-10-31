@@ -101,7 +101,7 @@ void create_colormap(char *filename_map, int nimages, int w, int h) // nimages m
         for (int ni = 0; ni < nimages; ni++)
         {
                 double hsv[3] = {Hsv[ni%8], hSv[(ni/16)%3], hsV[(ni/8)%2]};
-                double rgb[3];
+                double rgb[3] = {0, 0, 0};
                 hsv2rgb(hsv, rgb);
         for (int i = ni*w; i < (ni+1)*w; i++)
         for (int j = 0; j < h; j++)
