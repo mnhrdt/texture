@@ -44,6 +44,16 @@ void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les 
         printf("WARNING: normalisation error in triangle_normal, norme = %.16lf\n", norm);
 }
 
+// compute sun direction from azimuth and elevation
+void sun_direction(double n[3], double azimuth, double elevation)
+{
+    double az_rad = azimuth * M_PI / 180;
+    double el_rad = elevation * M_PI / 180;
+    n[0] = cos(el_rad)*sin(az_rad);
+    n[1] = cos(el_rad)*cos(az_rad);
+    n[2] = sin(el_rad);
+}
+
 // get the satellite direction using only the rpc data
 void camera_direction(double n[3], struct rpc *r)
 {
@@ -226,6 +236,8 @@ int main_zbuffer(int c, char *v[])
     double oz = atof(pick_option(&c, &v, "oz", "0"));
     double xmin = atof(pick_option(&c, &v, "xmin", "0"));
     double ymin = atof(pick_option(&c, &v, "ymin", "0"));
+    double az = atof(pick_option(&c, &v, "-azimuth", "0"));
+    double el = atof(pick_option(&c, &v, "-elevation", "0"));
     double offset[3] = {xmin-ox, ymin-oy, oz};
     double debug = atoi(pick_option(&c, &v, "g", "0"));
     if (c < 8)
@@ -248,6 +260,7 @@ int main_zbuffer(int c, char *v[])
         return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
 
 
+    printf("Pi %0.16lf\n", M_PI);
     // read georeferencing transform using GDAL
     double origin[2] = {0, 0};
     double scale[2] = {1, 1};
