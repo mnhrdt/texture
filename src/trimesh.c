@@ -327,8 +327,8 @@ void trimesh_write_to_scaled_off(char *fname, struct trimesh *m)
 	// cleanup
 	fclose(f);
 }
-// function to save a triangulated surface to a ply file                    {{{1
-void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
+// function to save a triangulated surface to a coloured ply file           {{{1
+void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, double t)
 {
 	// dump the ply file (with dsm-inherited connectivity)
 	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
@@ -349,15 +349,23 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c)
 	fprintf(f, "element face %d\n", m->nt);
 	fprintf(f, "property list uchar int vertex_indices\n");
 	fprintf(f, "end_header\n");
+        
 
 	// print points
-	for (int i = 0; i < m->nv; i++)
+        for (int i = 0; i < m->nv; i++)
+        {
+            if (isnan(c[3*i+0]) || c[3*i+0] < -1000)
+                fprintf(f, "%.16lf %.16lf %.16lf 0 0 255\n",
+                        0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
+                        m->v[3*i+2]);
+            else
                 fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
-				0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
-                                m->v[3*i+2],
-                                (int) round(c[3*i+0]),
-                                (int) round(c[3*i+1]),
-                                (int) round(c[3*i+2]));
+                        0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
+                        m->v[3*i+2],
+                        (c[3*i+0] >t) ? 255 : (int) round(255*c[3*i+0]/t),
+                        (c[3*i+1] >t) ? 255 : (int) round(255*c[3*i+1]/t),
+                        (c[3*i+2] >t) ? 255 : (int) round(255*c[3*i+2]/t));
+        }
 
 
 	// print triangles

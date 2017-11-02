@@ -14,6 +14,8 @@
 
 int main(int c, char *v[])
 {
+    double t = atof(pick_option(&c, &v, "t", "800"));
+
     if (c < 4)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off vc.tif out.ply\n",*v);
@@ -36,7 +38,7 @@ int main(int c, char *v[])
                 "m.nv %d w %d \n", m.nv, nv);
 
     printf("avant écriture\n");
-    trimesh_write_to_coloured_ply(filename_ply, &m, vc); 
+    trimesh_write_to_coloured_ply(filename_ply, &m, vc, t); 
 
     printf("fini !\n");
     return 0;

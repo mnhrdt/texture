@@ -1,5 +1,6 @@
 # the following option is used to control all C and C++ compilations
-FLAGS ?= -O3 -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter
+FLAGS ?= -g -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter
+CCFLAGS ?= -O3 -Wall -Wextra -Wno-unused -Wno-unused-parameter
 
 
 # required libraries
@@ -9,6 +10,7 @@ CGALIBS := -lCGAL -lgmp -lboost_system
 
 # variables for implicit rules
 CFLAGS = $(FLAGS)
+CXXFLAGS = $(CCFLAGS)
 override CPPFLAGS := $(shell gdal-config --cflags)
 override LDLIBS   := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
 
