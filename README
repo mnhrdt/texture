@@ -1,0 +1,10 @@
+INPUTS
+
+Pour utiliser im2colouredcurve.sh, le script le plus à jour par rapport aux 
+récentes modifications des codes, il faut
+    - télécharger sur boucantrin l'intérieur du dossier 
+    /home/mariedautume/src/texture/inputs
+    - vérifier que data/ et exp/ sont au même niveau que le makefile et src/
+    - lancer "bash im2colouredcurve.sh 02" si vous voulez utiliser l'image 02
+    - les résultats sont dans exp/output/
+
