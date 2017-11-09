@@ -354,17 +354,17 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, do
 	// print points
         for (int i = 0; i < m->nv; i++)
         {
-            if (isnan(c[3*i+0]) || c[3*i+0] < -1000)
+            if (isnan(c[3*i+0]))
                 fprintf(f, "%.16lf %.16lf %.16lf 0 0 255\n",
-                        0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
+                        0.3*m->v[3*i+0], -0.3*m->v[3*i+1],
                         m->v[3*i+2]);
             else
                 fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
-                        0.3*m->v[3*i+0], 0.3*m->v[3*i+1],
+                        0.3*m->v[3*i+0], -0.3*m->v[3*i+1],
                         m->v[3*i+2],
-                        (c[3*i+0] >t) ? 255 : (int) round(255*c[3*i+0]/t),
-                        (c[3*i+1] >t) ? 255 : (int) round(255*c[3*i+1]/t),
-                        (c[3*i+2] >t) ? 255 : (int) round(255*c[3*i+2]/t));
+                        (int) fmax(fmin(c[3*i+0],255),0),
+                        (int) fmax(fmin(c[3*i+1],255),0),
+                        (int) fmax(fmin(c[3*i+2],255),0));
         }
 
 

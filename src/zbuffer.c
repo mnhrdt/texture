@@ -517,7 +517,7 @@ int main_zbuffer(int c, char *v[])
             }
         }
     }
-    iio_save_image_double_vec("tmp/soutput/image_copy.tif", img_copy, wi, hi, 3);
+    iio_save_image_double_vec("exp/soutput/image_copy.tif", img_copy, wi, hi, 3);
     printf("offset 1 %lf  2 %lf 3 %lf\n", offset[0], offset[1], offset[2]);
     if (debug == 1)
         iio_save_image_double_vec(filename_out, out, w, h, 2);

@@ -20,18 +20,17 @@ bin/zbuffer \
     -ox $x -oy $y -oz $z -xmin 1505 -ymin 891 --res 0.45
 
 bin/colormultiple_mesh \
-    exp/output/mesh_curve_remeshed.off \
+    data/mesh_curve_remeshed.off \
     exp/data/crop/crop_img_$im.tif \
     data/MSI/img_$im.ntf \
     data/MSI/img_$im.xml \
     exp/output/matches/matches_$im.tif  \
     exp/output/vc_$im.tif
 
-qauto exp/output/vc_$im.tif exp/output/vc_$im.tiff
+qauto -i -f exp/output/vc_$im.tif exp/output/vc_$im.tiff
 
 bin/write_coloured_ply \
-    exp/output/mesh_curve_remeshed.off \
-    exp/output/vc_$im.tif \
-    exp/output/ccoloured_$im.ply \
-    -t $thresh
+    data/mesh_curve_remeshed.off \
+    exp/output/vc_$im.tiff \
+    exp/output/ccoloured_$im.ply 
 
