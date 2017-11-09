@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 rm -rf pan msi
 mkdir -p pan msi
@@ -96,3 +96,4 @@ ln -s dataset_full/WV3/MSI/07JAN16WV031000016JAN07142142-M1BS-500537128030_01_P0
 ln -s dataset_full/WV3/MSI/07JAN16WV031000016JAN07142152-M1BS-500537128010_01_P001_________GA_E0AAAAAAKAAG0.NTF msi/img_45.ntf
 ln -s dataset_full/WV3/MSI/07JAN16WV031000016JAN07142202-M1BS-500537128020_01_P001_________GA_E0AAAAAAKAAG0.NTF msi/img_46.ntf
 ln -s dataset_full/WV3/MSI/13JAN16WV031100016JAN13141501-M1BS-500541801010_01_P001_________GA_E0AAAAAAKAAI0.NTF msi/img_47.ntf
+for i in pan/* msi/* ; do ./extract_rpc_from_ntf.py $i > ${i/ntf/rpc} ; done
