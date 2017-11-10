@@ -293,7 +293,7 @@ int main_colormultiple(int c, char *v[])
         int ij[2];
         int xywh[4] = {0, 0, wi, hi};
         for (int i = 0; i < 2; i++)
-            ij[i] = (int) round(match[pd*nv+i] + offset[i]);
+            ij[i] = lrint(match[pd*nv+i] + offset[i]);
         if (is_in_crop_int(ij, xywh)) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
         {
            intensity = pan[ij[0]+(ij[1])*wi]; 

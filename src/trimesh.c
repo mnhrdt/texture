@@ -662,6 +662,19 @@ static void trimesh_test_triangle_fans(struct trimesh *m)
 	}
 
 }
+
+#include "xfopen.c"
+// function to save the mesh into a file, readable by Octave's "dlmread"    {{{1
+static void trimesh_dump_edges(char *filename, struct trimesh *m)
+{
+	if (!m->e) trimesh_fill_edges(m);
+
+	FILE *f = xfopen(filename, "w");
+	for (int i = 0; i < m->ne; i++)
+		fprintf(f, "%d %d\n", t->e[2*i+0], t->e[2*i+1]);
+	xfclose(f);
+}
+
 #endif//TRIMESH_MORE_STUFF
 
 
@@ -724,6 +737,7 @@ void trimesh_laplacian(                                                  // {{{1
 	free(d);
 }
 #endif//TRIMESH_CALCULUS
+
 
 
 // example "main" function                                                  {{{1
