@@ -27,6 +27,41 @@ static float gdal_getpixel(GDALRasterBandH img, double pi, double pj)
 	return roi[0*0+0];
 }
 
+// cubic interpolation in dimension 1
+static float cubic_interpolation(float v[4], float x)
+{
+	return v[1] + 0.5 * x*(v[2] - v[0]
+			+ x*(2.0*v[0] - 5.0*v[1] + 4.0*v[2] - v[3]
+			+ x*(3.0*(v[1] - v[2]) + v[3] - v[0])));
+}
+
+// bicubic interpolation in dimension 2 (needs a cell of size 4x4)
+static float bicubic_interpolation_cell(float *p, float x, float y)
+{
+	float v[4];
+	v[0] = cubic_interpolation(p + 4*0, y);
+	v[1] = cubic_interpolation(p + 4*1, y);
+	v[2] = cubic_interpolation(p + 4*2, y);
+	v[3] = cubic_interpolation(p + 4*3, y);
+	return cubic_interpolation(v, x);
+}
+
+// eval a gdal raster using bicubic interpolation
+static float gdal_getpixel_bicubic(GDALRasterBandH img, double x, double y)
+{
+	// caching of a silly malloc
+	static float *roi = NULL;
+	if (!roi) roi = CPLMalloc(4*4*sizeof*roi);
+
+	// TODO: some sort of bilinear or bicubic interpolation ?
+	x -= 1;
+	y -= 1;
+	int i = floor(x);
+	int j = floor(y);
+	int r = GDALRasterIO(img, GF_Read, i,j,4, 4, roi,1,1, GDT_Float32, 0,0);
+	return bicubic_interpolation_cell(roi, x - i, y - j);
+}
+
 // extrapolate by nearest value
 static float getpixel_f(float *I, int w, int h, int i, int j)
 {
