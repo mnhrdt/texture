@@ -58,7 +58,7 @@ static float gdal_getpixel_bicubic(GDALRasterBandH img, double x, double y)
 	y -= 1;
 	int i = floor(x);
 	int j = floor(y);
-	int r = GDALRasterIO(img, GF_Read, i,j,4, 4, roi,1,1, GDT_Float32, 0,0);
+	int r = GDALRasterIO(img, GF_Read, i,j,1, 1, roi,4,4, GDT_Float32, 0,0);
 	return bicubic_interpolation_cell(roi, x - i, y - j);
 }
 
@@ -258,47 +258,60 @@ void camera_direction(double n[3], struct rpc *r)
 //
 int main_colormultiple(int c, char *v[])
 {
-    double ox = atof(pick_option(&c, &v, "ox", "0"));
-    double oy = atof(pick_option(&c, &v, "oy", "0"));
-    float offset[2] = {ox, oy};
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.ply pan_i.tif msi_i.ntf msi_i.xml match_i.tif vc.tif\n",*v);
                 //0 1        2         3         4         5           6            
     char *filename_mesh = v[1];
-    char *filename_pan = v[2];
-    char *filename_msi = v[3];
-    char *filename_msi_rpc = v[4];
-    char *filename_m = v[5];
-    char *filename_vc = v[6];
+    char *filename_corners = v[2];
+    char *filename_pan = v[3];
+    char *filename_pan_rpc = v[4];
+    char *filename_msi = v[5];
+    char *filename_msi_rpc = v[6];
+    char *filename_m = v[7];
+    char *filename_vc = v[8];
 
     printf("début\n");
-    int wi, hi;
-    float *pan = iio_read_image_float(filename_pan, &wi, &hi);
-    if (!pan)
-        return fprintf(stderr, "iio_read(%s) failed\n", filename_pan);
-    printf("image chargée\n");
-    GDALAllRegister();
-    GDALDatasetH gdal_dataset = GDALOpen(filename_msi, GA_ReadOnly);
-    if (gdal_dataset == NULL)
-        return fprintf(stderr, "GDALOpen(%s) failed\n", filename_msi);
-//    double tmp[6];
-//    if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
-//        tmp[0] = 0;
-//    } else {
-//        fprintf(stderr, "WARNING: not found origin and scale info\n");
-//    }
 
+    // read the informations about the crop
+    FILE *corners;
+    corners = fopen(filename_corners,"r");
+    if (!corners)
+        return fprintf(stderr, "fopen(%s) failed\n", filename_corners);
+
+    double xywh[4];
+    for (int i = 0; i < 4; i++)
+        if ((fscanf(corners, "%lf", &xywh[i])) != 1)
+            return fprintf(stderr, "could not read element %d of %s\n", i, filename_corners);
+    fclose(corners);
+
+    int wi = lrint(xywh[2]);
+    int hi = lrint(xywh[3]);
+    GDALAllRegister();
+    
     // open the reference image and obtain its pixel dimension "pd"
-    GDALDatasetH huge_dataset = GDALOpen(filename_msi, GA_ReadOnly);
+    GDALDatasetH huge_dataset = GDALOpen(filename_pan, GA_ReadOnly);
     int pdm = GDALGetRasterCount(huge_dataset);
-    GDALRasterBandH huge_img[pdm];
+    printf("pdm pan %d\n", pdm);
+    GDALRasterBandH huge_pan_img[pdm];
     for (int i = 0; i < pdm; i++)
-        huge_img[i] = GDALGetRasterBand(huge_dataset, i+1);
+        huge_pan_img[i] = GDALGetRasterBand(huge_dataset, i+1);
 
     // open the reference rpc
-    struct rpc huge_rpc[1];
-    read_rpc_file_xml(huge_rpc, filename_msi_rpc);
+    struct rpc huge_pan_rpc[1];
+    read_rpc_file_xml(huge_pan_rpc, filename_pan_rpc);
+
+    // open the reference image and obtain its pixel dimension "pd"
+    huge_dataset = GDALOpen(filename_msi, GA_ReadOnly);
+    pdm = GDALGetRasterCount(huge_dataset);
+    printf("pdm msi %d\n", pdm);
+    GDALRasterBandH huge_msi_img[pdm];
+    for (int i = 0; i < pdm; i++)
+        huge_msi_img[i] = GDALGetRasterBand(huge_dataset, i+1);
+
+    // open the reference rpc
+    struct rpc huge_msi_rpc[1];
+    read_rpc_file_xml(huge_msi_rpc, filename_msi_rpc);
 
     int wh, un, pd;
     double *match = iio_read_image_double_vec(filename_m, &wh, &un, &pd);
@@ -323,20 +336,22 @@ int main_colormultiple(int c, char *v[])
     double rgb[3];
     double a;
     double ij_msi[2];
+    double ij_pan[2];
     for (int nv = 0; nv < m.nv; nv++)
     {
         int ij[2];
         int xywh[4] = {0, 0, wi, hi};
         for (int i = 0; i < 2; i++)
-            ij[i] = lrint(match[pd*nv+i] + offset[i]);
+            ij[i] = lrint(match[pd*nv+i]);
         if (is_in_crop_int(ij, xywh)) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
         {
-           intensity = pan[ij[0]+(ij[1])*wi]; 
            for (int i = 0; i < 3; i++)
                lonlatheight[i] = match[pd*nv+2+i];
-           rpc_projection(ij_msi, huge_rpc, lonlatheight);
+           rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
+           rpc_projection(ij_msi, huge_msi_rpc, lonlatheight);
+           intensity = gdal_getpixel(huge_pan_img[0], ij_pan[0], ij_pan[1]);
            for (int l = 0; l < pdm; l++)
-               msi[l] = gdal_getpixel(huge_img[l],ij_msi[0],ij_msi[1]);
+               msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
            rgb[0] = msi[4];
            rgb[1] = 0.8 * msi[2] + 0.1 * msi[5];
            rgb[2] = 1.2 * msi[1];
