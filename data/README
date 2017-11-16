@@ -1,0 +1,10 @@
+WHAT DO YOU NEED TO DO HERE:
+
+
+# set link to iarpa full dataset
+ln -s /path/to/full/iarpa/data full_dataset
+
+# build numbered links and extract rpc
+./make_links.sh
+
+# set link to to full s2p output
