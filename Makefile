@@ -18,7 +18,7 @@ override LDLIBS   := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
 BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle \
        colormultiple triangles zbuffer get_projection_matrix vector_proj \
        colorfancy get_msi_offset recale create_mesh colormultiple_mesh \
-       write_coloured_ply get_corners_utm shadow
+       write_coloured_ply get_corners_utm shadow normals
 BIN := $(addprefix bin/,$(BIN))
 OBJ := src/iio.o src/geographiclib_wrapper.o
 

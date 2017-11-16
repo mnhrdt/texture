@@ -100,7 +100,8 @@ int main(int c, char *v[])
         vc_mean(vcf, vcs, m.nv, nb_vc);
 
     printf("avant écriture\n");
-    trimesh_write_to_coloured_ply(filename_ply, &m, vcf, t); 
+    double origin[3] = {0, 0, 0};
+    trimesh_write_to_coloured_ply2(filename_ply, &m, vcf, origin); 
 
     free(vcf); free(vcs);
     printf("fini !\n");

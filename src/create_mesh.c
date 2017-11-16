@@ -19,8 +19,9 @@ int main(int c, char *v[])
                 "%s dsm.tif zone mesh.off mesh.ply\n", *v);
                 //0 1       2    3    
     char *filename_dsm = v[1];
-    char *filename_off = v[2];
-    char *filename_ply = v[3];
+    int signed_zone = atoi(v[2]);
+    char *filename_off = v[3];
+    char *filename_ply = v[4];
 
     // read the whole input DSM (typically, rather small)
     int w, h;
@@ -28,8 +29,23 @@ int main(int c, char *v[])
     if (!x)
         return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
 
+     // read georeferencing transform using GDAL
+    double origin[3] = {0, 0, 0};
+    double scale[3] = {1, 1, 1};
+    GDALAllRegister();
+    GDALDatasetH gdal_dataset = GDALOpen(filename_dsm, GA_ReadOnly);
+    if (gdal_dataset == NULL)
+        fprintf(stderr, "GDALOpen(%s) failed\n", filename_dsm);
+    double tmp[6];
+    if (GDALGetGeoTransform(gdal_dataset, tmp) == CE_None) {
+        origin[0] = tmp[0], origin[1] = tmp[3];
+        scale[0] = tmp[1], scale[1] = tmp[5];
+    } else {
+        fprintf(stderr, "WARNING: not found origin and scale info\n");
+    }
+
     struct trimesh m[1];
-    trimesh_create_from_dem_with_offset(m, x, w, h, ox, oy, oz);
+    trimesh_create_from_dem_with_scale(m, x, w, h, scale);
 
     trimesh_write_to_ply(filename_ply, m);
     trimesh_write_to_off(filename_off, m);

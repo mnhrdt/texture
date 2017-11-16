@@ -773,7 +773,7 @@ static void trimesh_dump_edges(char *filename, struct trimesh *m)
 
 	FILE *f = xfopen(filename, "w");
 	for (int i = 0; i < m->ne; i++)
-		fprintf(f, "%d %d\n", t->e[2*i+0], t->e[2*i+1]);
+		fprintf(f, "%d %d\n", m->e[2*i+0], m->e[2*i+1]);
 	xfclose(f);
 }
 
