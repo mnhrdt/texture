@@ -165,6 +165,55 @@ void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 }
 
 // function to create a mesh from a digital elevation map with offset       {{{1
+void trimesh_create_from_dem_with_scale(struct trimesh *m, 
+        float *x, 
+        int w, 
+        int h,
+        double scale[3])
+{
+       // initialize the mesh
+       trimesh_alloc_tables(m, w*h, 2*(w-1)*(h-1));
+
+       // build a table of vertex correspondences
+       int *t = malloc(w * h * sizeof*t);
+       for (int j = 0; j < h; j++)
+       for (int i = 0; i < w; i++)
+       if (isfinite(x[(j*w+i)%(w*h)]))
+               t[(j*w+i)%(w*h)] = trimesh_add_vertex(m, 
+                       scale[0] * i,
+                       scale[1] * j,
+                       scale[2] * x[(j*w+i)%(w*h)]);
+       else
+               t[(j*w+i)%(w*h)] = -1;
+
+       // add the triangles all of those whose vertices are good
+       for (int j = 0; j < h-1; j++)
+       for (int i = 0; i < w-1; i++)
+       {
+               int a = ((j+0)*w + (i+0))%(w*h);
+               int b = ((j+0)*w + (i+1))%(w*h);
+               int c = ((j+1)*w + (i+0))%(w*h);
+               int d = ((j+1)*w + (i+1))%(w*h);
+
+                if (fabs(x[b]-x[c]) < fabs(x[a]-x[d]))
+                {
+               if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
+                       trimesh_add_triangle(m, t[a], t[b], t[c]);
+               if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[c], t[b], t[d]);
+                }
+                else
+                {
+               if (t[a] >= 0 && t[b] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[a], t[b], t[d]);
+               if (t[a] >= 0 && t[c] >= 0 && t[d] >= 0)
+                       trimesh_add_triangle(m, t[a], t[d], t[c]);
+                }
+
+       }
+
+}
+// function to create a mesh from a digital elevation map with offset       {{{1
 void trimesh_create_from_dem_with_offset(struct trimesh *m, 
         float *x, 
         int w, 
@@ -362,6 +411,59 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, do
                 fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
                         0.3*m->v[3*i+0], -0.3*m->v[3*i+1],
                         m->v[3*i+2],
+                        (int) fmax(fmin(c[3*i+0],255),0),
+                        (int) fmax(fmin(c[3*i+1],255),0),
+                        (int) fmax(fmin(c[3*i+2],255),0));
+        }
+
+
+	// print triangles
+	for (int i = 0; i < m->nt; i++)
+                fprintf(f, "3 %d %d %d\n",
+				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
+
+	// cleanup
+	fclose(f);
+}
+
+// function to save a triangulated surface to a coloured ply file           {{{1
+void trimesh_write_to_coloured_ply2(char *fname, struct trimesh *m, 
+        double *c, double origin[3])
+{
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment bare triangulated surface\n");
+	fprintf(f, "element vertex %d\n", m->nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+        fprintf(f, "property uchar red\n");
+        fprintf(f, "property uchar green\n");
+        fprintf(f, "property uchar blue\n");
+	fprintf(f, "element face %d\n", m->nt);
+	fprintf(f, "property list uchar int vertex_indices\n");
+	fprintf(f, "end_header\n");
+        
+
+	// print points
+        for (int i = 0; i < m->nv; i++)
+        {
+            if (isnan(c[3*i+0]))
+                fprintf(f, "%.16lf %.16lf %.16lf 0 0 255\n",
+                        m->v[3*i+0] + origin[0], 
+                        m->v[3*i+1] + origin[1],
+                        m->v[3*i+2] + origin[2]);
+            else
+                fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
+                        m->v[3*i+0] + origin[0], 
+                        m->v[3*i+1] + origin[1], 
+                        m->v[3*i+2] + origin[2], 
                         (int) fmax(fmin(c[3*i+0],255),0),
                         (int) fmax(fmin(c[3*i+1],255),0),
                         (int) fmax(fmin(c[3*i+2],255),0));

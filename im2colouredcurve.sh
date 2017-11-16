@@ -1,7 +1,7 @@
 #!/binbash
 # auteur : mariedautume
 
-# exemple input bash im2curve.sh 01
+# exemple input bash im2colouredurve.sh 01
 set -e
 set -x
 im=$1
