@@ -58,8 +58,9 @@ static float gdal_getpixel_bicubic(GDALRasterBandH img, double x, double y)
 	y -= 1;
 	int i = floor(x);
 	int j = floor(y);
-	int r = GDALRasterIO(img, GF_Read, i,j,1, 1, roi,4,4, GDT_Float32, 0,0);
+	int r = GDALRasterIO(img, GF_Read, i,j,4, 4, roi,4,4, GDT_Float32, 0,0);
 	return bicubic_interpolation_cell(roi, x - i, y - j);
+//        return roi[5];
 }
 
 // extrapolate by nearest value
@@ -349,7 +350,7 @@ int main_colormultiple(int c, char *v[])
                lonlatheight[i] = match[pd*nv+2+i];
            rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
            rpc_projection(ij_msi, huge_msi_rpc, lonlatheight);
-           intensity = gdal_getpixel(huge_pan_img[0], ij_pan[0], ij_pan[1]);
+           intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
            for (int l = 0; l < pdm; l++)
                msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
            rgb[0] = msi[4];
