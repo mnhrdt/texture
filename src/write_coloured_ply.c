@@ -81,6 +81,8 @@ int main(int c, char *v[])
     {
         int nv, one, pd;
         double *vc = iio_read_image_double_vec(v[2+i], &nv, &one, &pd);
+        one = 1;
+        nv = m.nv;
         if (!vc || one != 1 || pd != 3)
             return fprintf(stderr, "iio_read(%s) failed\n", v[2+i]);
         if (m.nv != nv)
@@ -102,6 +104,7 @@ int main(int c, char *v[])
     printf("avant écriture\n");
     double origin[3] = {0, 0, 0};
     trimesh_write_to_coloured_ply2(filename_ply, &m, vcf, origin); 
+    //cloud_write_to_coloured_ply2(filename_ply, &m, vcf, origin); 
 
     free(vcf); free(vcs);
     printf("fini !\n");

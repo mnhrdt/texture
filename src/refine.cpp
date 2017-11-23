@@ -8,6 +8,26 @@
 #include <CGAL/Polygon_mesh_processing/border.h>
 #include <boost/function_output_iterator.hpp>
 #include <vector>
+// c: pointer to original argc
+// v: pointer to original argv
+// o: option name (after hyphen)
+// d: default value
+const char *pick_option(int *c, char ***v, const char *o, const char *d)
+{
+	int argc = *c;
+	char **argv = *v;
+	int id = d ? 1 : 0;
+	for (int i = 0; i < argc - id; i++)
+		if (argv[i][0] == '-' && 0 == strcmp(argv[i]+1, o))
+		{
+			char *r = argv[i+id]+1-id;
+			*c -= id+1;
+			for (int j = i; j < argc - id; j++)
+				(*v)[j] = (*v)[j+id+1];
+			return r;
+		}
+	return d;
+}
 
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef CGAL::Polyhedron_3<Kernel>  Polyhedron;
@@ -33,6 +53,7 @@ struct halfedge2edge
 
 int main_remesh(int argc, char* argv[])
 {
+    double resolution = atof(pick_option(&argc, &argv, "-res", "0.45"));
     if (argc < 3)
         return fprintf(stderr, "usage:\n\t"
                 "%s input_mesh.off output_mesh.off\n",*argv);
@@ -44,7 +65,8 @@ int main_remesh(int argc, char* argv[])
     std::cerr << "Not a valid input file." << std::endl;
     return 1;
   }
-  double target_edge_length = 0.45;
+  double target_edge_length = resolution;
+  std::cout << "resolution " << target_edge_length << std::endl;
   unsigned int nb_iter = 10;
   std::cout << "Split border...";
     std::vector<edge_descriptor> border;
@@ -98,26 +120,6 @@ int main_refine(int c, char* v[])
     return 0;
 }
 
-// c: pointer to original argc
-// v: pointer to original argv
-// o: option name (after hyphen)
-// d: default value
-const char *pick_option(int *c, char ***v, const char *o, const char *d)
-{
-	int argc = *c;
-	char **argv = *v;
-	int id = d ? 1 : 0;
-	for (int i = 0; i < argc - id; i++)
-		if (argv[i][0] == '-' && 0 == strcmp(argv[i]+1, o))
-		{
-			char *r = argv[i+id]+1-id;
-			*c -= id+1;
-			for (int j = i; j < argc - id; j++)
-				(*v)[j] = (*v)[j+id+1];
-			return r;
-		}
-	return d;
-}
 
 int main(int c, char *v[])
 {

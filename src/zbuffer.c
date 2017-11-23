@@ -528,6 +528,153 @@ int main_zbuffer(int c, char *v[])
     return 0;
 }
 
+void xywh_from_file(double xywh[4], char *filename_corners)
+{
+    // read the informations about the crop
+    FILE *corners;
+    corners = fopen(filename_corners,"r");
+    if (!corners)
+        fprintf(stderr, "fopen(%s) failed\n", filename_corners);
+        
+
+    for (int i = 0; i < 4; i++)
+        if ((fscanf(corners, "%lf", &xywh[i])) != 1)
+             fprintf(stderr, "could not read element %d of %s\n", i, filename_corners);
+    fclose(corners);
+}
+
+bool fill_one_point_of_img_copy(struct trimesh *m,
+        int vertices[3],
+        double offset[3],
+        double origin[3],
+        int signed_zone,
+        struct rpc *huge_rpc,
+        double xywh[4],
+        int wi,
+        int hi,
+        double *img_copy,
+        double *out,
+        bool *v_visibility,
+        int v_coord_im[3][2],
+        int l)
+{
+    bool in_image = true;
+    // get vertices coordinates in pixel and utm
+    double e = m->v[3 * vertices[l] + 0] + offset[0] + origin[0];
+    double n = m->v[3 * vertices[l] + 1] + offset[1] + origin[1];
+    double z = m->v[3 * vertices[l] + 2] + offset[2] + origin[2];
+    if (z<-100)
+        z = 20.0; // TO DO: put mean value
+
+    // get projection coordinates in huge image
+    double lonlat[2] = {0, 0};
+    lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+    double lonlatheight[3] = {lonlat[0], lonlat[1], z};
+    double ij[2] = {0, 0};
+    rpc_projection(ij, huge_rpc, lonlatheight);
+
+    // check if the vertex is in the cropped image
+    // else put NaN in output and go to the next vertex.
+    int ij_int[2];
+    int xywihi[4] = {0, 0, wi, hi};
+    for (int k = 0; k < 2; k++)
+        // projection sur grande image,
+        // il faut donc soustraire les coord du coin 
+        // de l'image découpée.
+        ij_int[k] = (int) floor(ij[k]) - floor(xywh[k]);
+    if (!is_in_crop_int(ij_int, xywihi)) 
+    {   
+        //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
+        in_image = false; 
+        for (int k = 0; k < 3; k++)
+            out[3*vertices[l] + k] = NAN;
+        return in_image;
+    }
+    // indicate that the vertex is part of a well-oriented face
+    assert(vertices[l] < m->nv);
+    assert(vertices[l] >= 0); 
+    v_visibility[vertices[l]] = true;
+
+    for (int k = 0; k < 2; k++)
+        v_coord_im[l][k] = ij_int[k];
+
+    // fill img_copy only if it is the highest point
+    if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
+    {   
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+1] = n-origin[1];
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = z-origin[2];
+    }
+    return in_image;
+
+}
+
+bool fill_three_point_of_img_copy(struct trimesh *m,
+        int vertices[3],
+        double offset[3],
+        double origin[3],
+        int signed_zone,
+        struct rpc *huge_rpc,
+        double xywh[4],
+        int wi,
+        int hi,
+        double *img_copy,
+        double *out,
+        bool *v_visibility,
+        int v_coord_im[3][2],
+        int l)
+{
+    bool in_image = true;
+    // get vertices coordinates in pixel and utm
+    double e = m->v[3 * vertices[l] + 0] + offset[0] + origin[0];
+    double n = m->v[3 * vertices[l] + 1] + offset[1] + origin[1];
+    double z = m->v[3 * vertices[l] + 2] + offset[2] + origin[2];
+    if (z<-100)
+        z = 20.0; // TO DO: put mean value
+
+    // get projection coordinates in huge image
+    double lonlat[2] = {0, 0};
+    lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+    double lonlatheight[3] = {lonlat[0], lonlat[1], z};
+    double ij[2] = {0, 0};
+    rpc_projection(ij, huge_rpc, lonlatheight);
+
+    // check if the vertex is in the cropped image
+    // else put NaN in output and go to the next vertex.
+    int ij_int[2];
+    int xywihi[4] = {0, 0, wi, hi};
+    for (int k = 0; k < 2; k++)
+        // projection sur grande image,
+        // il faut donc soustraire les coord du coin 
+        // de l'image découpée.
+        ij_int[k] = (int) floor(ij[k]) - floor(xywh[k]);
+    if (!is_in_crop_int(ij_int, xywihi)) 
+    {   
+        //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
+        in_image = false; 
+        for (int k = 0; k < 3; k++)
+            out[3*vertices[l] + k] = NAN;
+        return in_image;
+    }
+    // indicate that the vertex is part of a well-oriented face
+    assert(vertices[l] < m->nv);
+    assert(vertices[l] >= 0); 
+    v_visibility[vertices[l]] = true;
+
+    for (int k = 0; k < 2; k++)
+        v_coord_im[l][k] = ij_int[k];
+
+    // fill img_copy only if it is the highest point
+    if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
+    {   
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+1] = n-origin[1];
+        img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = z-origin[2];
+    }
+    return in_image;
+
+}
+
 int main_zbuffer_meter(int c, char *v[])
 {
     double ox = atof(pick_option(&c, &v, "ox", "0"));
@@ -557,13 +704,10 @@ int main_zbuffer_meter(int c, char *v[])
         return fprintf(stderr, "iio_read(%s) failed\n", filename_dsm);
 
 
-    printf("Pi %0.16lf\n", M_PI);
     // read georeferencing transform using GDAL
     double origin[3] = {0, 0, 0};
     double scale[3] = {1, 1, 1};
     get_scale_and_origin_from_gdal(scale, origin, filename_dsm);
-    printf("scale %lf %lf origin %lf %lf\n",  scale[0], scale[1], origin[0], origin[1]);
-    printf("offset 1 %lf  2 %lf 3 %lf\n", offset[0], offset[1], offset[2]);
 
     for (int i=0; i < 3; i++)
         offset[i] *= scale[i];
@@ -578,16 +722,8 @@ int main_zbuffer_meter(int c, char *v[])
 //        return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
 
     // read the informations about the crop
-    FILE *corners;
-    corners = fopen(filename_corners,"r");
-    if (!corners)
-        return fprintf(stderr, "fopen(%s) failed\n", filename_corners);
-
     double xywh[4];
-    for (int i = 0; i < 4; i++)
-        if ((fscanf(corners, "%lf", &xywh[i])) != 1)
-            return fprintf(stderr, "could not read element %d of %s\n", i, filename_corners);
-    fclose(corners);
+    xywh_from_file(xywh, filename_corners);
 
     int wi = lrint(xywh[2]);
     int hi = lrint(xywh[3]);
@@ -600,12 +736,16 @@ int main_zbuffer_meter(int c, char *v[])
             img_copy[3*i+j] = 0;
         img_copy[3*i+2] = -1000;
     }
+    
+    double *essai = malloc(3*20*50*sizeof(double));
+    for (int i = 0; i < 3000; i++)
+        essai[i] = 0;
 
     // allocate space for output image and initialise to -1.
     double *out;
-    out = malloc(5 * m->nv * sizeof(double));
-    for (int i = 0; i < 5 * m->nv; i++)
-        out[i] = -1;
+    out = malloc(3 * m->nv * sizeof(double));
+    for (int i = 0; i < 3 * m->nv; i++)
+        out[i] = -1000;
 
     // allocate space for vertices visibility. Initialise to false.
     bool *v_visibility = malloc(m->nv * sizeof(bool));
@@ -650,53 +790,55 @@ int main_zbuffer_meter(int c, char *v[])
         // loop over the vertices of the well-oriented triangle.
         for (int l = 0; l < 3; l++)
         {
-            // get vertices coordinates in pixel and utm
-            double e = m->v[3 * vertices[l] + 0] + offset[0] + origin[0];
-            double n = m->v[3 * vertices[l] + 1] + offset[1] + origin[1];
-            double z = m->v[3 * vertices[l] + 2] + offset[2] + origin[2];
-            if (z<-100)
-                z = 20.0; // TO DO: put mean value
+            in_image = fill_one_point_of_img_copy(m, vertices, offset, origin, signed_zone, huge_rpc, xywh, wi, hi, img_copy, out, v_visibility, v_coord_im, l);
+           // // get vertices coordinates in pixel and utm
+           // double e = m->v[3 * vertices[l] + 0] + offset[0] + origin[0];
+           // double n = m->v[3 * vertices[l] + 1] + offset[1] + origin[1];
+           // double z = m->v[3 * vertices[l] + 2] + offset[2] + origin[2];
+           // if (z<-100)
+           //     z = 20.0; // TO DO: put mean value
 
-            // get projection coordinates in huge image
-            double lonlat[2] = {0, 0};
-            lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
-            double lonlatheight[3] = {lonlat[0], lonlat[1], z};
-            double ij[2] = {0, 0};
-            rpc_projection(ij, huge_rpc, lonlatheight);
+           // // get projection coordinates in huge image
+           // double lonlat[2] = {0, 0};
+           // lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+           // double lonlatheight[3] = {lonlat[0], lonlat[1], z};
+           // double ij[2] = {0, 0};
+           // rpc_projection(ij, huge_rpc, lonlatheight);
 
-            // check if the vertex is in the cropped image
-            // else put NaN in output and go to the next vertex.
-            int ij_int[2];
-            int xywihi[4] = {0, 0, wi, hi};
-            for (int k = 0; k < 2; k++)
-                // projection sur grande image,
-                // il faut donc soustraire les coord du coin 
-                // de l'image découpée.
-                ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
-            if (!is_in_crop_int(ij_int, xywihi)) 
-            {
-                //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
-                in_image = false;
-                for (int k = 0; k < 2; k++)
-                    out[5*vertices[l] + k] = NAN;
-                continue;
-            }
-            // indicate that the vertex is part of a well-oriented face
-            assert(vertices[l] < m->nv);
-            assert(vertices[l] >= 0);
-            v_visibility[vertices[l]] = true;
+           // // check if the vertex is in the cropped image
+           // // else put NaN in output and go to the next vertex.
+           // int ij_int[2];
+           // int xywihi[4] = {0, 0, wi, hi};
+           // for (int k = 0; k < 2; k++)
+           //     // projection sur grande image,
+           //     // il faut donc soustraire les coord du coin 
+           //     // de l'image découpée.
+           //     ij_int[k] = (int) floor(ij[k]) - floor(xywh[k]);
+           // if (!is_in_crop_int(ij_int, xywihi)) 
+           // {
+           //     //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
+           //     in_image = false;
+           //     for (int k = 0; k < 3; k++)
+           //         out[3*vertices[l] + k] = NAN;
+           //     continue;
+           // }
+           // // indicate that the vertex is part of a well-oriented face
+           // assert(vertices[l] < m->nv);
+           // assert(vertices[l] >= 0);
+           // v_visibility[vertices[l]] = true;
 
-            for (int k = 0; k < 2; k++)
-                v_coord_im[l][k] = ij_int[k];
+           // for (int k = 0; k < 2; k++)
+           //     v_coord_im[l][k] = ij_int[k];
 
-            // fill img_copy only if it is the highest point
-            if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
-            {
-                img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
-                img_copy[3*(ij_int[1]*wi+ij_int[0])+1] = n-origin[1];
-                img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = z-origin[2];
-            }
+           // // fill img_copy only if it is the highest point
+           // if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
+           // {
+           //     img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
+           //     img_copy[3*(ij_int[1]*wi+ij_int[0])+1] = n-origin[1];
+           //     img_copy[3*(ij_int[1]*wi+ij_int[0])+2] = z-origin[2];
+           // }
         }
+        
 
         if (!in_image)
             continue;
@@ -755,11 +897,9 @@ int main_zbuffer_meter(int c, char *v[])
             ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
         if (img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2] == z)
         {
-            for (int k = 0; k < 2; k++)
-                out[5*nv+k] = ij[k]-xywh[k];
-            out[5*nv+2] = lonlat[0]; 
-            out[5*nv+3] = lonlat[1]; 
-            out[5*nv+4] = z; 
+            out[3*nv+0] = lonlat[0]; 
+            out[3*nv+1] = lonlat[1]; 
+            out[3*nv+2] = z; 
         }
         else
         {
@@ -771,8 +911,9 @@ int main_zbuffer_meter(int c, char *v[])
             // Substract squared projection on camera direction.
             diff = 0;
             for (int k = 0; k < 3; k++)
-                diff += pow(enz[k]-enz_ref[k],2)
-                    * (1-pow(n_cam[k],2));
+                //diff += pow(enz[k]-enz_ref[k],2)
+                 //   * (1-pow(n_cam[k],2));
+                diff += pow(enz[k]-enz_ref[k],2) - pow((enz[k]-enz_ref[k])*n_cam[k],2);
             // By Pythagore the result should be less than 0.3^2
             // (resolution is 30cm per pixel
  //           printf("diff %lf enz %lf %lf %lf t %lf\n", diff, enz[0], enz[1], enz[2], 2 * pow(resolution,2));
@@ -781,17 +922,16 @@ int main_zbuffer_meter(int c, char *v[])
 
             if (diff < 2 * pow(resolution,2))
             {
-                for (int k = 0; k < 2; k++)
-                        out[5*nv+k] = ij[k] - xywh[k];
-                out[5*nv+2] = lonlat[0]; 
-                out[5*nv+3] = lonlat[1]; 
-                out[5*nv+4] = z; 
+                out[3*nv+0] = lonlat[0]; 
+                out[3*nv+1] = lonlat[1]; 
+                out[3*nv+2] = z; 
             }
+
         }
     }
     iio_save_image_double_vec("exp/soutput/image_copy.tif", img_copy, wi, hi, 3);
-    printf("offset 1 %lf  2 %lf 3 %lf\n", offset[0], offset[1], offset[2]);
-    iio_save_image_double_vec(filename_out, out, m->nv, 1, 5);
+    //iio_save_image_double_vec(filename_out, out, m->nv/503, 503, 3);
+    iio_save_image_double_vec(filename_out, out, m->nv, 1, 3);
 
     free(img_copy); free(out); free(v_visibility);
     return 0;

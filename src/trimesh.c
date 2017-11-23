@@ -479,6 +479,53 @@ void trimesh_write_to_coloured_ply2(char *fname, struct trimesh *m,
 	fclose(f);
 }
 
+// function to save a cloud point to a coloured ply file           {{{1
+void cloud_write_to_coloured_ply2(char *fname, struct trimesh *m, 
+        double *c, double origin[3])
+{
+	// dump the ply file (with dsm-inherited connectivity)
+	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	if (!f)
+		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+
+	// print header
+	fprintf(f, "ply\n");
+	fprintf(f, "format ascii 1.0\n");
+	fprintf(f, "comment bare triangulated surface\n");
+	fprintf(f, "element vertex %d\n", m->nv);
+	fprintf(f, "property float x\n");
+	fprintf(f, "property float y\n");
+	fprintf(f, "property float z\n");
+        fprintf(f, "property uchar red\n");
+        fprintf(f, "property uchar green\n");
+        fprintf(f, "property uchar blue\n");
+	fprintf(f, "end_header\n");
+        
+
+	// print points
+        for (int i = 0; i < m->nv; i++)
+        {
+            if (isnan(c[3*i+0]))
+                fprintf(f, "%.16lf %.16lf %.16lf 0 0 255\n",
+                        m->v[3*i+0] + origin[0], 
+                        m->v[3*i+1] + origin[1],
+                        m->v[3*i+2] + origin[2]);
+            else
+                fprintf(f, "%.16lf %.16lf %.16lf %d %d %d\n",
+                        m->v[3*i+0] + origin[0], 
+                        m->v[3*i+1] + origin[1], 
+                        m->v[3*i+2] + origin[2], 
+                        (int) fmax(fmin(c[3*i+0],255),0),
+                        (int) fmax(fmin(c[3*i+1],255),0),
+                        (int) fmax(fmin(c[3*i+2],255),0));
+        }
+
+
+
+	// cleanup
+	fclose(f);
+}
+
 // function to read a triangulated surface from a off file                  {{{1
 void trimesh_read_from_off(struct trimesh *m, char *fname)
 {

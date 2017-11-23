@@ -14,6 +14,67 @@
 
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 
+// conversion from hsv to rgb (h in [0, 360], s v r g b in [0, 1])
+void hsv2rgb(double hsv[3], double rgb[3])
+{
+        int hi = (int) floor(hsv[0]/60) % 6;
+        double f = hsv[0]/60 - hi;
+        double l = hsv[2] * (1 - hsv[1]);
+        double m = hsv[2] * (1 - f * hsv[1]);
+        double n = hsv[2] * (1 - (1 - f) * hsv[1]);
+        if (hi == 0)
+        {
+                rgb[0] = hsv[2];
+                rgb[1] = n;
+                rgb[2] = l;
+        }
+        if (hi == 1)
+        {
+                rgb[0] = m;
+                rgb[1] = hsv[2];
+                rgb[2] = l;
+        }
+        if (hi == 2)
+        {
+                rgb[0] = l;
+                rgb[1] = hsv[2];
+                rgb[2] = n;
+        }
+        if (hi == 3)
+        {
+                rgb[0] = l;
+                rgb[1] = m;
+                rgb[2] = hsv[2];
+        }
+        if (hi == 4)
+        {
+                rgb[0] = n;
+                rgb[1] = l;
+                rgb[2] = hsv[2];
+        }
+        if (hi == 5)
+        {
+                rgb[0] = hsv[2];
+                rgb[1] = l;
+                rgb[2] = m;
+        }
+}
+
+void create_colormap(double *colors, int nimages) // nimages max = 48
+{
+        double Hsv[8] = {0, 45, 60, 120, 180, 225, 270, 315};
+        double hSv[3] = {1, 0.33, 0.67};
+        double hsV[2] = {1, 0.7};
+        for (int ni = 0; ni < nimages; ni++)
+        {
+                double hsv[3] = {Hsv[ni%8], hSv[(ni/16)%3], hsV[(ni/8)%2]};
+                double rgb[3] = {0, 0, 0};
+                hsv2rgb(hsv, rgb);
+                for (int i = 0; i < 3; i++)
+                    colors[3*ni+i] = 255*rgb[i];
+        }
+}
+
 double scalar_product(double a[3], double b[3], int n)
 {
     double s = 0;
@@ -197,56 +258,61 @@ void camera_direction(double n[3], struct rpc *r)
 }
 
 
-int main(int argc, char *v[])
+int main(int c, char *v[])
 {
-    char *filename_scalar = pick_option(&argc, &v, "-scalar", "aaa");
-    char *filename_rpc = pick_option(&argc, &v, "-rpc", "bbb");
-    if (argc < 3)
+    if (c < 3)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.off triangles_normal.tif\n",*v);
+                "%s mesh.off vc.tif v_scalar_$im.tif \n",*v);
                 //0 1        2                    
     char *filename_mesh = v[1];
-    char *filename_n = v[2];
-    char *filename_a = v[3];
-
+    char *filename_vc = v[2];
+    int nimages = c - 3;
 
     struct trimesh m;
     trimesh_read_from_off(&m, filename_mesh);
-    trimesh_fill_triangle_fans(&m);
 
-    double *t_normals;
-    t_normals = malloc(3 * m.nt * sizeof(double));
-    triangle_normals_from_mesh(t_normals, &m);
-    printf("normales calculées\n");
-    
-    double *t_angles;
-    t_angles = malloc(3 * m.nt * sizeof(double));
-    triangle_angles_from_mesh(t_angles, &m);
-    printf("angles calculées\n");
-
-    double *v_normals;
-    v_normals = malloc(3 * m.nv * sizeof(double));
-    vertices_normals_from_mesh(v_normals, &m, t_angles, t_normals);
-    iio_save_image_double(filename_n, v_normals, m.nv, 3);
-    printf("assignation des angles aux sommets\n");
-
-    if (strncmp (filename_scalar,"aaa",3) != 0 && strncmp (filename_rpc,"bbb",3) != 0)
+    double *v_image;
+    v_image = malloc(2 * m.nv * sizeof(double));
+    char *filename_scalar = v[3];
+    int wh, un;
+    double *proj = iio_read_image_double(filename_scalar, &wh, &un);
+    if (wh != m.nv)
+        return fprintf(stderr, "dimensions mismatch %s %s\n", filename_scalar, filename_mesh);
+    for (int i = 0; i < m.nv; i++)
     {
-        struct rpc huge_rpc[1];
-        read_rpc_file_xml(huge_rpc, filename_rpc);
-
-        // get camera direction
-        double n_cam[3];
-        camera_direction(n_cam, huge_rpc);
-        
-        double *v_scalar;
-        v_scalar = malloc(m.nv * sizeof(double));
-        vertices_camera_scalar_procuct(v_scalar, v_normals, n_cam, m.nv);
-        iio_save_image_double(filename_scalar, v_scalar, m.nv, 1);
+        v_image[2*i] = proj[i];
+        v_image[2*i+1] = 0;
     }
 
+    for (int i = 1; i < nimages; i++)
+    {
+        filename_scalar = v[3+i];
+        proj = iio_read_image_double(filename_scalar, &wh, &un);
+        if (wh != m.nv)
+        return fprintf(stderr, "dimensions mismatch %s %s\n", filename_scalar, filename_mesh);
+        for (int j = 0; j < m.nv; j++)
+            if (v_image[2*j] > proj[j])
+            {
+                v_image[2*j] = proj[j];
+                v_image[2*j+1] = i;
+            }
+    }
 
-    free(t_normals); free(t_angles); free(v_normals);
+    double *colors;
+    colors = malloc(3 * nimages * sizeof(double));
+    create_colormap(colors, nimages);
+    iio_save_image_double_vec("colors.tif", colors, nimages, 1, 3);
+    
+    double *vc;
+    vc = malloc(3 * m.nv * sizeof(double));
+    for (int i = 0; i < m.nv; i++)
+        for (int j = 0; j < 3; j++)
+            vc[3*i+j] = colors[3*lrint(v_image[2*i+1])+j];
+
+    iio_save_image_double_vec(filename_vc, vc, m.nv, 1, 3);
+
+
+    free(colors); free(vc);
     return 0;
 }
 
