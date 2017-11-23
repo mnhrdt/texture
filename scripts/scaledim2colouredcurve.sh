@@ -14,14 +14,14 @@ bin/zbuffer \
     -21 \
     exp/data/crop/crop_img_$im.tif  \
     data/PAN/img_$im.rpc \
-    exp/output/xywh/xywh_$im.txt \
+    data/xywh/xywh_$im.txt \
     exp/output/mesh_curve_scaled_remeshed_02.off \
     exp/soutput/matches/matches_$im.tif \
     -ox $x -oy $y -oz $z -xmin 1505 -ymin 891 --res 0.45
 
 bin/colormultiple_mesh \
     exp/output/mesh_curve_scaled_remeshed_02.off \
-    exp/output/xywh/xywh_$im.txt \
+    data/xywh/xywh_$im.txt \
     data/PAN/img_$im.ntf \
     data/PAN/img_$im.rpc \
     data/MSI/img_$im.ntf \
