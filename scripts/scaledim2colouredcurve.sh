@@ -7,17 +7,14 @@ set -x
 im=$1
 thresh=$2
 
-read x y s z < data/ncc_shift/ncc_shift_$im.txt
-
 bin/zbuffer \
-    data/mcdsm/outdir_$im*/mcdsm.tif \
+    data/scale_curve.txt \
     -21 \
-    exp/data/crop/crop_img_$im.tif  \
     data/PAN/img_$im.rpc \
     data/xywh/xywh_$im.txt \
     exp/output/mesh_curve_scaled_remeshed_02.off \
     exp/soutput/matches/matches_$im.tif \
-    -ox $x -oy $y -oz $z -xmin 1505 -ymin 891 --res 0.45
+    --res 0.45
 
 bin/colormultiple_mesh \
     exp/output/mesh_curve_scaled_remeshed_02.off \
