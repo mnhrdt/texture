@@ -63,9 +63,9 @@ void triangle_normals_from_mesh(double *t_normals, struct trimesh *m)
     {
         for (int j = 0; j < 3; j++)
         {
-            a[j] = m->v[m->t[3*i+0]+j];
-            b[j] = m->v[m->t[3*i+1]+j];
-            c[j] = m->v[m->t[3*i+2]+j];
+            a[j] = m->v[3*m->t[3*i+0]+j];
+            b[j] = m->v[3*m->t[3*i+1]+j];
+            c[j] = m->v[3*m->t[3*i+2]+j];
             n[j] = 0;
         }
         triangle_normal(n, a, b, c);
@@ -79,7 +79,8 @@ double angle_from_two_vectors(double u[3], double v[3])
 {
     double theta = 0;
     theta = acos(scalar_product(u,v,3)/(euclidean_norm(u,3)*euclidean_norm(v,3)));
-    return theta;
+//    return theta;
+    return 1;
 }
 
 void triangle_angles(double angles[3], struct trimesh *m, int t)
@@ -98,8 +99,8 @@ void triangle_angles(double angles[3], struct trimesh *m, int t)
         angles[i] = angle_from_two_vectors(u,v);
         sum += angles[i];
     }
-    if (sum < 3.141592 || sum > 3.141594)
-        printf("ERROR: sum angles triangle %d not equal to pi but %lf\n", t, sum);
+    //if (sum < 3.141592 || sum > 3.141594)
+    //    printf("ERROR: sum angles triangle %d not equal to pi but %lf\n", t, sum);
 }
 
 void triangle_angles_from_mesh(double *t_angles, struct trimesh *m)
@@ -199,8 +200,8 @@ void camera_direction(double n[3], struct rpc *r)
 
 int main(int argc, char *v[])
 {
-    char *filename_scalar = pick_option(&argc, &v, "-scalar", "aaa");
-    char *filename_rpc = pick_option(&argc, &v, "-rpc", "bbb");
+    char *filename_scalar = pick_option(&argc, &v, "-scalar", NULL);
+    char *filename_rpc = pick_option(&argc, &v, "-rpc", NULL);
     if (argc < 3)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off triangles_normal.tif\n",*v);
@@ -227,10 +228,10 @@ int main(int argc, char *v[])
     double *v_normals;
     v_normals = malloc(3 * m.nv * sizeof(double));
     vertices_normals_from_mesh(v_normals, &m, t_angles, t_normals);
-    iio_save_image_double(filename_n, v_normals, m.nv, 3);
+    iio_save_image_double_vec(filename_n, v_normals, m.nv, 1, 3);
     printf("assignation des angles aux sommets\n");
 
-    if (strncmp (filename_scalar,"aaa",3) != 0 && strncmp (filename_rpc,"bbb",3) != 0)
+    if (filename_scalar && filename_rpc)
     {
         struct rpc huge_rpc[1];
         read_rpc_file_xml(huge_rpc, filename_rpc);

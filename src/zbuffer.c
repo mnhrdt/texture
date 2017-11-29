@@ -531,6 +531,12 @@ void scale_and_origin_from_file(double scale[3], double origin[3], char *filenam
 }
 int main_shadow(int c, char *v[])
 {
+    double ox = atof(pick_option(&c, &v, "ox", "0"));
+    double oy = atof(pick_option(&c, &v, "oy", "0"));
+    double oz = atof(pick_option(&c, &v, "oz", "0"));
+    double xmin = atof(pick_option(&c, &v, "xmin", "0"));
+    double ymin = atof(pick_option(&c, &v, "ymin", "0"));
+    double offset[3] = {xmin-ox, ymin-oy, oz};
     double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
     char *filename_proj = pick_option(&c, &v, "-proj", "");
     char *filename_xywh = pick_option(&c, &v, "-xywh", "");
@@ -557,6 +563,11 @@ if (c < 8)
     trimesh_read_from_off(m, filename_mesh);
 
 
+    for (int i=0; i < 3; i++)
+        offset[i] *= scale[i];
+    for (int i = 0; i < m->nv; i++)
+        for (int j = 0; j < 3; j++)
+        m->v[3*i+j] += offset[j];
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
 //    int wi, hi;
 //    float *img = iio_read_image_float(filename_img, &wi, &hi);
@@ -659,6 +670,12 @@ if (c < 8)
 
 int main_zbuffer(int c, char *v[])
 {
+    double ox = atof(pick_option(&c, &v, "ox", "0"));
+    double oy = atof(pick_option(&c, &v, "oy", "0"));
+    double oz = atof(pick_option(&c, &v, "oz", "0"));
+    double xmin = atof(pick_option(&c, &v, "xmin", "0"));
+    double ymin = atof(pick_option(&c, &v, "ymin", "0"));
+    double offset[3] = {xmin-ox, ymin-oy, oz};
     double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
 if (c < 7)
         return fprintf(stderr, "usage:\n\t"
@@ -679,9 +696,15 @@ if (c < 7)
     double scale[3] = {1, 1, 1};
     scale_and_origin_from_file(scale, origin, filename_scale);
 
+
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
 
+    for (int i=0; i < 3; i++)
+        offset[i] *= scale[i];
+    for (int i = 0; i < m->nv; i++)
+        for (int j = 0; j < 3; j++)
+        m->v[3*i+j] += offset[j];
 
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
 //    int wi, hi;

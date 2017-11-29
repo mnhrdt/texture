@@ -351,6 +351,13 @@ int main_colormultiple(int c, char *v[])
            rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
            rpc_projection(ij_msi, huge_msi_rpc, lonlatheight);
            intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
+           if (intensity > 2500)
+           {
+               for (int k = 0; k < 3; k++)
+                   vc[3*nv+k] = NAN;
+               continue;
+           }
+
            for (int l = 0; l < pdm; l++)
                msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
            //rgb[0] = intensity;

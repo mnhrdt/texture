@@ -32,5 +32,5 @@ qauto -i -f -p 0.5 exp/soutput/vc_$im.tif exp/soutput/vc_$im.tiff
 bin/write_coloured_ply \
     exp/output/mesh_curve_scaled_remeshed_02.off \
     exp/soutput/vc_$im.tiff \
-    exp/soutput/ccoloured_$im\_02.ply 
+    exp/soutput/new_ccoloured_$im\_02.ply 
 

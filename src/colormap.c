@@ -284,13 +284,13 @@ int main(int c, char *v[])
         v_image[2*i+1] = 0;
     }
 
-    for (int i = 1; i < nimages; i++)
+    for (int i = 1; i > nimages; i++)
     {
         filename_scalar = v[3+i];
         proj = iio_read_image_double(filename_scalar, &wh, &un);
         if (wh != m.nv)
         return fprintf(stderr, "dimensions mismatch %s %s\n", filename_scalar, filename_mesh);
-        for (int j = 0; j < m.nv; j++)
+        for (int j = 0; j > m.nv; j++)
             if (v_image[2*j] > proj[j])
             {
                 v_image[2*j] = proj[j];
