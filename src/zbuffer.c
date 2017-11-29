@@ -12,6 +12,28 @@
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
 
+void sun_plan_projection(double ijh[2], double eastnorthheight[3], 
+        double scale[2], double az, double el, double sun_height) 
+{
+    double e = eastnorthheight[0]; 
+    double n = eastnorthheight[1]; 
+    double z = eastnorthheight[2]; 
+
+    ijh[0] =  (e + (sun_height- z)*cos(el * M_PI /180) * sin(az * M_PI /180)
+            /sin(el * M_PI /180))/scale[0];
+    ijh[1] = -(n + (sun_height - z)*cos(el * M_PI /180) * cos(az * M_PI /180)
+            /sin(el * M_PI /180))/scale[1];
+}
+// compute sun direction from azimuth and elevation
+void sun_direction(double n[3], double azimuth, double elevation)
+{
+    double az_rad = azimuth * M_PI / 180;
+    double el_rad = elevation * M_PI / 180;
+    n[0] = -cos(el_rad)*sin(az_rad);
+    n[1] = -cos(el_rad)*cos(az_rad);
+    n[2] = -sin(el_rad);
+}
+
 void cross_product(double axb[3], double a[3], double b[3])
 {
     // a0 a1 a2
@@ -224,8 +246,9 @@ bool fill_three_point_of_img_copy(struct trimesh *m,
         double *img_copy,
         bool *v_visibility,
         int v_coord_im[3][2],
-        int nt)
-{
+        int nt, 
+        double sae[4])
+{ 
     int wi = lrint(xywh[2]);
     int hi = lrint(xywh[3]);
     
@@ -245,7 +268,15 @@ bool fill_three_point_of_img_copy(struct trimesh *m,
         lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
         double lonlatheight[3] = {lonlat[0], lonlat[1], z};
         double ij[2] = {0, 0};
-        rpc_projection(ij, huge_rpc, lonlatheight);
+        if (isnan(sae[0]))
+            rpc_projection(ij, huge_rpc, lonlatheight);
+        else
+        {
+            double eastnorthheight[3] = {e - origin[0], n-origin[1], z};
+            double scale[2] = {sae[0], sae[1]};
+            sun_plan_projection(ij, eastnorthheight, scale, sae[2], sae[3], 10000);
+            //printf("i %lf j %lf e %lf n %lf z %lf az %lf el %lf si %lf sj %lf\n", ij[0], ij[1], e - origin[0], n-origin[1], z, sae[2], sae[3], sae[0], sae[1]);
+        }
 
         // check if the vertex is in the cropped image
         // else put NaN in output and go to the next vertex.
@@ -289,7 +320,8 @@ void fill_img_copy(struct trimesh *m,
         double xywh[4],
         double *img_copy,
         bool *v_visibility,
-        double n_cam[3])
+        double n_cam[3],
+        double sae[4])
 {
     int wi = lrint(xywh[2]);
     int hi = lrint(xywh[3]);
@@ -318,7 +350,8 @@ void fill_img_copy(struct trimesh *m,
 
         int v_coord_im[3][2];
         // loop over the vertices of the well-oriented triangle.
-        bool in_image = fill_three_point_of_img_copy(m, origin, signed_zone, huge_rpc, xywh, img_copy, v_visibility, v_coord_im, nt);
+        bool in_image = fill_three_point_of_img_copy(m, origin, signed_zone, 
+                huge_rpc, xywh, img_copy, v_visibility, v_coord_im, nt, sae);
 
         if (!in_image)
             continue;
@@ -352,7 +385,8 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
         double *out, 
         bool *v_visibility, 
         double n_cam[3], 
-        double resolution)
+        double resolution,
+        double sae[4])
 {
     int wi = lrint(xywh[2]);
     // loop over triangle vertices and give them coordinate of projection on 
@@ -372,6 +406,7 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
             continue;
         }  
 
+
         double e = m->v[3*nv+0] + origin[0];
         double n = m->v[3*nv+1] + origin[1];
         double z = m->v[3*nv + 2]+origin[2];
@@ -383,7 +418,14 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
         lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
         double lonlatheight[3] = {lonlat[0], lonlat[1], z};
         double ij[2] = {0, 0};
-        rpc_projection(ij, huge_rpc, lonlatheight);
+        if (isnan(sae[0]))
+            rpc_projection(ij, huge_rpc, lonlatheight);
+        else
+        {
+            double eastnorthheight[3] = {e - origin[0], n-origin[1], z};
+            double scale[2] = {sae[0], sae[1]};
+            sun_plan_projection(ij, eastnorthheight, scale, sae[2], sae[3], 10000);
+        }
 
         // round the indices
         int ij_int[2];
@@ -426,6 +468,57 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
     }
 }
 
+void project_and_save_shadow_on_img(struct trimesh *m, 
+        double origin[3], 
+        int signed_zone, 
+        struct rpc *huge_rpc, 
+        double xywh[4], 
+        double *img_copy,
+        double *vs, 
+        double *out,
+        char *filename_proj)
+{
+    int wi = lrint(xywh[2]);
+    int hi = lrint(xywh[3]);
+    for (int i=0; i < wi*hi; i++)
+    {
+        for (int j = 0; j < 2; j++)
+            img_copy[3*i+j] = 0;
+        img_copy[3*i+2] = 0;
+    }
+    // loop over triangle vertices and give them coordinate of projection on 
+    // image only if there are no occlusions (they are part of a well oriented
+    // triangle and are close enough to the highest point projected on 
+    // the image.
+    for (int nv = 0; nv < m->nv; nv++)
+        // check if the vertex can be projected on the image
+        // and is part of a well oriented triangle.
+        // Otherwise, go to the next vertex.
+    {
+        if (isnan(out[3*nv]))
+            continue;
+        double e = m->v[3*nv+0] + origin[0];
+        double n = m->v[3*nv+1] + origin[1];
+        double z = m->v[3*nv + 2]+origin[2];
+        if (z<-100)
+            z = 20.0; // TO DO: put mean value
+
+        // get projection coordinates in huge image
+        double lonlat[2] = {0, 0};
+        lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
+        double lonlatheight[3] = {lonlat[0], lonlat[1], z};
+        double ij[2] = {0, 0};
+        rpc_projection(ij, huge_rpc, lonlatheight);
+
+        // round the indices
+        int ij_int[2];
+        for (int k = 0; k < 2; k++)
+            ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
+        img_copy[ij_int[1]*wi + ij_int[0]] = vs[3*nv];
+    }
+    iio_save_image_double(filename_proj, img_copy, wi, hi);
+}
+
 void scale_and_origin_from_file(double scale[3], double origin[3], char *filename_scale)
 {
     double xywh[4];
@@ -436,13 +529,141 @@ void scale_and_origin_from_file(double scale[3], double origin[3], char *filenam
         origin[i] = xywh[2+i];
     }
 }
+int main_shadow(int c, char *v[])
+{
+    double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
+    char *filename_proj = pick_option(&c, &v, "-proj", "");
+    char *filename_xywh = pick_option(&c, &v, "-xywh", "");
+if (c < 8)
+        return fprintf(stderr, "usage:\n\t"
+                "%s scale.txt zone rpc_i xywhs.txt mesh.off out.tiff az el -s 1\n", *v);
+                //0 1         2    3     4          5        6       7  8
+    char *filename_scale = v[1];
+    int signed_zone = atoi(v[2]);
+    char *filename_rpc = v[3];
+    char *filename_whs = v[4];
+    char *filename_mesh = v[5];
+    char *filename_out = v[6];
+    double azimuth = atof(v[7]);
+    double elevation = atof(v[8]);
 
-int main_zbuffer_meter(int c, char *v[])
+    // read georeferencing transform data
+    double origin[3] = {0, 0, 0};
+    double scale[3] = {1, 1, 1};
+    scale_and_origin_from_file(scale, origin, filename_scale);
+    double sae[4] = {scale[0], scale[1], azimuth, elevation}; 
+
+    struct trimesh m[1];
+    trimesh_read_from_off(m, filename_mesh);
+
+
+    // read the input image (small jpg, png or tif crop corresponding to the DSM)
+//    int wi, hi;
+//    float *img = iio_read_image_float(filename_img, &wi, &hi);
+//    if (!img)
+//        return fprintf(stderr, "iio_read(%s) failed\n", filename_img);
+
+    // read the informations about the crop
+    double xywhs[4];
+    fill_vector_from_file(xywhs, filename_whs, 4);
+
+    int ws = lrint(xywhs[2]);
+    int hs = lrint(xywhs[3]);
+    // allocate space for same size multispectral image for (e, n, z)
+    // initialise height to -100.
+    double *sun_plan = malloc(3 * ws * hs * sizeof(double)); 
+    for (int i=0; i < ws*hs; i++)
+    {
+        for (int j = 0; j < 2; j++)
+            sun_plan[3*i+j] = 0;
+        sun_plan[3*i+2] = -INFINITY;
+    }
+    
+    // allocate space for output image and initialise to NAN.
+    double *vs = malloc(3 * m->nv * sizeof(double));
+    for (int i = 0; i < 3 * m->nv; i++)
+        vs[i] = NAN;
+
+    // allocate space for vertices visibility. Initialise to false.
+    bool *v_visibility = malloc(m->nv * sizeof(bool));
+    for (int i = 0; i < m->nv; i++)
+        v_visibility[i] = false;
+
+    struct rpc huge_rpc[1];
+    read_rpc_file_xml(huge_rpc, filename_rpc);
+
+    // get camera direction
+    double n_sun[3];
+    sun_direction(n_sun, azimuth, elevation);
+
+
+    // loop over mesh faces and fill img_copy with height of lidar point
+    // keep only the highest heigtht for each point to deal with occlusions
+        //for (int i = 0; i < 2; i++)
+        //    xywhs[i] = 0;
+    fill_img_copy(m, origin, signed_zone, huge_rpc, xywhs, sun_plan, 
+            v_visibility, n_sun, sae);
+    check_vertex_visibility_and_fill_output(m, origin, signed_zone, huge_rpc, 
+            xywhs, sun_plan, vs, v_visibility, n_sun, resolution, sae);
+
+    for (int i = 0; i < 3 * m->nv; i++)
+        if (isnan(vs[i]))
+            vs[i] = 100;
+        else
+            vs[i] = 255;
+
+    iio_save_image_double_vec(filename_out, vs, m->nv, 1, 3);
+    iio_save_image_double_vec("exp/soutput/sun_plan.tif", sun_plan, ws, hs, 3);
+
+    if (filename_proj[0] && filename_xywh[0])
+    {
+        for (int i = 0; i < m->nv; i++)
+            v_visibility[i] = false;
+
+        // get camera direction
+        double n_cam[3];
+        camera_direction(n_cam, huge_rpc);
+
+        double xywh[4];
+        fill_vector_from_file(xywh, filename_xywh, 4);
+
+        int wi = lrint(xywh[2]);
+        int hi = lrint(xywh[3]);
+
+        double *img_copy = malloc(3 * wi * hi * sizeof(double)); 
+        for (int i=0; i < wi*hi; i++)
+        {
+            for (int j = 0; j < 2; j++)
+                img_copy[3*i+j] = 0;
+            img_copy[3*i+2] = -INFINITY;
+        }
+        sae[0] = NAN;
+
+        double *out = malloc(3 * m->nv * sizeof(double));
+        for (int i = 0; i < 3 * m->nv; i++)
+            out[i] = NAN;
+        fill_img_copy(m, origin, signed_zone, huge_rpc, xywh, img_copy, 
+                v_visibility, n_cam, sae);
+        check_vertex_visibility_and_fill_output(m, origin, signed_zone, huge_rpc, 
+                xywh, img_copy, out, v_visibility, n_cam, resolution, sae);
+
+        project_and_save_shadow_on_img(m, origin, signed_zone, huge_rpc, 
+                xywh, img_copy, vs, out, filename_proj);
+        free (img_copy); free(out);
+    }
+
+    free(vs); free(sun_plan); free(v_visibility);
+    return 0;
+}
+
+
+int main_zbuffer(int c, char *v[])
 {
     double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
 if (c < 7)
         return fprintf(stderr, "usage:\n\t"
-                "%s scale.txt zone rpc_i xywh_i.txt mesh.off out.tif\n", *v);
+                "%s scale.txt zone rpc_i xywh_i.txt mesh.off out.tif\n"
+                "(for shadow add -s 1)", *v);
                 //0 1         2    3     4          5        6       
     char *filename_scale = v[1];
     int signed_zone = atoi(v[2]);
@@ -451,7 +672,7 @@ if (c < 7)
     char *filename_mesh = v[5];
     char *filename_out = v[6];
 
-
+    double sae[4] = {NAN, NAN, NAN, NAN};
 
     // read georeferencing transform data
     double origin[3] = {0, 0, 0};
@@ -460,6 +681,7 @@ if (c < 7)
 
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
+
 
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
 //    int wi, hi;
@@ -480,12 +702,11 @@ if (c < 7)
     {
         for (int j = 0; j < 2; j++)
             img_copy[3*i+j] = 0;
-        img_copy[3*i+2] = -1000;
+        img_copy[3*i+2] = -INFINITY;
     }
     
     // allocate space for output image and initialise to NAN.
-    double *out;
-    out = malloc(3 * m->nv * sizeof(double));
+    double *out = malloc(3 * m->nv * sizeof(double));
     for (int i = 0; i < 3 * m->nv; i++)
         out[i] = NAN;
 
@@ -505,13 +726,22 @@ if (c < 7)
     // loop over mesh faces and fill img_copy with height of lidar point
     // keep only the highest heigtht for each point to deal with occlusions
     fill_img_copy(m, origin, signed_zone, huge_rpc, xywh, img_copy, 
-            v_visibility, n_cam);
+            v_visibility, n_cam, sae);
     check_vertex_visibility_and_fill_output(m, origin, signed_zone, huge_rpc, 
-            xywh, img_copy, out, v_visibility, n_cam, resolution);
-
+            xywh, img_copy, out, v_visibility, n_cam, resolution, sae);
     iio_save_image_double_vec("exp/soutput/image_copy.tif", img_copy, wi, hi, 3);
     iio_save_image_double_vec(filename_out, out, m->nv, 1, 3);
     free(img_copy); free(out); free(v_visibility);
     return 0;
 }
-int main(int c, char *v[]) { return main_zbuffer_meter(c,v); }
+
+
+
+int main(int c, char *v[])
+{
+    int shadow = atoi(pick_option(&c, &v, "s", "0"));
+    if (shadow == 0)
+        return main_zbuffer(c,v);
+    else
+        return main_shadow(c,v);
+}    
