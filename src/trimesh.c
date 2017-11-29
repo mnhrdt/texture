@@ -25,7 +25,7 @@ struct trimesh {
 #ifdef TRIMESH_MORE_STUFF
 	// 2. accessory data, that can be computed from the essential data
 
-	// 2.1. graph of edges (a directed graph with double edges)
+	// 2.1. graph of edges (a directed graph, without double edges)
 	int ne;       // number of edges
 	int *e;       // list of edges (pairs of vertex indices)
 
@@ -681,13 +681,28 @@ static int compare_int_pair(const void *aa, const void *bb)
 {
 	const int *a = (const int *)aa;
 	const int *b = (const int *)bb;
-	int x = (a[0] < b[0]) - (a[0] > b[0]);
-	int y = (a[1] < b[1]) - (a[1] > b[1]);
+	int x = (a[0] > b[0]) - (a[0] < b[0]);
+	int y = (a[1] > b[1]) - (a[1] < b[1]);
 	return x ? x : y;
+}
+int uniq(void *X, int n, int s, int (*c)(const void *, const void *))
+{
+	char *x = X;
+	char *p = x + s;
+	char *q = x + s;
+	while (q < x + s*n)
+	{
+		if (c(p - s, q))
+			p = s + memcpy(p, q, s);
+		q += s;
+	}
+	return (p - x) / s;
 }
 void trimesh_fill_edges(struct trimesh *m)
 {
-	// allocate space for the maximum possible number of edges
+	assert(!m->e);
+
+	// alloc space for edge table
 	int *e = malloc(2 * 3 * m->nt * sizeof*e);
 
 	// add all edges in a canonical orientation, possibly repeated
@@ -695,38 +710,18 @@ void trimesh_fill_edges(struct trimesh *m)
 	for (int i = 0; i < m->nt; i++)
 	for (int k = 0; k < 3; k++)
 	{
-		e[2*ne+0] = BAD_MIN(m->t[3*i+k], m->t[3*i+(k%3)]);
-		e[2*ne+1] = BAD_MAX(m->t[3*i+k], m->t[3*i+(k%3)]);
+		e[2*ne+0] = BAD_MIN(m->t[3*i+k], m->t[3*i+((k+1)%3)]);
+		e[2*ne+1] = BAD_MAX(m->t[3*i+k], m->t[3*i+((k+1)%3)]);
 		ne += 1;
 	}
 
-	// sort the list of edges
-	qsort(e, ne, 2*sizeof*e, compare_int_pair);
-
 	// remove repeated edges
-	int *p = e;
-	int *q = e;
-	while (q < e + 2*ne)
-	{
-		if (p[0] != q[0] || p[1] != q[1])
-		{
-			p[0] = q[0];
-			p[1] = q[1];
-			p += 2;
-		}
-		q += 2;
-	}
-
-	// duplicate the list of edges
-	for (int i = 0; i < ne; i++)
-	{
-		e[2*(ne+i) + 0] = e[2*i + 1];
-		e[2*(ne+i) + 1] = e[2*i + 0];
-	}
+	qsort(e, ne, 2*sizeof*e, compare_int_pair);
+	ne = uniq(e, ne, 2*sizeof*e, compare_int_pair);
 
 	// update struct, and finish
 	m->e = e;
-	m->ne = 2 * ne;
+	m->ne = ne;
 }
 
 static void add_triangle_to_list(int *first, int *next, int t, int v, char *s)
@@ -828,6 +823,7 @@ static void trimesh_dump_edges(char *filename, struct trimesh *m)
 
 
 #ifdef TRIMESH_CALCULUS
+#error "clarify double edges stuff"
 void trimesh_gradient(                                                   // {{{1
 		struct trimesh *m,  // base mesh
 		float *y,           // output gradient (array of length m->ne/2)
