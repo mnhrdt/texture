@@ -263,11 +263,13 @@ void trimesh_create_from_dem_with_offset(struct trimesh *m,
        // cleanup
        free(t);
 }
+
 // function to save a triangulated surface to a ply file                    {{{1
+#include "xfopen.c"
 void trimesh_write_to_ply(char *fname, struct trimesh *m)
 {
 	// dump the ply file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	FILE *f = xfopen(fname, "w");
 	if (!f)
 		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
 
@@ -294,7 +296,7 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 
 // function to save a triangulated surface to an off file with offset        {{{1
@@ -302,7 +304,7 @@ void trimesh_write_to_off_with_offset(char *fname, struct trimesh *m,
         double ox, double oy, double oz)
 {
 	// dump the off file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
+	FILE *f = xfopen(fname, "w");
 	if (!f)
 		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
 
@@ -323,15 +325,13 @@ void trimesh_write_to_off_with_offset(char *fname, struct trimesh *m,
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 // function to save a triangulated surface to an off file                    {{{1
 void trimesh_write_to_off(char *fname, struct trimesh *m)
 {
 	// dump the off file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "w");
 
 	// print header
 	fprintf(f, "OFF\n");
@@ -348,16 +348,14 @@ void trimesh_write_to_off(char *fname, struct trimesh *m)
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
-// function to save a triangulated surface to an off file                    {{{1
+// function to save a triangulated surface to an off file                   {{{1
 // with dimensions in meters
 void trimesh_write_to_scaled_off(char *fname, struct trimesh *m)
 {
 	// dump the off file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "w");
 
 	// print header
 	fprintf(f, "OFF\n");
@@ -374,15 +372,13 @@ void trimesh_write_to_scaled_off(char *fname, struct trimesh *m)
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 // function to save a triangulated surface to a coloured ply file           {{{1
 void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, double t)
 {
 	// dump the ply file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "w");
 
 	// print header
 	fprintf(f, "ply\n");
@@ -398,7 +394,7 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, do
 	fprintf(f, "element face %d\n", m->nt);
 	fprintf(f, "property list uchar int vertex_indices\n");
 	fprintf(f, "end_header\n");
-        
+
 
 	// print points
         for (int i = 0; i < m->nv; i++)
@@ -423,7 +419,7 @@ void trimesh_write_to_coloured_ply(char *fname, struct trimesh *m, double *c, do
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 
 // function to save a triangulated surface to a coloured ply file           {{{1
@@ -431,9 +427,7 @@ void trimesh_write_to_coloured_ply2(char *fname, struct trimesh *m,
         double *c, double origin[3])
 {
 	// dump the ply file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "w");
 
 	// print header
 	fprintf(f, "ply\n");
@@ -476,7 +470,7 @@ void trimesh_write_to_coloured_ply2(char *fname, struct trimesh *m,
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 
 // function to save a cloud point to a coloured ply file           {{{1
@@ -484,9 +478,7 @@ void cloud_write_to_coloured_ply2(char *fname, struct trimesh *m,
         double *c, double origin[3])
 {
 	// dump the ply file (with dsm-inherited connectivity)
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "w") : stdout;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "w");
 
 	// print header
 	fprintf(f, "ply\n");
@@ -523,15 +515,13 @@ void cloud_write_to_coloured_ply2(char *fname, struct trimesh *m,
 
 
 	// cleanup
-	fclose(f);
+	xfclose(f);
 }
 
 // function to read a triangulated surface from a off file                  {{{1
 void trimesh_read_from_off(struct trimesh *m, char *fname)
 {
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "r");
 
 	int n_vertices = -1;
 	int n_triangles = -1;
@@ -570,15 +560,13 @@ void trimesh_read_from_off(struct trimesh *m, char *fname)
 		exit(fprintf(stderr, "ERROR: nt %d %d\n", n_triangles, m->nt));
 
 	// cleanup and exit
-	fclose(f);
+	xfclose(f);
 }
 
 // function to read a triangulated surface from a off file                  {{{1
 void trimesh_read_from_scaled_off(struct trimesh *m, char *fname)
 {
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "r");
 
 	int n_vertices = -1;
 	int n_triangles = -1;
@@ -617,15 +605,13 @@ void trimesh_read_from_scaled_off(struct trimesh *m, char *fname)
 		exit(fprintf(stderr, "ERROR: nt %d %d\n", n_triangles, m->nt));
 
 	// cleanup and exit
-	fclose(f);
+	xfclose(f);
 }
 
 // function to read a triangulated surface from an ply file                  {{{1
 void trimesh_read_from_ply(struct trimesh *m, char *fname)
 {
-	FILE *f = strcmp(fname, "-") ? fopen(fname, "r") : stdin;
-	if (!f)
-		exit(fprintf(stderr, "ERROR: cannot open file (%s)\n", fname));
+	FILE *f = xfopen(fname, "r");
 
 	int n_vertices = -1;
 	int n_triangles = -1;
@@ -670,7 +656,7 @@ void trimesh_read_from_ply(struct trimesh *m, char *fname)
 		exit(fprintf(stderr, "ERROR: nt %d %d\n", n_triangles, m->nt));
 
 	// cleanup and exit
-	fclose(f);
+	xfclose(f);
 }
 #ifdef TRIMESH_MORE_STUFF
 
@@ -807,7 +793,6 @@ static void trimesh_test_triangle_fans(struct trimesh *m)
 
 }
 
-#include "xfopen.c"
 // function to save the mesh into a file, readable by Octave's "dlmread"    {{{1
 static void trimesh_dump_edges(char *filename, struct trimesh *m)
 {
