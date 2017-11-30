@@ -48,6 +48,40 @@ double euclidean_norm(double *x, int n)
     return n > 0 ? hypot(*x, euclidean_norm(x+1, n-1)) : 0;
 }
 
+void xywh_sun_plan(double xywh[4], struct trimesh *m,
+        double scale[2], double az, double el)
+{
+    double xmin = INFINITY;
+    double ymin = INFINITY;
+    double xmax = -INFINITY;
+    double ymax = -INFINITY;
+
+    for (int i = 0; i < m->nv; i++)
+    {
+        double e = m->v[3*i+0];
+        double n = m->v[3*i+1];
+        double z = m->v[3*i+2];
+
+        double eastnorthheight[3] = {e, n, z};
+        double ij[2] = {0, 0};
+        sun_plan_projection(ij, eastnorthheight, scale, az, el, 10000);
+        
+        // compare to mins and maxs
+        if (ij[0]<xmin)
+            xmin = floor(ij[0]);
+        if (ij[0]>xmax)
+            xmax = ceil(ij[0]);
+        if (ij[1]<ymin)
+            ymin = floor(ij[1]);
+        if (ij[1]>ymax)
+            ymax = ceil(ij[1]);
+    }
+    xywh[0] = xmin;
+    xywh[1] = ymin;
+    xywh[2] = xmax - xmin;
+    xywh[3] = ymax - ymin;
+}
+
 // coordinates of the normal to a triangle in a 3D space
 void triangle_normal(double n[3], double a[3], double b[3], double c[3]) // les sommets sont donnés dans le sens direct
 {
@@ -398,6 +432,7 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
         // and is part of a well oriented triangle.
         // Otherwise, go to the next vertex.
     {
+        //printf("nv %d\n", nv);
 
         if (!v_visibility[nv])
         {
@@ -418,6 +453,7 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
         lonlat_from_eastnorthzone(lonlat, e, n, signed_zone);
         double lonlatheight[3] = {lonlat[0], lonlat[1], z};
         double ij[2] = {0, 0};
+        //printf("ij declared\n");
         if (isnan(sae[0]))
             rpc_projection(ij, huge_rpc, lonlatheight);
         else
@@ -425,20 +461,24 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
             double eastnorthheight[3] = {e - origin[0], n-origin[1], z};
             double scale[2] = {sae[0], sae[1]};
             sun_plan_projection(ij, eastnorthheight, scale, sae[2], sae[3], 10000);
+            //printf("scale %lf %lf\n", sae[0], sae[1]);
         }
 
         // round the indices
         int ij_int[2];
+        //printf("ij rounded\n");
         for (int k = 0; k < 2; k++)
             ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
         if (img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2] == z)
         {
+            //printf("if\n");
             out[3*nv+0] = lonlat[0]; 
             out[3*nv+1] = lonlat[1]; 
             out[3*nv+2] = z; 
         }
         else
         {
+            //printf("else\n");
             //printf("img_copy %lf z %lf\n", img_copy[3*(ij_int[1]*wi + ij_int[0]) + 2], z);
             double enz[3] = {e-origin[0], n-origin[1], z};
             double enz_ref[3] = {0, 0, 0};
@@ -459,6 +499,7 @@ void check_vertex_visibility_and_fill_output(struct trimesh *m,
 
             if (diff < 2 * pow(resolution,2))
             {
+                //printf("fill out\n");
                 out[3*nv+0] = lonlat[0]; 
                 out[3*nv+1] = lonlat[1]; 
                 out[3*nv+2] = z; 
@@ -563,11 +604,6 @@ if (c < 8)
     trimesh_read_from_off(m, filename_mesh);
 
 
-    for (int i=0; i < 3; i++)
-        offset[i] *= scale[i];
-    for (int i = 0; i < m->nv; i++)
-        for (int j = 0; j < 3; j++)
-        m->v[3*i+j] += offset[j];
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
 //    int wi, hi;
 //    float *img = iio_read_image_float(filename_img, &wi, &hi);
@@ -576,7 +612,9 @@ if (c < 8)
 
     // read the informations about the crop
     double xywhs[4];
-    fill_vector_from_file(xywhs, filename_whs, 4);
+    printf("xywhs declared\n");
+    xywh_sun_plan(xywhs, m, scale, azimuth, elevation);
+    printf("xywhs filled %lf %lf %lf %lf\n", xywhs[0], xywhs[1], xywhs[2], xywhs[3]);
 
     int ws = lrint(xywhs[2]);
     int hs = lrint(xywhs[3]);
@@ -612,10 +650,13 @@ if (c < 8)
     // keep only the highest heigtht for each point to deal with occlusions
         //for (int i = 0; i < 2; i++)
         //    xywhs[i] = 0;
+    printf("before fill_img_copy \n");
     fill_img_copy(m, origin, signed_zone, huge_rpc, xywhs, sun_plan, 
             v_visibility, n_sun, sae);
+    printf("before check_visibility\n");
     check_vertex_visibility_and_fill_output(m, origin, signed_zone, huge_rpc, 
             xywhs, sun_plan, vs, v_visibility, n_sun, resolution, sae);
+    printf("after check_visibility\n");
 
     for (int i = 0; i < 3 * m->nv; i++)
         if (isnan(vs[i]))
@@ -650,13 +691,22 @@ if (c < 8)
         }
         sae[0] = NAN;
 
+        for (int i=0; i < 3; i++)
+            offset[i] *= scale[i];
+        for (int i = 0; i < m->nv; i++)
+            for (int j = 0; j < 3; j++)
+                m->v[3*i+j] += offset[j];
+
         double *out = malloc(3 * m->nv * sizeof(double));
         for (int i = 0; i < 3 * m->nv; i++)
             out[i] = NAN;
+        printf("before fill_img_copy \n");
         fill_img_copy(m, origin, signed_zone, huge_rpc, xywh, img_copy, 
                 v_visibility, n_cam, sae);
+        printf("before check_visibility\n");
         check_vertex_visibility_and_fill_output(m, origin, signed_zone, huge_rpc, 
                 xywh, img_copy, out, v_visibility, n_cam, resolution, sae);
+        printf("before project and save\n");
 
         project_and_save_shadow_on_img(m, origin, signed_zone, huge_rpc, 
                 xywh, img_copy, vs, out, filename_proj);
