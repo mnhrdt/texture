@@ -320,22 +320,20 @@ bool fill_three_point_of_img_copy(struct trimesh *m,
             // projection sur grande image,
             // il faut donc soustraire les coord du coin 
             // de l'image découpée.
-            ij_int[k] = (int) floor(ij[k]) - floor(xywh[k]);
+            ij_int[k] = (int) round(ij[k]) - round(xywh[k]);
         if (!is_in_crop_int(ij_int, xywihi)) 
         {   
             //    printf("ij_int : %d %d\n", ij_int[0], ij_int[1]);
             in_image = false; 
             return in_image;
         }
-        // indicate that the vertex is part of a well-oriented face
-        assert(vertices[l] < m->nv);
-        assert(vertices[l] >= 0); 
-        v_visibility[vertices[l]] = true;
 
         for (int k = 0; k < 2; k++)
             v_coord_im[l][k] = ij_int[k];
 
         // fill img_copy only if it is the highest point
+        if (ij_int[0] == 250 && ij_int[1] == 180)
+            printf("img_copy_z %lf z %lf i %lf j %lf\n", img_copy[3*(ij_int[1]*wi+ij_int[0])+2], z, ij[0], ij[1]);
         if (img_copy[3*(ij_int[1]*wi+ij_int[0])+2] <= z)
         {   
             img_copy[3*(ij_int[1]*wi+ij_int[0])+0] = e-origin[0];
@@ -374,13 +372,6 @@ void fill_img_copy(struct trimesh *m,
         triangle_normal(n_triangle, v_coord_scaled[0], 
                 v_coord_scaled[1], v_coord_scaled[2]);
 
-        // test if the triangle normal is in the opposite direction of the 
-        // camera. If same direction, go to the next triangle.
-        double tmp_d = 0;
-        for (int i = 0; i < 3; i++)
-            tmp_d += n_triangle[i] * n_cam[i];
-        if (tmp_d < 0)
-            continue;
 
         int v_coord_im[3][2];
         // loop over the vertices of the well-oriented triangle.
@@ -389,6 +380,16 @@ void fill_img_copy(struct trimesh *m,
 
         if (!in_image)
             continue;
+
+        // test if the triangle normal is in the opposite direction of the 
+        // camera. 
+        double tmp_d = 0;
+        for (int i = 0; i < 3; i++)
+            tmp_d += n_triangle[i] * n_cam[i];
+        if (tmp_d >= 0 && in_image)
+            for (int i = 0; i < 3; i++)
+                v_visibility[vertices[i]] = true;
+
         // fill in the triangle formed in img_copy.
         struct im_ver e = {.w = wi, .h = hi, .img_copy = img_copy};
         float abc[3][2];
@@ -603,6 +604,9 @@ if (c < 8)
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
 
+
+    printf("e %lf n %lf z %lf\n", m->v[3*216314+0], m->v[3*216314+1],m->v[3*216314+2]);
+    printf("1 %d 2 %d 3 %d\n", m->t[3*659857+0], m->t[3*659857+1],m->t[3*659857+2]);
 
     // read the input image (small jpg, png or tif crop corresponding to the DSM)
 //    int wi, hi;
