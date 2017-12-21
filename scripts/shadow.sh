@@ -23,7 +23,7 @@ bin/zbuffer \
     exp/soutput/vs_$im.tif \
     $az $el -s 1 \
     --xywh data/xywh/xywh_$im.txt \
-    --proj exp/output/shadow_proj_$im.tif \
+    --proj exp/output/shadow_proj_$im.png \
     -ox $x -oy $y -oz $z -xmin 1505 -ymin 891 --res 0.45
 
 bin/write_coloured_ply \

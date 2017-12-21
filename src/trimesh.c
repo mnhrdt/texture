@@ -287,12 +287,12 @@ void trimesh_write_to_ply(char *fname, struct trimesh *m)
 
 	// print points
 	for (int i = 0; i < m->nv; i++)
-                fprintf(f, "%.16lf %.16lf %.16lf\n",
+                fprintf(f, "%.16lf \t%.16lf \t%.16lf\n",
 				m->v[3*i+0], m->v[3*i+1], m->v[3*i+2]);
 
 	// print triangles
 	for (int i = 0; i < m->nt; i++)
-                fprintf(f, "3 %d %d %d\n",
+                fprintf(f, "3 \t%d \t%d \t%d\n",
 				m->t[3*i+0], m->t[3*i+1], m->t[3*i+2]);
 
 	// cleanup

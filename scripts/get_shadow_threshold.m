@@ -7,8 +7,6 @@ function thresh = get_shadow_threshold(filename_proj, filename_crop)
     c = (100 * (b <= t) + 255 * (b > t)) .* (a > 0);
     l1_old = sum(sum((a==c).*(a>0)));
     l1 = l1_old;
-    diff = 0;
-    D = zeros(1, 850);
     T = zeros(1, 850);
     L = zeros(1, 850);
     i = 0;
@@ -20,12 +18,11 @@ function thresh = get_shadow_threshold(filename_proj, filename_crop)
         l1_new = sum(sum((a==c).*(a>0)));
         diff = l1_new - l1_old;
         l1_old = l1_new;
-        D(i) = diff;
         T(i) = t;
         L(i) = l1_new;
     end
 
-    printf("%f", t);
+%    printf("%f", t);
     [m, idx] = max(L);
     thresh = 150 + idx;
 end

@@ -240,6 +240,93 @@ void camera_direction(double n[3], struct rpc *r)
         printf("WARNING: normalisation error in camera_direction, norme = %.16lf\n", norm);
 }
 
+void colorize(double *vc, struct trimesh *m, double *match, 
+        struct rpc *huge_pan_rpc, struct rpc *huge_msi_rpc,
+        GDALRasterBandH *huge_pan_img, GDALRasterBandH *huge_msi_img, 
+        int pd, int pdm)
+{
+    double intensity;
+    double lonlatheight[3];
+    double msi[pdm];
+    double rgb[3];
+    double a;
+    double ij_msi[2];
+    double ij_pan[2];
+    for (int nv = 0; nv < m->nv; nv++)
+    {
+        if (!isnan(match[pd*nv]) && match[pd*nv+2] > -500) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
+        {
+           for (int i = 0; i < 3; i++)
+               lonlatheight[i] = match[pd*nv+i];
+           rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
+           rpc_projection(ij_msi, huge_msi_rpc, lonlatheight);
+           intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
+           if (intensity > 2500)
+           {
+               for (int k = 0; k < 3; k++)
+                   vc[3*nv+k] = NAN;
+               continue;
+           }
+
+           for (int l = 0; l < pdm; l++)
+               msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
+           //rgb[0] = intensity;
+           //rgb[1] = intensity;
+           //rgb[2] = intensity;
+           rgb[0] = msi[4];
+           rgb[1] = 0.8 * msi[2] + 0.1 * msi[5];
+           rgb[2] = 1.2 * msi[1];
+           a = intensity/(rgb[0]+rgb[1]+rgb[2]);
+           for (int i = 0; i < 3; i++)
+               rgb[i] = a * rgb[i]; 
+           for (int k = 0; k < 3; k++)
+               vc[3*nv+k] = rgb[k];
+        }
+        else 
+        {
+            vc[3*nv+0] = NAN;
+            vc[3*nv+1] = NAN;
+            vc[3*nv+2] = NAN;
+        }
+    }
+}
+
+
+void shadow(double *vc, struct trimesh *m, double *match, 
+        struct rpc *huge_pan_rpc, GDALRasterBandH *huge_pan_img, 
+        double thresh, int pd)
+{
+    double intensity;
+    double lonlatheight[3];
+    double ij_pan[2];
+    for (int nv = 0; nv < m->nv; nv++)
+    {
+        if (!isnan(match[pd*nv]) && match[pd*nv+2] > -500) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
+        {
+           for (int i = 0; i < 3; i++)
+               lonlatheight[i] = match[pd*nv+i];
+           rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
+           intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
+           if (intensity > 2500 || intensity < thresh)
+               for (int k = 0; k < 3; k++)
+                   vc[3*nv+k] = NAN;
+           if (intensity < thresh)
+               for (int k = 0; k < 3; k++)
+                   vc[3*nv+k] = 0;
+           else
+               for (int k = 0; k < 3; k++)
+                   vc[3*nv+k] = 1000;
+
+        }
+        else 
+        {
+            vc[3*nv+0] = NAN;
+            vc[3*nv+1] = NAN;
+            vc[3*nv+2] = NAN;
+        }
+    }
+}
+
 
 // elevate a georeferenced DSM to an ascii point cloud
 
@@ -259,10 +346,13 @@ void camera_direction(double n[3], struct rpc *r)
 //
 int main_colormultiple(int c, char *v[])
 {
+    double thresh = atof(pick_option(&c, &v, "t", "0")); 
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.ply pan_i.tif msi_i.ntf msi_i.xml match_i.tif vc.tif\n",*v);
-                //0 1        2         3         4         5           6            
+                "%s mesh.ply corners.txt pan_i.tif pan_i.rpc msi_i.ntf"
+                //0 1        2           3         4         5
+                "msi_i.xml match_i.tif vc.tif\n",*v);
+               //6         7           8
     char *filename_mesh = v[1];
     char *filename_corners = v[2];
     char *filename_pan = v[3];
@@ -333,95 +423,18 @@ int main_colormultiple(int c, char *v[])
     double *vc = malloc(3 * m.nv * sizeof(double));
     printf("création vecteur couleur\n");
 
-    double intensity;
-    double lonlatheight[3];
-    double msi[pdm];
-    double rgb[3];
-    double a;
-    double ij_msi[2];
-    double ij_pan[2];
-    for (int nv = 0; nv < m.nv; nv++)
-    {
-        int ij[2];
-        int xywh[4] = {0, 0, wi, hi};
-        if (!isnan(match[pd*nv]) && match[pd*nv+2] > -500) // dans ce cas, la point est visible sur grayscale. Il faut donc récupérer la couleur.
-        {
-           for (int i = 0; i < 3; i++)
-               lonlatheight[i] = match[pd*nv+i];
-           rpc_projection(ij_pan, huge_pan_rpc, lonlatheight);
-           rpc_projection(ij_msi, huge_msi_rpc, lonlatheight);
-           intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
-           if (intensity > 2500)
-           {
-               for (int k = 0; k < 3; k++)
-                   vc[3*nv+k] = NAN;
-               continue;
-           }
-
-           for (int l = 0; l < pdm; l++)
-               msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
-           //rgb[0] = intensity;
-           //rgb[1] = intensity;
-           //rgb[2] = intensity;
-           rgb[0] = msi[4];
-           rgb[1] = 0.8 * msi[2] + 0.1 * msi[5];
-           rgb[2] = 1.2 * msi[1];
-           a = intensity/(rgb[0]+rgb[1]+rgb[2]);
-           for (int i = 0; i < 3; i++)
-               rgb[i] = a * rgb[i]; 
-           for (int k = 0; k < 3; k++)
-               vc[3*nv+k] = rgb[k];
-        }
-        else 
-        {
-            vc[3*nv+0] = NAN;
-            vc[3*nv+1] = NAN;
-            vc[3*nv+2] = NAN;
-        }
-    }
+    colorize(vc, &m, match, huge_pan_rpc, huge_msi_rpc, huge_pan_img, 
+        huge_msi_img,pd, pdm);
+    
+    if (thresh > 0)
+        shadow(vc, &m, match, huge_pan_rpc, huge_pan_img, 
+                thresh, pd);
     printf("sauvegarde vecteur couleur\n");
     iio_save_image_double_vec(filename_vc, vc, m.nv, 1, 3);
     printf("fini !\n");
     return 0;
 }
 
-int main_brouillon(int c, char *v[])
-{
-    char *filename_pan = v[3];
-    char *filename_pan_rpc = v[4];
-    GDALAllRegister();
-
-    // open the reference image and obtain its pixel dimension "pd"
-    GDALDatasetH huge_dataset = GDALOpen(filename_pan, GA_ReadOnly);
-    int pdm = GDALGetRasterCount(huge_dataset);
-    printf("pdm pan %d\n", pdm);
-    GDALRasterBandH huge_pan_img[pdm];
-    for (int i = 0; i < pdm; i++)
-        huge_pan_img[i] = GDALGetRasterBand(huge_dataset, i+1);
-
-    // open the reference rpc
-    struct rpc huge_pan_rpc[1];
-    read_rpc_file_xml(huge_pan_rpc, filename_pan_rpc);
-
-    static float *roi = NULL;
-    int sz = 4;
-    if (!roi) roi = CPLMalloc(sz*sz*sizeof*roi);
-    int r = GDALRasterIO(huge_pan_img[0], GF_Read, 145.8-sz/2, 256-sz/2, sz,sz, roi,sz,sz, GDT_Float32, 0,0);
-    for (int i = 0; i < sz; i++)
-        for (int j = 0; j < sz; j++)
-            roi[i+j*sz] = (4-i)+j;
-    iio_save_image_float("roi.tif",roi, sz, sz);
-
-    float *interp;
-    interp = malloc(100*sizeof(float));
-
-    for (int i = 0; i < 10; i++)
-        for (int j = 0; j < 10; j++)
-            interp[i+10*j] = bicubic_interpolation_cell(roi, j/10.0, i/10.0);
-    iio_save_image_float("interp.tif", interp, 10, 10);
-
-    return 0;
-}
 
 //int main(int c, char *v[]) { return main_colormultiple(c,v); }
 int main(int c, char *v[]) { return main_colormultiple(c,v); }
