@@ -354,13 +354,12 @@ int main_colormultiple(int c, char *v[])
                 "msi_i.xml match_i.tif vc.tif\n",*v);
                //6         7           8
     char *filename_mesh = v[1];
-    char *filename_corners = v[2];
-    char *filename_pan = v[3];
-    char *filename_pan_rpc = v[4];
-    char *filename_msi = v[5];
-    char *filename_msi_rpc = v[6];
-    char *filename_m = v[7];
-    char *filename_vc = v[8];
+    char *filename_pan = v[2];
+    char *filename_pan_rpc = v[3];
+    char *filename_msi = v[4];
+    char *filename_msi_rpc = v[5];
+    char *filename_m = v[6];
+    char *filename_vc = v[7];
 
     printf("début\n");
 
@@ -370,16 +369,8 @@ int main_colormultiple(int c, char *v[])
     if (!corners)
         return fprintf(stderr, "fopen(%s) failed\n", filename_corners);
 
-    double xywh[4];
-    for (int i = 0; i < 4; i++)
-        if ((fscanf(corners, "%lf", &xywh[i])) != 1)
-            return fprintf(stderr, "could not read element %d of %s\n", i, filename_corners);
-    fclose(corners);
-
-    int wi = lrint(xywh[2]);
-    int hi = lrint(xywh[3]);
     GDALAllRegister();
-    
+   
     // open the reference image and obtain its pixel dimension "pd"
     GDALDatasetH huge_dataset = GDALOpen(filename_pan, GA_ReadOnly);
     int pdm = GDALGetRasterCount(huge_dataset);
