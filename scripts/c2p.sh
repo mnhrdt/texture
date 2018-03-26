@@ -5,15 +5,16 @@
 set -e
 set -x
 im=$1
-thresh=$2
+
 . config.sh
 
 bin/ncc_compute_shift \
-    data/mcdsm/outdir_01_02/outdir_from_01_02/cdsm.tif\
+    data/mcdsm/outdir_$im\_*/outdir_from_$im\_*/cdsm.tif\
     data/Challenge1_Lidar_nan.tif \
-    > data/ncc_shift/ncc_shift_$im.txt
-
-read x y s z < data/ncc_shift/ncc_shift_$im.txt
+    | read x y s z
+#     < data/ncc/ncc_shift_$im.txt
+#
+# read x y s z < data/ncc/ncc_shift_$im.txt
 
 bin/zbuffer \
     data/mesh_curve_scaled_remeshed_02.off\
