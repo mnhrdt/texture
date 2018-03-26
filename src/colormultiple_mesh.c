@@ -24,6 +24,7 @@ static float gdal_getpixel(GDALRasterBandH img, double pi, double pj)
 	int i = round(pi);
 	int j = round(pj);
 	int r = GDALRasterIO(img, GF_Read, i,j,1, 1, roi,1,1, GDT_Float32, 0,0);
+        (void) r;
 	return roi[0*0+0];
 }
 
@@ -59,6 +60,7 @@ static float gdal_getpixel_bicubic(GDALRasterBandH img, double x, double y)
 	int i = floor(x);
 	int j = floor(y);
 	int r = GDALRasterIO(img, GF_Read, i,j,4, 4, roi,4,4, GDT_Float32, 0,0);
+        (void) r;
 	return bicubic_interpolation_cell(roi, y - j, x - i);
 //        return roi[5];
 }
@@ -270,9 +272,9 @@ void colorize(double *vc, struct trimesh *m, double *match,
 
            for (int l = 0; l < pdm; l++)
                msi[l] = gdal_getpixel_bicubic(huge_msi_img[l],ij_msi[0],ij_msi[1]);
-           //rgb[0] = intensity;
-           //rgb[1] = intensity;
-           //rgb[2] = intensity;
+//           rgb[0] = intensity;
+//           rgb[1] = intensity;
+//           rgb[2] = intensity;
            rgb[0] = msi[4];
            rgb[1] = 0.8 * msi[2] + 0.1 * msi[5];
            rgb[2] = 1.2 * msi[1];
@@ -349,10 +351,10 @@ int main_colormultiple(int c, char *v[])
     double thresh = atof(pick_option(&c, &v, "t", "0")); 
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.ply corners.txt pan_i.tif pan_i.rpc msi_i.ntf"
-                //0 1        2           3         4         5
-                "msi_i.xml match_i.tif vc.tif\n",*v);
-               //6         7           8
+                "%s mesh.ply pan_i.tif pan_i.rpc msi_i.ntf msi_i.xml" 
+                //0 1        2         3         4         5
+                "match_i.tif vc.tif\n",*v);
+               //6           7           
     char *filename_mesh = v[1];
     char *filename_pan = v[2];
     char *filename_pan_rpc = v[3];
@@ -362,12 +364,6 @@ int main_colormultiple(int c, char *v[])
     char *filename_vc = v[7];
 
     printf("début\n");
-
-    // read the informations about the crop
-    FILE *corners;
-    corners = fopen(filename_corners,"r");
-    if (!corners)
-        return fprintf(stderr, "fopen(%s) failed\n", filename_corners);
 
     GDALAllRegister();
    

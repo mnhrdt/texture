@@ -733,29 +733,25 @@ int main_zbuffer(int c, char *v[])
     double resolution = atof(pick_option(&c, &v, "-res", "0.3"));
 if (c < 7)
         return fprintf(stderr, "usage:\n\t"
-                "%s mesh.off zone orig_x orig_y scale_x scale_y rpc_i"
-                //0 1        2    3      4      5       6       7 
-                "xywh_i.txt out.tif\n"
-                //8         9
+                "%s mesh.off scale.txt zone  rpc_i xywh_i.txt out.tif\n"
+                //0 1        2         3     4     5          6        
                 "(for shadow add -s 1)\n"
                 " -ox -oy -oz : données de recalage (pixels)\n"
                 " -xmin -ymin : crop du maillage (pixels)\n"
                 " --res : résolution du maillage (metres)"
                 , *v);
     char *filename_mesh = v[1];
-    int signed_zone = atoi(v[2]);
-    double origin[3] = {atof(v[3], atof(v[4], 0};
-    double scale[3] = {atof(v[5], atof(v[6], 1};
-    char *filename_rpc = v[7];
-    char *filename_corners = v[8];
-    char *filename_out = v[9];
-
-    double sae[4] = {NAN, NAN, NAN, NAN};
+    char *filename_scale = v[2];
+    int signed_zone = atoi(v[3]);
+    char *filename_rpc = v[4];
+    char *filename_corners = v[5];
+    char *filename_out = v[6];
 
     // read georeferencing transform data
-    double origin[3] = {xorig, yorig, 0};
-    double scale[3] = {xscale, yscale, 1};
-
+    double origin[3] = {0, 0, 0};
+    double scale[3] = {1, 1, 1};
+    scale_and_origin_from_file(scale, origin, filename_scale);
+    double sae[4] = {NAN, NAN, NAN, NAN};
 
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
@@ -827,4 +823,5 @@ int main(int c, char *v[])
         return main_zbuffer(c,v);
     else
         return main_shadow(c,v);
-}    
+}
+

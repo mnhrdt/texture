@@ -1,4 +1,4 @@
-#!/binbash
+#!binbash
 # auteur : mariedautume
 
 # exemple input bash im2colouredurve.sh 01

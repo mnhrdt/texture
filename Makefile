@@ -1,5 +1,5 @@
 # the following option is used to control all C and C++ compilations
-FLAGS ?= -g -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter 
+FLAGS ?= -g -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter
 
 # required libraries
 IIOLIBS := -lz -ltiff -lpng -ljpeg -lm
@@ -17,7 +17,8 @@ override LDLIBS   := $(LDLIBS) $(shell gdal-config --libs) $(IIOLIBS) $(GEOLIBS)
 BIN := colorize get_corners get_P_of_crop colorize_with_shadows colorsingle \
        colormultiple triangles zbuffer get_projection_matrix vector_proj \
        colorfancy get_msi_offset recale create_mesh colormultiple_mesh \
-       write_coloured_ply get_corners_utm shadow normals colormap triproc
+       write_coloured_ply get_corners_utm shadow normals colormap triproc \
+       get_sun_dir dsm_from_points
 
 BIN := $(addprefix bin/,$(BIN))
 OBJ := src/iio.o src/geographiclib_wrapper.o
@@ -27,7 +28,7 @@ default: $(BIN) bin/refine
 
 # rule to build all the targets with the same pattern
 $(BIN) : bin/% : src/%.o $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	$(CC) $(LDFLAGS)  -o $@ $^ $(LDLIBS)
 
 
 
