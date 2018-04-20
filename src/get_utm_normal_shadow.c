@@ -617,6 +617,18 @@ void check_vertices_visibility(
     }
 }
 
+void add_offset_to_mesh_vertices_coordinates(
+        struct trimesh *m, 
+        double offset[3],
+        double scale[2])
+{
+    for (int i = 0; i < 2; i++)
+        offset[i] *= scale[i];
+    for (int i = 0; i < m->nv; i++)
+        for (int j = 0; j < 3; j++)
+            m->v[3*i+j] += offset[j];
+}
+
 int main(int c, char *v[])
 {
     double ox = atof(pick_option(&c, &v, "ox", "0"));
@@ -646,7 +658,8 @@ int main(int c, char *v[])
     struct trimesh m[1];
     struct rpc huge_rpc[1];
     trimesh_read_from_off(m, filename_mesh); 
-    trimesh_fill_triangle_fans(m);              // ?????????????????
+    add_offset_to_mesh_vertices_coordinates(m, offset, scale);
+    trimesh_fill_triangle_fans(m);              
     read_rpc_file_xml(huge_rpc, filename_rpc);
 
     // crop informations from dsm projection on satellite image and sun
