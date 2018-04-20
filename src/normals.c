@@ -148,7 +148,7 @@ void vertices_normals_from_mesh(double *v_normals, struct trimesh *m,
     }
 }
 
-void vertices_camera_scalar_procuct(double *v_scalar, double *v_normals, 
+void vertices_camera_scalar_product(double *v_scalar, double *v_normals, 
         double n_cam[3], int nv)
 {
     for (int i = 0; i < nv; i++)
@@ -159,7 +159,7 @@ void vertices_camera_scalar_procuct(double *v_scalar, double *v_normals,
 }
 
 // get the satellite direction using only the rpc data
-void camera_direction(double n[3], struct rpc *r)
+static void camera_direction(double n[3], struct rpc *r)
 {
     // initialise height and fill 3rd vector coordinate
     double z = 0;
@@ -198,57 +198,57 @@ void camera_direction(double n[3], struct rpc *r)
 }
 
 
-int main(int argc, char *v[])
-{
-    char *filename_scalar = pick_option(&argc, &v, "-scalar", NULL);
-    char *filename_rpc = pick_option(&argc, &v, "-rpc", NULL);
-    if (argc < 3)
-        return fprintf(stderr, "usage:\n\t"
-                "%s mesh.off triangles_normal.tif\n",*v);
-                //0 1        2                    
-    char *filename_mesh = v[1];
-    char *filename_n = v[2];
-    char *filename_a = v[3];
-
-
-    struct trimesh m;
-    trimesh_read_from_off(&m, filename_mesh);
-    trimesh_fill_triangle_fans(&m);
-
-    double *t_normals;
-    t_normals = malloc(3 * m.nt * sizeof(double));
-    triangle_normals_from_mesh(t_normals, &m);
-    printf("normales calculées\n");
-    
-    double *t_angles;
-    t_angles = malloc(3 * m.nt * sizeof(double));
-    triangle_angles_from_mesh(t_angles, &m);
-    printf("angles calculées\n");
-
-    double *v_normals;
-    v_normals = malloc(3 * m.nv * sizeof(double));
-    vertices_normals_from_mesh(v_normals, &m, t_angles, t_normals);
-    iio_save_image_double_vec(filename_n, v_normals, m.nv, 1, 3);
-    printf("assignation des angles aux sommets\n");
-
-    if (filename_scalar && filename_rpc)
-    {
-        struct rpc huge_rpc[1];
-        read_rpc_file_xml(huge_rpc, filename_rpc);
-
-        // get camera direction
-        double n_cam[3];
-        camera_direction(n_cam, huge_rpc);
-        
-        double *v_scalar;
-        v_scalar = malloc(m.nv * sizeof(double));
-        vertices_camera_scalar_procuct(v_scalar, v_normals, n_cam, m.nv);
-        iio_save_image_double(filename_scalar, v_scalar, m.nv, 1);
-    }
-
-
-    free(t_normals); free(t_angles); free(v_normals);
-    return 0;
-}
+//int main(int argc, char *v[])
+//{
+//    char *filename_scalar = pick_option(&argc, &v, "-scalar", NULL);
+//    char *filename_rpc = pick_option(&argc, &v, "-rpc", NULL);
+//    if (argc < 3)
+//        return fprintf(stderr, "usage:\n\t"
+//                "%s mesh.off triangles_normal.tif\n",*v);
+//                //0 1        2                    
+//    char *filename_mesh = v[1];
+//    char *filename_n = v[2];
+//    char *filename_a = v[3];
+//
+//
+//    struct trimesh m;
+//    trimesh_read_from_off(&m, filename_mesh);
+//    trimesh_fill_triangle_fans(&m);
+//
+//    double *t_normals;
+//    t_normals = malloc(3 * m.nt * sizeof(double));
+//    triangle_normals_from_mesh(t_normals, &m);
+//    printf("normales calculées\n");
+//    
+//    double *t_angles;
+//    t_angles = malloc(3 * m.nt * sizeof(double));
+//    triangle_angles_from_mesh(t_angles, &m);
+//    printf("angles calculées\n");
+//
+//    double *v_normals;
+//    v_normals = malloc(3 * m.nv * sizeof(double));
+//    vertices_normals_from_mesh(v_normals, &m, t_angles, t_normals);
+//    iio_save_image_double_vec(filename_n, v_normals, m.nv, 1, 3);
+//    printf("assignation des angles aux sommets\n");
+//
+//    if (filename_scalar && filename_rpc)
+//    {
+//        struct rpc huge_rpc[1];
+//        read_rpc_file_xml(huge_rpc, filename_rpc);
+//
+//        // get camera direction
+//        double n_cam[3];
+//        camera_direction(n_cam, huge_rpc);
+//        
+//        double *v_scalar;
+//        v_scalar = malloc(m.nv * sizeof(double));
+//        vertices_camera_scalar_product(v_scalar, v_normals, n_cam, m.nv);
+//        iio_save_image_double(filename_scalar, v_scalar, m.nv, 1);
+//    }
+//
+//
+//    free(t_normals); free(t_angles); free(v_normals);
+//    return 0;
+//}
 
 
