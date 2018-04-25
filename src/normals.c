@@ -6,11 +6,12 @@
 #include <math.h>
 #include <string.h>
 
-#include "rpc.c"
+#include "rpc.h"
 #include "fail.c"
 #include "iio.h"
-#include "trimesh.c"
-#include "pickopt.c"
+#include "trimesh.h"
+#include "pickopt.h"
+#include "normals.h"
 
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 

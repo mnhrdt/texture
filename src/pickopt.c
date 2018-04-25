@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdbool.h>
+#include "pickopt.h"
 
 // @c pointer to original argc
 // @v pointer to original argv

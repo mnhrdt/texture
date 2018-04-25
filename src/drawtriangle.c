@@ -6,6 +6,8 @@
 #include <math.h>   // fmax, fmin, floor, ceil
 #include <stdbool.h>
 
+#include "drawtriangle.h"
+
 // cut the line between points a and b at height h
 // note: the line must not be horizontal!
 static float cut_line_at_height(float a[2], float b[2], float h)
