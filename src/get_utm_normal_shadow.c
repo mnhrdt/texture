@@ -513,7 +513,8 @@ void check_vertex_visibility_satellite(
 
     // scalar product between vertex normal and camera direction vector
     double n_vertex[3] = {v_normals[3*v], v_normals[3*v+1], v_normals[3*v+2]};
-    v_scalars[v] = scalar_product(n_vertex, cam_dir, 3);
+    for (int i = 0; i < 3; i++)
+        v_scalars[3*v+i] = scalar_product(n_vertex, cam_dir, 3);
 
     // get lonlat coordinates
     double lonlat[2];
@@ -697,7 +698,7 @@ int main(int c, char *v[])
 
     // normals and scalara product of normal with camera direction vector
     double *v_normals = malloc(3 * m->nv * sizeof(double));
-    double *v_scalars = malloc(m->nv * sizeof(double));
+    double *v_scalars = malloc(3 * m->nv * sizeof(double));
 
     // utm coordinates for vertices if seen by satellite and/or sun
     double *out_img = malloc(3 * m->nv * sizeof(double));
@@ -722,7 +723,7 @@ int main(int c, char *v[])
     // save outputs
     iio_save_image_double_vec(filename_utm_coord, out_img, m->nv, 1, 3);
     iio_save_image_double_vec(filename_sun, out_sun, m->nv, 1, 3);
-    iio_save_image_double(filename_scalars, v_scalars, m->nv, 1);
+    iio_save_image_double_vec(filename_scalars, v_scalars, m->nv, 1, 3);
 
     // free all
     free(sun_plan); free(img_copy); free(v_cam_visibility);

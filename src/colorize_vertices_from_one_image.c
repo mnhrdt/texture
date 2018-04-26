@@ -72,10 +72,9 @@ void colorize(
         int pd, int pdm)               // dim1 = enz et dim2 = msi 
 { 
     // initialize outputs to values if not seen by camera
-    for (int i = 0; i < m->nv; i++)
-        out_pan[i] = NAN;
-    for (int i = 0; i < 3 * m->nv; i++)
+    for (int i = 0; i < 3 * m->nv; i++){
         out_rgb[i] = NAN;
+        out_pan[i] = NAN;}
     for (int i = 0; i < pdm * m->nv; i++)
         out_msi[i] = NAN;
 
@@ -96,7 +95,8 @@ void colorize(
 
             // fill panchromatic output
             double intensity = gdal_getpixel_bicubic(huge_pan_img[0], ij_pan[0], ij_pan[1]);
-            out_pan[v] = intensity;
+            for (int i = 0; i < 3; i++)
+                out_pan[3*v+i] = intensity;
 
             // fill multispectral output
             double msi[pdm];
@@ -124,9 +124,9 @@ double norm_with_t_threshold(
     // theoric information coherent with thresholding, norm +=1
     for (int v = 0; v < nv; v++)
     {
-        if (isnan(out_pan[v]))      // check if vertex seen by camera
+        if (isnan(out_pan[3*v]))      // check if vertex seen by camera
                 continue;
-        if (((out_pan[v] > t) && isnan(v_sun[3 * v])) || ((out_pan[v] <= t) && !isnan(v_sun[3*v])))
+        if (((out_pan[3*v] > t) && isnan(v_sun[3 * v])) || ((out_pan[3*v] <= t) && !isnan(v_sun[3*v])))
             norm += 1;
     }
     return norm;
@@ -165,7 +165,7 @@ void create_shadow_mask(
 
     // get shadow threshold and fill practical shadow location
     double t = get_shadow_threshold(v_sun, out_pan, nv, t_min, t_max);
-    for (int v = 0; v < nv; v++)
+    for (int v = 0; v < 3 * nv; v++)
         out_sun[v] = (out_pan[v] > t) ? 1 : 0;
 }
 
@@ -226,8 +226,8 @@ int main(int c, char *v[])
     trimesh_read_from_off(m, filename_mesh);
 
     // create vertices output informations
-    double *out_pan = malloc(m->nv * sizeof(double));
-    double *out_sun = malloc(m->nv * sizeof(double));
+    double *out_pan = malloc(3 * m->nv * sizeof(double));
+    double *out_sun = malloc(3 * m->nv * sizeof(double));
     double *out_rgb = malloc(3 * m->nv * sizeof(double));
     double *out_msi = malloc(pdm * m->nv * sizeof(double));
 
@@ -238,10 +238,10 @@ int main(int c, char *v[])
     create_shadow_mask(filename_sun, out_pan, out_sun, t_min, t_max);
 
     // save outputs
-    iio_save_image_double(filename_out_pan, out_pan, nv, 1);
-    iio_save_image_double(filename_out_sun, out_sun, nv, 1);
+    iio_save_image_double_vec(filename_out_pan, out_pan, nv, 1, 3);
+    iio_save_image_double_vec(filename_out_sun, out_sun, nv, 1, 3);
     iio_save_image_double_vec(filename_out_rgb, out_rgb, nv, 1, 3);
-    iio_save_image_double_vec(filename_out_msi, out_rgb, nv, 1, 3);
+    iio_save_image_double_vec(filename_out_msi, out_rgb, nv, 1, pdm);
 
     // free allocated memory
     free(out_pan); free(out_msi); free(out_rgb); free(out_sun);
