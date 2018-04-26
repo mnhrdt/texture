@@ -11,7 +11,7 @@ im=$1
 read x y s z < data/ncc_shift/ncc_shift_$im.txt
 
 bin/get_utm_normal_shadow \
-    exp/output/mesh_curve_scaled_remeshed_02.off \
+    data/mesh_curve_scaled_remeshed_02.off \
     $SCALE_X $SCALE_Y \
     $ORIG_X $ORIG_Y \
     $ZONE \
