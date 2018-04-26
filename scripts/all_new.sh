@@ -23,7 +23,7 @@ bin/get_utm_normal_shadow \
     -ox $x -oy $y -oz $z -xmin $CROP_X -ymin $CROP_Y 
 
 bin/colorize_vertices_from_one_image \
-    exp/output/mesh_curve_scaled_remeshed_02.off \
+    data/mesh_curve_scaled_remeshed_02.off \
     data/PAN/img_$im.ntf \
     data/PAN/img_$im.rpc \
     data/MSI/img_$im.ntf \
