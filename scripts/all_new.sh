@@ -10,6 +10,8 @@ im=$1
 
 read x y s z < data/ncc_shift/ncc_shift_$im.txt
 
+mkdir -p output
+
 bin/get_utm_normal_shadow \
     data/mesh_curve_scaled_remeshed_02.off \
     $SCALE_X $SCALE_Y \
