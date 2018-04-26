@@ -728,5 +728,6 @@ int main(int c, char *v[])
     // free all
     free(sun_plan); free(img_copy); free(v_cam_visibility);
     free(v_sun_visibility); free(t_normals); free(t_angles); free(v_normals);
-    free(v_scalars); free(out_img); free(out_sun); }
+    free(v_scalars); free(out_img); free(out_sun); 
+}
 
