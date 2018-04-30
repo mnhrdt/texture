@@ -71,6 +71,7 @@ void colorize(
         GDALRasterBandH *huge_msi_img, // satellite msi image
         int pd, int pdm)               // dim1 = enz et dim2 = msi 
 { 
+    printf("pdm = %d\n", pdm);
     // initialize outputs to values if not seen by camera
     for (int i = 0; i < 3 * m->nv; i++){
         out_rgb[i] = NAN;
@@ -102,13 +103,21 @@ void colorize(
             double msi[pdm];
             for (int l = 0; l < pdm; l++){
                 msi[l] = gdal_getpixel_bicubic(huge_msi_img[l], ij_msi[0], ij_msi[1]);
+                if (isnan(msi[l]))
+                    printf("vertex with nan %d\n", v);
                 out_msi[pdm * v + l] = msi[l];}
+            if (v == 955649)
+                printf("msi %lf %lf %lf %lf %lf %lf %lf %lf \n", out_msi[pdm * v + 0], out_msi[pdm * v + 1], out_msi[pdm * v + 2], out_msi[pdm * v + 3], out_msi[pdm * v + 4], out_msi[pdm * v + 5], out_msi[pdm * v + 6], out_msi[pdm * v + 7]);
 
             // fill rgb output obtained by pansharpening
             double rgb[3] = {msi[4], 0.8 * msi[2] + 0.1 * msi[5], 1.2 * msi[1]};
             double a = intensity/(rgb[0] + rgb[1] + rgb[2]);
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 3; i++){
                 out_rgb[3 * v + i] = a * rgb[i];
+                if (out_rgb[3 * v + i] > 10000)
+                    printf("vertex with rgb problem %d\n", v);}
+            if (v == 955649)
+                printf("rgb %lf %lf %lf pan %lf \n", out_rgb[3 * v + 0], out_rgb[3 * v + 1], out_rgb[3 * v + 2], a);
         }
 }
 
@@ -241,7 +250,7 @@ int main(int c, char *v[])
     iio_save_image_double_vec(filename_out_pan, out_pan, nv, 1, 3);
     iio_save_image_double_vec(filename_out_sun, out_sun, nv, 1, 3);
     iio_save_image_double_vec(filename_out_rgb, out_rgb, nv, 1, 3);
-    iio_save_image_double_vec(filename_out_msi, out_rgb, nv, 1, pdm);
+    iio_save_image_double_vec(filename_out_msi, out_msi, nv, 1, pdm);
 
     // free allocated memory
     free(out_pan); free(out_msi); free(out_rgb); free(out_sun);
