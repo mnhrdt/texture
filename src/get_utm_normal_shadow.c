@@ -4,11 +4,11 @@
 #include <math.h>
 
 #include "iio.h"
+#include "normals.h"
 #include "drawtriangle.h"
 #include "trimesh.h"
 #include "rpc.h"
 #include "pickopt.h"
-#include "normals.h"
 #include "get_utm_normal_shadow.h"
 
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
@@ -119,7 +119,7 @@ void camera_direction(double n[3], struct rpc *r)
     // create vector from the difference of the two points coordinates
     for (int i = 0; i < 2; i++)
         n[i] -= en[i];
-    n[2] = ijh2[2] - ijh1[2];
+    n[2] = ijh1[2] - ijh2[2];
 
     // normalise direction vector
     double norm = euclidean_norm(n, 3);
@@ -422,7 +422,7 @@ void check_triangle_orientation(
         sun_direction(sun_dir, az_el[0], az_el[1]);
 
         // check if triangle faces the camera
-        if (scalar_product(tri_normal, cam_dir, 3) < 0)
+        if (scalar_product(tri_normal, cam_dir, 3) >= 0)
             for (int i = 0; i < 3; i++)
                 v_cam_visibility[triangle_vertices[i]] = true;
 
@@ -537,12 +537,12 @@ void check_vertex_visibility_satellite(
 
     // get square scalar product between above vector and orthogonal to the direction camera vector
     double error;
-    error = pow(euclidean_norm(diff,3), 2) - pow(scalar_product(diff, cam_dir, 3), 2);
+    error = pow(euclidean_norm(diff,3),2) - pow(scalar_product(diff, cam_dir, 3),2);
 
-    double sc[2] = {scale[0]+5*scale[0]/10, scale[1]+5*scale[1]/10};
+    double sc[2] = {1.5*scale[0], 1.5*scale[1]};
 
     // if the vertex is close enough to the saved point, save utm coordinates
-    if (img_copy[3*(ij[1]*xywh[2]+ij[0])+2] == enz[2] || error < pow(euclidean_norm(sc,2),2))
+    if (img_copy[3*(ij[1]*xywh[2]+ij[0])+2] == enz[2] || pow(scalar_product(diff,cam_dir,3),2) < 4*pow(euclidean_norm(sc,2),2))
         for (int i = 0; i < 3; i++)
             out_img[3 * v + i] = enz[i];
 }
@@ -578,7 +578,7 @@ void check_vertex_visibility_sun(
 
     // if the vertex is close enough to the saved point, save utm coordinates
     if (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2] 
-            || error < pow(euclidean_norm(sc,2),2))
+            || pow(scalar_product(diff, sun_dir, 3),2) < 2*pow(euclidean_norm(sc,2),2))
         for (int i = 0; i < 3; i++)
             out_sun[3 * v + i] = enz[i];
 }
@@ -710,6 +710,7 @@ int main(int c, char *v[])
             v_cam_visibility, v_sun_visibility, t_normals, t_angles);
 
     iio_save_image_double_vec("sun_plan_get_utm.tif", sun_plan, xywhs[2], xywhs[3], 3);
+    iio_save_image_double_vec("img_copy_get_utm.tif", img_copy, xywh[2], xywh[3], 3);
     
     // fill vertices angles
     vertices_normals_from_mesh(v_normals, m, t_angles, t_normals);
