@@ -91,9 +91,9 @@ static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 	//if (b > c) swapint(&b, &c);
 	//if (a > b) swapint(&a, &b);
 
-	m->t[3*m->nt + 0] = a;
+	m->t[3*m->nt + 0] = c;
 	m->t[3*m->nt + 1] = b;
-	m->t[3*m->nt + 2] = c;
+	m->t[3*m->nt + 2] = a;
 	return m->nt++;
 }
 
