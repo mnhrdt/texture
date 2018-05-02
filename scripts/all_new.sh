@@ -11,8 +11,10 @@ im=$1
 read x y s z < data/ncc_shift/ncc_shift_$im.txt
 
 mkdir -p output
+az=`gdalinfo data/MSI/img_$im.ntf | grep SUN_AZI | cut -f 2 -d=`
+el=`gdalinfo data/MSI/img_$im.ntf | grep SUN_ELE | cut -f 2 -d=`
 
-bin/triproc data/mesh_curve_scaled_remeshed_02.off output/edges.txt
+#bin/triproc data/mesh_curve_scaled_remeshed_02.off output/edges.txt
 
 bin/get_utm_normal_shadow \
     data/mesh_curve_scaled_remeshed_02.off \
@@ -20,7 +22,7 @@ bin/get_utm_normal_shadow \
     $ORIG_X $ORIG_Y \
     $ZONE \
     data/PAN/img_$im.rpc \
-    071.575 64.540 \
+    $az $el \
     output/utm_coord_$im.tif \
     output/theoric_sun_$im.tif \
     output/scalars_$im.tif \
