@@ -1,0 +1,14 @@
+language: c
+sudo: required
+fast_finish: true
+
+matrix:
+  include:
+    - os: osx
+
+install:
+  - brew update && brew unlink gdal && brew install geographiclib && brew upgrade libgeotiff && brew install gdal
+
+
+script:
+  - make test
