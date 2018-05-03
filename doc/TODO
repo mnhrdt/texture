@@ -1,0 +1,5 @@
+- possibility to try other DSM registration methods (e.g., phase correlation)
+- color balance pre-processing (affine)
+- use a non-quantized lidar DSM
+- fully git pipeline (using external images)
+  running "make test" should build everything and run each program
