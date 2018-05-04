@@ -11,7 +11,7 @@ install:
   - brew unlink gdal
   - wget http://www.kyngchaos.com/files/software/frameworks/GDAL_Complete-2.1.dmg
   - X=$(echo `hdiutil mount GDAL_Complete-2.1.dmg | tail -1 | awk '{$1=$2=""; print $0}'` | xargs -0 echo) && sudo installer -pkg "${X}/"GDAL\ Complete.pkg -target /; export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
-  - brew install geographiclib && brew upgrade libgeotiff && brew install cgal
+  - brew install geographiclib && brew upgrade libgeotiff && brew upgrade cgal
 
 script:
   - make test
