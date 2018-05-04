@@ -20,4 +20,9 @@ bin/% : src/%.c $(OBJ)
 # bureaucracy
 clean: ; $(RM) $(OBJ) $(BIN)
 
-test: bin/refine data/mesh_curve_scaled_remeshed_02.off data/mesh_test_09.off --res 0.9
+bin/refine: 
+	g++-7 -c src/refine.cpp -o src/refine.o -g -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter 
+	g++-7 src/refine.o -lCGAL -o bin/refine -lgmp
+
+test: bin/refine 
+	./bin/refine data/mesh_curve_scaled_remeshed_02.off data/mesh_test_09.off --res 0.9
