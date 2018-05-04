@@ -1,5 +1,5 @@
-CC=gcc-7 
-CXX=g++-7
+#CC=gcc-7 
+#CXX=g++-7
 # flags
 LDLIBS = -lm -ltiff -ljpeg -lpng -lstdc++ -lGeographic `gdal-config --libs`
 CFLAGS = `gdal-config --cflags`
