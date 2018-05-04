@@ -7,7 +7,7 @@ matrix:
     - os: osx
 
 install:
-  - brew update && brew unlink gdal && brew tap osgeo/osgeo4mac && brew tap --repair && brew install jasper netcdf && brew install gdal2 --with-complete --with-unsupported && brew link gdal2 && brew install geographiclib && brew upgrade libgeotiff && brew install 
+  - brew update && brew install gcc && brew link --overwrite gcc && brew unlink gdal && brew tap osgeo/osgeo4mac && brew tap --repair && brew install jasper netcdf && brew install gdal2 --with-complete --with-unsupported && brew link gdal2 && brew install geographiclib && brew upgrade libgeotiff && brew install 
 
 
 script:
