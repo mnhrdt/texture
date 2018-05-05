@@ -6,7 +6,8 @@
 #include "rpc.h"
 #include "trimesh.h"
 
-// ??????????????????????? pourquoi int pour z 
+// ??????????????????????? pourquoi int pour z
+// z est la Zone géographique
 void lonlat_from_eastnorthzone(double out_lonlat[2], double e, double n, int z);
 
 // cubic interpolation in dimension 1
@@ -21,9 +22,9 @@ void colorize(
         struct rpc *pan_rpc,           // pan rpc
         struct rpc *msi_rpc,           // msi rpc
         int signed_zone,               // utm signed zone
-        GDALRasterBandH *huge_pan_img, // satellite pan image 
+        GDALRasterBandH *huge_pan_img, // satellite pan image
         GDALRasterBandH *huge_msi_img, // satellite msi image
-        int pd, int pdm                // dim1 = enz et dim2 = msi 
+        int pd, int pdm                // dim1 = enz et dim2 = msi
         );
 
 double norm_with_t_threshold(

@@ -184,7 +184,7 @@ void iio_write_image_uint8_matrix_rgb(char*, uint8_t(**)[3], int, int     );
 void iio_write_image_uint8_matrix    (char*, uint8_t**     , int, int     );
 
 
-#define IIO_USE_INCONSISTENT_NAMES
+//#define IIO_USE_INCONSISTENT_NAMES
 #ifdef IIO_USE_INCONSISTENT_NAMES
 // functions for writing images, with the same conventions as for reding
 // (note: these functions use the wording "save" instead of "write")
