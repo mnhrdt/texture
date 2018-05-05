@@ -1,12 +1,26 @@
 language: c
-sudo: required
 fast_finish: true
 
 matrix:
   include:
     - os: linux
       dist: trusty
-    - os: osx
+#    - os: osx
+#      sudo: required
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - gcc-7
+      - g++-7
+      - libcgal-dev
+      - gdal-bin
+      - libgdal-dev
+      - libgeotiff-dev
+      - libgeographiclib-dev
+
 
 install:
   - |
@@ -22,6 +36,10 @@ install:
       X=`echo $Y | xargs -0 echo`
       sudo installer -pkg "${X}/"GDAL\ Complete.pkg -target /
       export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
+    fi
+    if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+      export CC=gcc-7
+      export CXX=g++-7
     fi
 
 script:
