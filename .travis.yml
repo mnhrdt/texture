@@ -5,18 +5,16 @@ matrix:
   include:
     - os: osx
       sudo: required
+    - os: linux
+      dist: trusty
 
-      #    - os: linux
-      #      dist: trusty
-
-      #addons:
-      #  apt:
-      #    packages:
-      #      - libcgal-dev
-      #      - gdal-bin
-      #      - libgdal-dev
-      #      - libgeotiff-dev
-      #      - libgeographiclib-dev
+addons:
+  apt:
+    packages:
+      - gdal-bin
+      - libgdal-dev
+      - libgeotiff-dev
+      - libgeographiclib-dev
 
 
 install:
@@ -35,8 +33,17 @@ install:
       export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
     fi
     if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
+      U='https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-4.12/CGAL-4.12.tar.xz'
+      wget $U
+      tar xf CGAL-4.12.xz
+      cd CGAL-4.12
+      cmake .
+      make
+      cd ..
+      export CPATH=`pwd`/CGAL-4.12/include
+      export LIBRARY_PATH=`pwd`/CGAL-4.12/lib
+      export LD_LIBRARY_PATH=$LIBRARY_PATH
       export CC="gcc -std=gnu99"
-      export CXX="g++"
     fi
 
 script:
