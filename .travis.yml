@@ -15,6 +15,11 @@ addons:
       - libgdal-dev
       - libgeotiff-dev
       - libgeographiclib-dev
+      - libmpfr-dev
+      - libboost1.55-dev
+      - libboost1.55-tools-dev
+      - libboost-system1.55-dev
+      - libboost-thread1.55-dev
 
 
 install:
@@ -35,14 +40,14 @@ install:
     if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
       U='https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-4.12/CGAL-4.12.tar.xz'
       wget $U
-      tar xf CGAL-4.12.xz
+      tar xf CGAL-4.12.tar.xz
       cd CGAL-4.12
       cmake .
       make
-      cd ..
-      export CPATH=`pwd`/CGAL-4.12/include
-      export LIBRARY_PATH=`pwd`/CGAL-4.12/lib
+      export CPATH=`pwd`/include
+      export LIBRARY_PATH=`pwd`/lib
       export LD_LIBRARY_PATH=$LIBRARY_PATH
+      cd ..
       export CC="gcc -std=gnu99"
     fi
 
