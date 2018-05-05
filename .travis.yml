@@ -10,11 +10,7 @@ matrix:
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
-      - gcc-7
-      - g++-7
       - libcgal-dev
       - gdal-bin
       - libgdal-dev
@@ -38,8 +34,8 @@ install:
       export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
     fi
     if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
-      export CC=gcc-7
-      export CXX=g++-7
+      export CC="gcc -std=gnu99"
+      export CXX="g++"
     fi
 
 script:
