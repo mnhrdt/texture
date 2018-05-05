@@ -8,15 +8,15 @@ matrix:
     - os: linux
 
 install:
-  - test "$TRAVIS_OS_NAME" == "osx" && update
-  - test "$TRAVIS_OS_NAME" == "osx" && brew install geographiclib
-  - test "$TRAVIS_OS_NAME" == "osx" && brew upgrade libgeotiff
-  - test "$TRAVIS_OS_NAME" == "osx" && brew upgrade cgal
-  - test "$TRAVIS_OS_NAME" == "osx" && brew unlink gdal
-  - test "$TRAVIS_OS_NAME" == "osx" && wget http://www.kyngchaos.com/files/software/frameworks/GDAL_Complete-2.1.dmg
-  - test "$TRAVIS_OS_NAME" == "osx" && X=$(echo `hdiutil mount GDAL_Complete-2.1.dmg | tail -1 | awk '{$1=$2=""; print $0}'` | xargs -0 echo)
-  - test "$TRAVIS_OS_NAME" == "osx" && sudo installer -pkg "${X}/"GDAL\ Complete.pkg -target /
-  - test "$TRAVIS_OS_NAME" == "osx" && export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
+  - test "$TRAVIS_OS_NAME" == "osx" || update
+  - test "$TRAVIS_OS_NAME" == "osx" || brew install geographiclib
+  - test "$TRAVIS_OS_NAME" == "osx" || brew upgrade libgeotiff
+  - test "$TRAVIS_OS_NAME" == "osx" || brew upgrade cgal
+  - test "$TRAVIS_OS_NAME" == "osx" || brew unlink gdal
+  - test "$TRAVIS_OS_NAME" == "osx" || wget http://www.kyngchaos.com/files/software/frameworks/GDAL_Complete-2.1.dmg
+  - test "$TRAVIS_OS_NAME" == "osx" || X=$(echo `hdiutil mount GDAL_Complete-2.1.dmg | tail -1 | awk '{$1=$2=""; print $0}'` | xargs -0 echo)
+  - test "$TRAVIS_OS_NAME" == "osx" || sudo installer -pkg "${X}/"GDAL\ Complete.pkg -target /
+  - test "$TRAVIS_OS_NAME" == "osx" || export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
 
 script:
   - make
