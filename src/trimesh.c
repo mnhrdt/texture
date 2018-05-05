@@ -91,9 +91,9 @@ static int trimesh_add_triangle(struct trimesh *m, int a, int b, int c)
 	//if (b > c) swapint(&b, &c);
 	//if (a > b) swapint(&a, &b);
 
-	m->t[3*m->nt + 0] = c;
+	m->t[3*m->nt + 0] = a;
 	m->t[3*m->nt + 1] = b;
-	m->t[3*m->nt + 2] = a;
+	m->t[3*m->nt + 2] = c;
 	return m->nt++;
 }
 
@@ -123,9 +123,9 @@ void trimesh_create_from_dem(struct trimesh *m, float *x, int w, int h)
 
 		// TODO: criteria to choose the appropriate diagonal
 		if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
-			trimesh_add_triangle(m, t[a], t[b], t[c]);
+			trimesh_add_triangle(m, t[c], t[b], t[a]);
 		if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
-			trimesh_add_triangle(m, t[c], t[b], t[d]);
+			trimesh_add_triangle(m, t[d], t[b], t[c]);
 	}
 
 	// cleanup
@@ -166,16 +166,16 @@ void trimesh_create_from_dem_with_scale(struct trimesh *m,
                 if (fabs(x[b]-x[c]) < fabs(x[a]-x[d]))
                 {
                if (t[a] >= 0 && t[b] >= 0 && t[c] >= 0)
-                       trimesh_add_triangle(m, t[a], t[b], t[c]);
+                       trimesh_add_triangle(m, t[c], t[b], t[a]);
                if (t[c] >= 0 && t[b] >= 0 && t[d] >= 0)
-                       trimesh_add_triangle(m, t[c], t[b], t[d]);
+                       trimesh_add_triangle(m, t[d], t[b], t[c]);
                 }
                 else
                 {
                if (t[a] >= 0 && t[b] >= 0 && t[d] >= 0)
-                       trimesh_add_triangle(m, t[a], t[b], t[d]);
+                       trimesh_add_triangle(m, t[d], t[b], t[a]);
                if (t[a] >= 0 && t[c] >= 0 && t[d] >= 0)
-                       trimesh_add_triangle(m, t[a], t[d], t[c]);
+                       trimesh_add_triangle(m, t[c], t[d], t[a]);
                 }
 
        }
