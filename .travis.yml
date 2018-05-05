@@ -3,19 +3,20 @@ fast_finish: true
 
 matrix:
   include:
-    - os: linux
-      dist: trusty
-#    - os: osx
-#      sudo: required
+    - os: osx
+      sudo: required
 
-addons:
-  apt:
-    packages:
-      - libcgal-dev
-      - gdal-bin
-      - libgdal-dev
-      - libgeotiff-dev
-      - libgeographiclib-dev
+      #    - os: linux
+      #      dist: trusty
+
+      #addons:
+      #  apt:
+      #    packages:
+      #      - libcgal-dev
+      #      - gdal-bin
+      #      - libgdal-dev
+      #      - libgeotiff-dev
+      #      - libgeographiclib-dev
 
 
 install:
