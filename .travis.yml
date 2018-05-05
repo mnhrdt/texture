@@ -14,5 +14,5 @@ install:
   - brew install geographiclib && brew upgrade libgeotiff && brew upgrade cgal
 
 script:
-  - make CXX=g++-8 CC=gcc-8
+  - make
   - make test

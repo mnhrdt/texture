@@ -24,7 +24,7 @@ bin/% : src/%.c $(OBJ)
 
 # rule for C++ sources
 bin/% : src/%.cpp $(OBJ)
-	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS) -lboost_system #fml
 
 # bureaucracy
 clean: ; $(RM) $(OBJ) $(BIN)
