@@ -34,6 +34,22 @@
 #define I_CAN_HAS_WHATEVER
 //#define I_CAN_KEEP_TMP_FILES
 
+#ifdef IIO_DISABLE_LIBEXR
+#undef I_CAN_HAS_LIBEXR
+#endif
+
+#ifdef IIO_DISABLE_LIBPNG
+#undef I_CAN_HAS_LIBPNG
+#endif
+
+#ifdef IIO_DISABLE_LIBJPEG
+#undef I_CAN_HAS_LIBJPEG
+#endif
+
+#ifdef IIO_DISABLE_LIBTIFF
+#undef I_CAN_HAS_LIBTIFF
+#endif
+
 #ifdef IIO_DISABLE_IMGLIBS
 #undef I_CAN_HAS_LIBPNG
 #undef I_CAN_HAS_LIBJPEG
@@ -232,7 +248,7 @@ static void fail(const char *fmt, ...)
 
 {
 	va_list argp;
-	fprintf(stderr, "\nERROR(\"%s\"): ", myname());
+	fprintf(stderr, "\nIIO_ERROR(\"%s\"): ", myname());
 	va_start(argp, fmt);
 	vfprintf(stderr, fmt, argp);
 	va_end(argp);
@@ -303,7 +319,6 @@ char *global_variable_containing_the_name_of_the_last_opened_file = NULL;
 static FILE *xfopen(const char *s, const char *p)
 {
 	global_variable_containing_the_name_of_the_last_opened_file = NULL;
-	FILE *f;
 
 	if (!s) fail("trying to open a file with NULL name");
 
@@ -321,11 +336,12 @@ static FILE *xfopen(const char *s, const char *p)
 	// NOTE: the 'b' flag is required for I/O on Windows systems
 	// on unix, it is ignored
 	char pp[3] = { p[0], 'b', '\0' };
-	f = fopen(s, pp);
+	FILE *f = fopen(s, pp);
 	if (f == NULL)
 		fail("can not open file \"%s\" in mode \"%s\"",// (%s)",
 				s, pp);//, strerror(errno));
 	global_variable_containing_the_name_of_the_last_opened_file = s;
+	IIO_DEBUG("fopen (%s) = %p\n", s, (void*)f);
 	return f;
 }
 
@@ -334,6 +350,7 @@ static void xfclose(FILE *f)
 	global_variable_containing_the_name_of_the_last_opened_file = NULL;
 	if (f != stdout && f != stdin && f != stderr) {
 		int r = fclose(f);
+		IIO_DEBUG("fclose (%p) = %d\n", (void*)f, r);
 		if (r) fail("fclose error");// \"%s\"", strerror(errno));
 	}
 }
@@ -1222,6 +1239,19 @@ recover_broken_pixels_uint8(uint8_t *clear, uint8_t *broken, int n, int pd)
 		clear[pd*i + l] = broken[n*l + i];
 }
 
+static void
+recover_broken_pixels_int(int *clear, int *broken, int n, int pd)
+{
+	FORL(pd) FORI(n)
+		clear[pd*i + l] = broken[n*l + i];
+}
+
+static void break_pixels_int(int *broken, int *clear, int n, int pd)
+{
+	FORI(n) FORL(pd)
+		broken[n*l + i] = clear[pd*i + l];
+}
+
 
 static
 void repair_broken_pixels(void *clear, void *broken, int n, int pd, int sz)
@@ -1328,12 +1358,21 @@ static int read_beheaded_png(struct iio_image *x,
 #ifdef I_CAN_HAS_LIBJPEG
 #  include <jpeglib.h>
 
+void on_jpeg_error(j_common_ptr cinfo)
+{
+	// this error happens, for example, when reading a truncated jpeg file
+	char buf[JMSG_LENGTH_MAX];
+	(*cinfo->err->format_message)(cinfo, buf);
+	fail("%s", buf);
+}
+
 static int read_whole_jpeg(struct iio_image *x, FILE *f)
 {
 	// allocate and initialize a JPEG decompression object
 	struct jpeg_decompress_struct cinfo[1];
 	struct jpeg_error_mgr jerr[1];
 	cinfo->err = jpeg_std_error(jerr);
+	jerr[0].error_exit = on_jpeg_error;
 	jpeg_create_decompress(cinfo);
 
 	// specify the source of the compressed data
@@ -2149,7 +2188,7 @@ static int read_beheaded_bmp(struct iio_image *x,
 // EXR reader                                                               {{{2
 
 #ifdef I_CAN_HAS_LIBEXR
-#include <ImfCRgbaFile.h>
+#include <OpenEXR/ImfCRgbaFile.h>
 // EXTERNALIZED TO :  read_exr_float.cpp
 
 static int read_whole_exr(struct iio_image *x, const char *filename)
@@ -2838,20 +2877,22 @@ static int read_beheaded_whatever(struct iio_image *x,
 	// dump data to file
 	long filesize;
 	void *filedata = load_rest_of_file(&filesize, fin, header, nheader);
-	xfclose(fin);
 	char *filename = put_data_into_temporary_file(filedata, filesize);
 	xfree(filedata);
 
 	//char command_format[] = "convert - %s < %s\0";
 	char command_format[] = "/usr/bin/convert - %s < %s\0";
-	char ppmname[strlen(filename)+5];
-	snprintf(ppmname, FILENAME_MAX, "%s.ppm", filename);
+	char ppmname[strlen(filename)+10];
+	snprintf(ppmname, FILENAME_MAX+10, "%s.ppm", filename);
 	char command[strlen(command_format)+1+2*strlen(filename)];
-	snprintf(command, FILENAME_MAX, command_format, ppmname, filename);
+	snprintf(command, FILENAME_MAX+10, command_format, ppmname, filename);
 	IIO_DEBUG("COMMAND: %s\n", command);
 	int r = system(command);
 	IIO_DEBUG("command returned %d\n", r);
-	if (r) fail("could not run command \"%s\" successfully", command);
+	if (r) {
+		xfclose(fin);
+		fail("could not run command \"%s\" successfully", command);
+	}
 	FILE *f = xfopen(ppmname, "r");
 	r = read_image_f(x, f);
 	xfclose(f);
@@ -2938,7 +2979,7 @@ static void iio_write_image_as_tiff(const char *filename, struct iio_image *x)
 {
 	if (x->dimension != 2)
 		fail("only 2d images can be saved as TIFFs");
-	TIFF *tif = TIFFOpen(filename, "w");
+	TIFF *tif = TIFFOpen(filename, "w8");
 	if (!tif) fail("could not open TIFF file \"%s\"", filename);
 
 	int ss = iio_image_sample_size(x);
@@ -3086,22 +3127,58 @@ static void iio_write_image_as_pfm(const char *filename, struct iio_image *x)
 	xfclose(f);
 }
 
-// ASC writer                                                               {{{2
-static void iio_write_image_as_asc(const char *filename, struct iio_image *x)
+// PPM writer                                                               {{{2
+static void iio_write_image_as_ppm(const char *filename, struct iio_image *x)
 {
 	assert(x->type == IIO_TYPE_FLOAT);
 	assert(x->dimension == 2);
+	assert(x->pixel_dimension == 1 || x->pixel_dimension == 3);
 	FILE *f = xfopen(filename, "w");
+	int dimchar = 1 < x->pixel_dimension ? '3' : '2';
 	int w = x->sizes[0];
 	int h = x->sizes[1];
 	int pd = x->pixel_dimension;
-	fprintf(f, "%d %d 1 %d\n", w, h, pd);
-	float *t = xmalloc(w*h*pd*sizeof*t);
-	break_pixels_float(t, x->data, w*h, pd);
+	float *t = (float*) x->data;
+	float scale = 255;
+	fprintf(f, "P%c\n%d %d\n%g\n", dimchar, w, h, scale);
 	for (int i = 0; i < w*h*pd; i++)
-		fprintf(f, "%.9g\n", t[i]);
-	xfree(t);
+		fprintf(f, "%d\n", (int) t[i]);
 	xfclose(f);
+}
+
+// ASC writer                                                               {{{2
+static void iio_write_image_as_asc(const char *filename, struct iio_image *x)
+{
+	if (x->type == IIO_TYPE_FLOAT)
+	{
+		assert(x->type == IIO_TYPE_FLOAT);
+		assert(x->dimension == 2);
+		FILE *f = xfopen(filename, "w");
+		int w = x->sizes[0];
+		int h = x->sizes[1];
+		int pd = x->pixel_dimension;
+		fprintf(f, "%d %d 1 %d\n", w, h, pd);
+		float *t = xmalloc(w*h*pd*sizeof*t);
+		break_pixels_float(t, x->data, w*h, pd);
+		for (int i = 0; i < w*h*pd; i++)
+			fprintf(f, "%.9g\n", t[i]);
+		xfree(t);
+		xfclose(f);
+	} else if (x->type == IIO_TYPE_DOUBLE) {
+		assert(x->type == IIO_TYPE_DOUBLE);
+		assert(x->dimension == 2);
+		FILE *f = xfopen(filename, "w");
+		int w = x->sizes[0];
+		int h = x->sizes[1];
+		int pd = x->pixel_dimension;
+		fprintf(f, "%d %d 1 %d\n", w, h, pd);
+		double *t = xmalloc(w*h*pd*sizeof*t);
+		break_pixels_double(t, x->data, w*h, pd);
+		for (int i = 0; i < w*h*pd; i++)
+			fprintf(f, "%.9g\n", t[i]);
+		xfree(t);
+		xfclose(f);
+	}
 }
 
 // CSV writer                                                               {{{2
@@ -3111,10 +3188,21 @@ static void iio_write_image_as_csv(const char *filename, struct iio_image *x)
 	int w = x->sizes[0];
 	int h = x->sizes[1];
 	assert(x->pixel_dimension == 1);
-	assert(x->type == IIO_TYPE_FLOAT);
-	float *t = x->data;
-	for (int i = 0; i < w*h; i++)
-		fprintf(f, "%.9g%c", t[i], (i+1)%w?',':'\n');
+	if (x->type == IIO_TYPE_FLOAT) {
+		float *t = x->data;
+		for (int i = 0; i < w*h; i++)
+			fprintf(f, "%.9g%c", t[i], (i+1)%w?',':'\n');
+	}
+	if (x->type == IIO_TYPE_DOUBLE) {
+		double *t = x->data;
+		for (int i = 0; i < w*h; i++)
+			fprintf(f, "%.9g%c", t[i], (i+1)%w?',':'\n');
+	}
+	if (x->type == IIO_TYPE_UINT8) {
+		uint8_t *t = x->data;
+		for (int i = 0; i < w*h; i++)
+			fprintf(f, "%d%c", t[i], (i+1)%w?',':'\n');
+	}
 	xfclose(f);
 }
 
@@ -3272,6 +3360,8 @@ static int guess_format(FILE *f, char *buf, int *nbuf, int bufmax)
 		if (b[3]==0xe1 && b[6]=='E' && b[7]=='x')
 			return IIO_FORMAT_JPEG;
 		if (b[3]==0xee || b[3]==0xed) // Adobe JPEG
+			return IIO_FORMAT_JPEG;
+		if (b[3]==0xdb) // Raw JPEG
 			return IIO_FORMAT_JPEG;
 	}
 #endif//I_CAN_HAS_LIBPNG
@@ -3522,16 +3612,16 @@ static int read_image(struct iio_image *x, const char *fname)
 	if (fname == strstr(fname, "http://")
 			|| fname==strstr(fname, "https://") ) {
 		// TODO: for security, sanitize the fname
-		char tfn[FILENAME_MAX], cmd[FILENAME_MAX];
+		int cmd_len = 2*FILENAME_MAX + 20;
+		char tfn[cmd_len], cmd[cmd_len];
 		fill_temporary_filename(tfn);
-		snprintf(cmd, FILENAME_MAX, "wget %s -q -O %s", fname, tfn);
+		snprintf(cmd, cmd_len, "wget %s -q -O %s", fname, tfn);
 		int rsys = system(cmd);
 		if (rsys != 0) fail("system wget returned %d", rsys);
 		FILE *f = xfopen(tfn, "r");
 		r = read_image_f(x, f);
 		xfclose(f);
 		delete_temporary_file(tfn);
-
 	} else
 #endif//I_CAN_HAS_WGET
 
@@ -4025,12 +4115,23 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 		iio_write_image_as_flo(filename, x);
 		return;
 	}
+	if (string_suffix(filename, ".ppm") && typ == IIO_TYPE_FLOAT
+		&& (x->pixel_dimension == 1 || x->pixel_dimension == 3)) {
+	iio_write_image_as_ppm(filename, x);
+		return;
+	}
+	if (string_suffix(filename, ".pgm") && typ == IIO_TYPE_FLOAT
+		&& (x->pixel_dimension == 1 || x->pixel_dimension == 3)) {
+		iio_write_image_as_ppm(filename, x);
+		return;
+	}
 	if (string_suffix(filename, ".pfm") && typ == IIO_TYPE_FLOAT
 		&& (x->pixel_dimension == 1 || x->pixel_dimension == 3)) {
 		iio_write_image_as_pfm(filename, x);
 		return;
 	}
-	if (string_suffix(filename, ".csv") && typ == IIO_TYPE_FLOAT
+	if (string_suffix(filename, ".csv") &&
+			(typ==IIO_TYPE_FLOAT || typ==IIO_TYPE_DOUBLE)
 				&& x->pixel_dimension == 1) {
 		iio_write_image_as_csv(filename, x);
 		return;
@@ -4045,7 +4146,9 @@ static void iio_write_image_default(const char *filename, struct iio_image *x)
 		iio_write_image_as_rim_cimage(filename, x);
 		return;
 	}
-	if (string_suffix(filename, ".asc") && typ == IIO_TYPE_FLOAT) {
+	if (string_suffix(filename, ".asc") &&
+			(typ == IIO_TYPE_FLOAT || typ == IIO_TYPE_DOUBLE)
+				) {
 		iio_write_image_as_asc(filename, x);
 		return;
 	}
@@ -4312,6 +4415,15 @@ void iio_write_image_double_split(char *filename, double *data,
 	xfree(rdata);
 }
 
+void iio_write_image_int_split(char *filename, int *data,
+		int w, int h, int pd)
+{
+	int *rdata = xmalloc(w*h*pd*sizeof*rdata);
+	recover_broken_pixels_int(rdata, data, w*h, pd);
+	iio_write_image_int_vec(filename, rdata, w, h, pd);
+	xfree(rdata);
+}
+
 void iio_write_image_float(char *filename, float *data, int w, int h)
 {
 	struct iio_image x[1];
@@ -4388,11 +4500,12 @@ void iio_write_image_uint16_vec(char *filename, uint16_t *data,
 	iio_write_image_default(filename, x);
 }
 
-// API (deprecated)                                                         {{{1
+void iio_free(char *p)
+{
+	xfree(p);
+}
 
-#ifndef IIO_USE_INCONSISTENT_NAMES
-#define IIO_USE_INCONSISTENT_NAMES
-#endif//IIO_USE_INCONSISTENT_NAMES
+// API (deprecated)                                                         {{{1
 #ifdef IIO_USE_INCONSISTENT_NAMES
 // code below generated by an ugly sed script
 void iio_save_image_float_vec(char *filename, float *x, int w, int h, int pd)       {return iio_write_image_float_vec       (filename, x, w, h, pd); }

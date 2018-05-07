@@ -13,8 +13,8 @@
 
 int utm_from_lonlat(double out_eastnorth[2], double lon, double lat);
 int lonlat_from_eastnorthzone(
-        double out_lonlat[2], 
-        double e, 
+        double out_lonlat[2],
+        double e,
         double n,
         int z);
 
@@ -22,7 +22,7 @@ void sun_plan_point(
         int ij[2],                 // pixel coordinates in sat image frame
         double eastnorthheight[3], // utm coordinates
         double scale[2],           // satellite image resolutio
-        double az, double el,      // azimuth and elevation 
+        double az, double el,      // azimuth and elevation
         double sun_height)         // sun_plan height
 {
     double e = eastnorthheight[0];
@@ -180,13 +180,13 @@ void sun_plan_pixel(
 {
         sun_plan_point(ij, eastnorthheight, scale, az_el[0],
                 az_el[1], sun_height);
-       
+
         for (int i = 0; i < 2; i++)
             ij[i] = ij[i] - xywhs[i];
 }
 
 
-void triangle_coordinates(                       
+void triangle_coordinates(
         double triangle_coord_meters[3][3], // utm coordinates
         int triangle_coord_pixels[3][2],    // coordinates in img_copy
         int triangle_coord_sun[3][2],       // coordinates in sun_plan
@@ -206,7 +206,7 @@ void triangle_coordinates(
         for (int j = 0; j < 3; j++)
             triangle_coord_meters[i][j] = m->v[3 * triangle_vertices[i] + j] + origin[j];
         double e = triangle_coord_meters[i][0]; // utm easting
-        double n = triangle_coord_meters[i][1]; // utm northing 
+        double n = triangle_coord_meters[i][1]; // utm northing
         double z = triangle_coord_meters[i][2]; // height
 
         // longitude and latitude from utm
@@ -252,15 +252,15 @@ void regular_triangle_interpolation(
     assert( determinant(ab, ac) < -0.000001 || determinant(ab, ac) > 0.000001);
 
     // check if highest point. If true, fill using barycentric coordinates
-    if (t->img[3*(i+j*w)+2] < t->coord_meters[0][2] 
+    if (t->img[3*(i+j*w)+2] < t->coord_meters[0][2]
                 + (t->coord_meters[1][2] - t->coord_meters[0][2])
-                * determinant(ap, ac)/determinant(ab, ac) 
+                * determinant(ap, ac)/determinant(ab, ac)
                 + (t->coord_meters[2][2] - t->coord_meters[0][2])
                 * determinant(ab, ap)/determinant(ab, ac))
         for (int k = 0; k < 3; k++)
-            t->img[3*(i+j*w)+k]  = t->coord_meters[0][k] 
+            t->img[3*(i+j*w)+k]  = t->coord_meters[0][k]
                 + (t->coord_meters[1][k] - t->coord_meters[0][k])
-                * determinant(ap, ac)/determinant(ab, ac) 
+                * determinant(ap, ac)/determinant(ab, ac)
                 + (t->coord_meters[2][k] - t->coord_meters[0][k])
                 * determinant(ab, ap)/determinant(ab, ac);
 }
@@ -284,12 +284,12 @@ void line_interpolation(
     double ab_norm = euclidean_norm(ab, 2);
     double ac_norm = euclidean_norm(ac, 2);
     double pa_norm = euclidean_norm(pa, 2);
-            
+
 
     if (ac_norm > 0){ // if A and C are distinct
         // check if highest point
         if ((t->coord_meters[0][2] + (t->coord_meters[2][2] -
-                        t->coord_meters[0][2]) * pa_norm / ac_norm ) 
+                        t->coord_meters[0][2]) * pa_norm / ac_norm )
                 > t->img[3 * (i + j * w) + 2])
             for (int k = 0; k < 3; k++)
                     t->img[3 * (i + j * w) + k] = t->coord_meters[0][k] +
@@ -298,7 +298,7 @@ void line_interpolation(
     else if (ab_norm > 0){ // A=C but A and B are distinct
         // check if highest point
         if ((t->coord_meters[0][2] + (t->coord_meters[1][2] -
-                        t->coord_meters[1][2]) * pa_norm / ab_norm ) 
+                        t->coord_meters[1][2]) * pa_norm / ab_norm )
                 > t->img[3 * (i + j * w) + 2])
             for (int k = 0; k < 3; k++)
                     t->img[3 * (i + j * w) + k] = t->coord_meters[0][k] +
@@ -309,7 +309,7 @@ void line_interpolation(
 // interpolate a function in a triangle given its vertices values
 void triangle_interpolation(
         int i, int j,         // pixel coordinates in image
-        void *ee)             // triangle informations 
+        void *ee)             // triangle informations
 {
     struct triangle *t = ee;
 
@@ -325,17 +325,17 @@ void triangle_interpolation(
         regular_triangle_interpolation(i, j, t);
 }
 
-// fill three points if new point is highest than the previous one with 
+// fill three points if new point is highest than the previous one with
 // relative utm coordinates
 void fill_three_points_highest_point(
         double *img,                        // 3*w*h image
-        double triangle_coord_meters[3][3], // triangle exact utm coordinates 
+        double triangle_coord_meters[3][3], // triangle exact utm coordinates
         int triangle_coord_pixels[3][2],    // triangle pixel coordinates
         int w)                              // image width
 {
     for (int i = 0; i < 3; i++)
     {
-        double e = triangle_coord_meters[i][0]; // easting 
+        double e = triangle_coord_meters[i][0]; // easting
         double n = triangle_coord_meters[i][1]; // northing
         double z = triangle_coord_meters[i][2]; // utm z
 
@@ -364,7 +364,7 @@ void fill_triangle(
         {
             abc[i][j] = (float) triangle_coord_pixels[i][j];
             t.coord_pixels[i][j] = (float) triangle_coord_pixels[i][j];
-            t.coord_meters[i][j] = triangle_coord_meters[i][j]; // utm 
+            t.coord_meters[i][j] = triangle_coord_meters[i][j]; // utm
         }
             t.coord_meters[i][2] = triangle_coord_meters[i][2];
     }
@@ -377,8 +377,8 @@ void initialize_img_copy_sun_plan_and_visibilities(
         double *sun_plan,
         double *v_cam_visibility,
         double *v_sun_visibility,
-        int xywh[4], 
-        int xywhs[4], 
+        int xywh[4],
+        int xywhs[4],
         int nv)
 {
     // initialize sun_plan
@@ -392,7 +392,7 @@ void initialize_img_copy_sun_plan_and_visibilities(
         for (int j = 0; j < 2; j++)
             img_copy[3 * i + j] = 0;
         img_copy[3 * i + 2] = -INFINITY;}
-    
+
     // initialize v_cam_visibility and v_sun_visibility
     for (int i = 0; i < nv; i++){
         v_cam_visibility[i] = false;
@@ -445,7 +445,7 @@ void check_triangle_orientation(
 // necessite vrai triangle. Que faire pour trois points alignés distincts
 static bool is_triangle(int tri_pix[3][2])
 {
-    return !((tri_pix[0][0] == tri_pix[1][0] && tri_pix[0][0] == tri_pix[2][0]) 
+    return !((tri_pix[0][0] == tri_pix[1][0] && tri_pix[0][0] == tri_pix[2][0])
             || (tri_pix[0][1] == tri_pix[1][1] && tri_pix[0][1] == tri_pix[2][1]));
 }
 
@@ -561,9 +561,9 @@ void check_vertex_visibility_sun(
     double sun_dir[3];
     sun_direction(sun_dir, az_el[0], az_el[1]);
 
-    // get coordinates in sun plan 
+    // get coordinates in sun plan
     int ij[2];
-    sun_plan_pixel(ij, enz, scale, az_el, sun_height, xywhs); 
+    sun_plan_pixel(ij, enz, scale, az_el, sun_height, xywhs);
 
     // compute difference between vertex utm coordinates and coordinates saved in its projected pixel in img_copy
     double diff[3];
@@ -577,12 +577,12 @@ void check_vertex_visibility_sun(
     double sc[2] = {scale[0]+3*scale[0]/10, scale[1]+3*scale[1]/10};
 
     // if the vertex is close enough to the saved point, save utm coordinates
-    if (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2] 
+    if (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2]
             || pow(scalar_product(diff, sun_dir, 3),2) < 2*pow(euclidean_norm(sc,2),2))
         for (int i = 0; i < 3; i++)
             out_sun[3 * v + i] = enz[i];
 }
-    
+
 
 void check_vertices_visibility(
         double *out_img,                      // 3*nv image with utm info
@@ -599,9 +599,9 @@ void check_vertices_visibility(
         double *img_copy,                     // image 3*w*h
         double *sun_plan,                     // image 3*ws*hs
         bool *v_cam_visibility,               // true if facing the camera
-        bool *v_sun_visibility,               // true if facing the sun      
-        double *v_normals,                    // vertices normals      
-        double *v_scalars)                    // scalar product with cam dir 
+        bool *v_sun_visibility,               // true if facing the sun
+        double *v_normals,                    // vertices normals
+        double *v_scalars)                    // scalar product with cam dir
 {
     // initialize outputs to NAN
     for (int i = 0; i < 3 * m->nv; i++){
@@ -634,7 +634,7 @@ void check_vertices_visibility(
 }
 
 void add_offset_to_mesh_vertices_coordinates(
-        struct trimesh *m, 
+        struct trimesh *m,
         double offset[3],
         double scale[2])
 {
@@ -657,7 +657,7 @@ int main(int c, char *v[])
     if (c < 0)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off scale_x scale_y orig_x orig_y zone rpc"
-                //0 1        2       3       4      5      6    7    
+                //0 1        2       3       4      5      6    7
                 "az el out\n", *v);
                 //8 9  10
     char *filename_mesh = v[1];                     // scaled trimesh
@@ -669,13 +669,13 @@ int main(int c, char *v[])
     char *filename_utm_coord = v[10];               // vertices utm coordinates
     char *filename_sun = v[11];                     // vertices lightning
     char *filename_scalars = v[12];                 // vertices orientation
-    
+
     // read mesh and rpc
     struct trimesh m[1];
     struct rpc huge_rpc[1];
-    trimesh_read_from_off(m, filename_mesh); 
+    trimesh_read_from_off(m, filename_mesh);
     add_offset_to_mesh_vertices_coordinates(m, offset, scale);
-    trimesh_fill_triangle_fans(m);              
+    trimesh_fill_triangle_fans(m);
     read_rpc_file_xml(huge_rpc, filename_rpc);
 
     // crop informations from dsm projection on satellite image and sun
@@ -709,9 +709,9 @@ int main(int c, char *v[])
             xywh, xywhs, scale, az_el, sun_height, img_copy, sun_plan,
             v_cam_visibility, v_sun_visibility, t_normals, t_angles);
 
-    iio_save_image_double_vec("sun_plan_get_utm.tif", sun_plan, xywhs[2], xywhs[3], 3);
-    iio_save_image_double_vec("img_copy_get_utm.tif", img_copy, xywh[2], xywh[3], 3);
-    
+    iio_write_image_double_vec("sun_plan_get_utm.tif", sun_plan, xywhs[2], xywhs[3], 3);
+    iio_write_image_double_vec("img_copy_get_utm.tif", img_copy, xywh[2], xywh[3], 3);
+ 
     // fill vertices angles
     vertices_normals_from_mesh(v_normals, m, t_angles, t_normals);
 
@@ -722,13 +722,13 @@ int main(int c, char *v[])
             sun_plan, v_cam_visibility, v_sun_visibility, v_normals, v_scalars);
 
     // save outputs
-    iio_save_image_double_vec(filename_utm_coord, out_img, m->nv, 1, 3);
-    iio_save_image_double_vec(filename_sun, out_sun, m->nv, 1, 3);
-    iio_save_image_double_vec(filename_scalars, v_scalars, m->nv, 1, 3);
+    iio_write_image_double_vec(filename_utm_coord, out_img, m->nv, 1, 3);
+    iio_write_image_double_vec(filename_sun, out_sun, m->nv, 1, 3);
+    iio_write_image_double_vec(filename_scalars, v_scalars, m->nv, 1, 3);
 
     // free all
     free(sun_plan); free(img_copy); free(v_cam_visibility);
     free(v_sun_visibility); free(t_normals); free(t_angles); free(v_normals);
-    free(v_scalars); free(out_img); free(out_sun); 
+    free(v_scalars); free(out_img); free(out_sun);
 }
 

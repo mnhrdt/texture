@@ -248,10 +248,10 @@ int main(int c, char *v[])
     create_shadow_mask(filename_sun, out_pan, out_sun, t_min, t_max);
 
     // save outputs
-    iio_save_image_double_vec(filename_out_pan, out_pan, nv, 1, 3);
-    iio_save_image_double_vec(filename_out_sun, out_sun, nv, 1, 3);
-    iio_save_image_double_vec(filename_out_rgb, out_rgb, nv, 1, 3);
-    iio_save_image_double_vec(filename_out_msi, out_msi, nv, 1, pdm);
+    iio_write_image_double_vec(filename_out_pan, out_pan, nv, 1, 3);
+    iio_write_image_double_vec(filename_out_sun, out_sun, nv, 1, 3);
+    iio_write_image_double_vec(filename_out_rgb, out_rgb, nv, 1, 3);
+    iio_write_image_double_vec(filename_out_msi, out_msi, nv, 1, pdm);
 
     // free allocated memory
     free(out_pan); free(out_msi); free(out_rgb); free(out_sun);
