@@ -174,13 +174,14 @@ void create_shadow_mask(
 
     // get shadow threshold and fill practical shadow location
     double t = get_shadow_threshold(v_sun, out_pan, nv, t_min, t_max);
+    printf("threshold t = %lf", t);
     for (int v = 0; v < 3 * nv; v++)
         out_sun[v] = (out_pan[v] > t) ? 1 : 0;
 }
 
 int main(int c, char *v[])
 {
-    double t_min = atof(pick_option(&c, &v, "tmin", "100"));
+    double t_min = atof(pick_option(&c, &v, "tmin", "0"));
     double t_max = atof(pick_option(&c, &v, "tmax", "1000"));
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"

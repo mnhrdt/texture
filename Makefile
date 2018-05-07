@@ -24,7 +24,7 @@ src/refine.o: src/refine.cpp
 	$(CXX) -c src/refine.cpp -o src/refine.o -g -Wall -Wextra -Werror -Wno-unused -Wno-unused-parameter #-I/Users/dautume/Documents/doctorat/useful_codes/others/CGAL-4.12/include/ 
 
 bin/refine: src/refine.o
-	$(CXX) src/refine.o -lCGAL -o bin/refine -lgmp #-L/Users/dautume/Documents/doctorat/useful_codes/others/CGAL-4.12/lib/
+	$(CXX) src/refine.o -lCGAL -o bin/refine -lgmp -lboost_system #-L/Users/dautume/Documents/doctorat/useful_codes/others/CGAL-4.12/lib/
 
 test: bin/refine 
 	./bin/refine data/mesh_curve_scaled_remeshed_02.off data/mesh_test_09.off --res 0.9
