@@ -28,6 +28,7 @@ install:
     if [ "$TRAVIS_OS_NAME" == "osx" ] ; then
       brew update
       brew install geographiclib
+      brew install freeglut
       brew upgrade libgeotiff
       brew upgrade cgal
       brew unlink gdal
