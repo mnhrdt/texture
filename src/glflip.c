@@ -133,10 +133,11 @@ void my_displayfunc(void)
 	glScalef(e->view_scale, e->view_scale, e->view_scale);
 
 	float m[4][4];
-	add_quats (e->view_quat_diff, e->view_quat, e->view_quat);
+	add_quats (e->view_quat, e->view_quat, e->view_quat_diff);
 	build_rotmatrix (m, e->view_quat);
 	glMultMatrixf (&m[0][0]);
 
+	glPointSize( e->point_radius );
 	glBegin(GL_POINTS);
 	for (int i = 0; i < e->npoints; i++)
 	{
@@ -211,14 +212,15 @@ void my_motionfunc(int x, int y)
 	float w = e->w;
 	float h = e->h;
 
-	trackball(e->view_quat,
+	e->trackball_dx = x - e->trackball_begin_x;
+	e->trackball_dy = y - e->trackball_begin_y;
+
+	trackball(e->view_quat_diff,
 			(2.0 * e->trackball_begin_x - w) / w,
 			(h - 2.0 * e->trackball_begin_y) / h,
 			(2.0 * x - w) / w,
 			(h - 2.0 * y) / h);
 
-	e->trackball_dx = x - e->trackball_begin_x;
-	e->trackball_dy = y - e->trackball_begin_y;
 	glutPostRedisplay();
 }
 
@@ -242,6 +244,8 @@ static void key_handler(int k, int x, int y)
 	if (k == 's') e->view_scale *= 1.3;
 	if (k == 'S') e->view_scale /= 1.3;
 	if (k == ' ') e->idx_coloring = (1 + e->idx_coloring) % e->ncolors;
+	if (k == 'p') e->point_radius *= 1.1;
+	if (k == 'P') e->point_radius /= 1.1;
 
 	glutPostRedisplay();
 }
@@ -340,6 +344,74 @@ static void fill_synthetic_rgbcube(struct state *e,
 	e->ncolors = 2;
 }
 
+// silly function to create a cube with colored sides
+static void fill_synthetic_surface(struct state *e,
+		int n,  // number of points per side
+		float s // length of the side
+		)
+{
+	int m = n + 2;
+	float *t = malloc(m * m * sizeof*t);
+	for (int i = 0; i < m*m; i++) // fill t with random data
+		t[i] = rand() / (1.0 + RAND_MAX);
+	for (int k = 0; k < 6; k++) // run a few smoothing iterations
+	{
+		float *u = malloc(m * m * sizeof*t); // tmp array
+		for (int j = 1; j < m-1; j++)
+		for (int i = 1; i < m-1; i++)
+		{
+			float a = 0; // accumulator
+			for (int dj = -1; dj <= 1; dj++) // 3x3 neighborhood
+			for (int di = -1; di <= 1; di++)
+			{
+				int ii = i + di;
+				int jj = j + dj;
+				a += t[jj*m+ii];
+			}
+			u[j*m+i] = a / 9;
+		}
+		for (int i = 0; i < m*m; i++)
+			t[i] = u[i];
+		free(u);
+	}
+	float min = INFINITY, max = -INFINITY;
+	for (int j = 1; j < m-1; j++) // find min and max
+	for (int i = 1; i < m-1; i++)
+	{
+		min = fmin(min, t[j*m+i]);
+		max = fmax(max, t[j*m+i]);
+	}
+	for (int j = 1; j < m-1; j++) // normalize data between 0 and 1
+	for (int i = 1; i < m-1; i++)
+		t[j*m+i] = (t[j*m+i] - min) / (max - min);
+
+	float   *p = malloc(  3*n*n*sizeof*p); // array of 3D points
+	uint8_t *c = malloc(2*3*n*n*sizeof*c); // array RGB colors
+	for (int j = 0; j < n; j++)
+	for (int i = 0; i < n; i++)
+	{
+		float h = t[(j+1)*m+i+1];
+		p[3*(j*n+i)+0] = i * s / n - s/2;
+		p[3*(j*n+i)+1] = j * s / n - s/2;
+		p[3*(j*n+i)+2] = h * s / 5;
+		c[3*(j*n+i)+0] = h * 255;
+		c[3*(j*n+i)+1] = h * 255;
+		c[3*(j*n+i)+2] = h * 255;
+	}
+	for (int i = 0; i < n*n; i++)
+	{
+		c[3*n*n+3*i+0] = 255;
+		c[3*n*n+3*i+1] = 0;
+		c[3*n*n+3*i+2] = 0;
+	}
+	free(t);
+
+	e->point = p;
+	e->color = c;
+	e->npoints = n*n;
+	e->ncolors = 2;
+}
+
 static void setup_initial_state(struct state *e, int w, int h)
 {
 	e->w = w;
@@ -356,7 +428,8 @@ static void setup_initial_state(struct state *e, int w, int h)
 
 	e->point_radius = 1;
 
-	fill_synthetic_rgbcube(e, 60, 1);
+	//fill_synthetic_rgbcube(e, 60, 1);
+	fill_synthetic_surface(e, 200, 1);
 }
 
 int main(void)
