@@ -20,6 +20,7 @@ addons:
       - libboost1.55-tools-dev
       - libboost-system1.55-dev
       - libboost-thread1.55-dev
+      - freeglut3-dev
 
 
 install:
@@ -27,6 +28,7 @@ install:
     if [ "$TRAVIS_OS_NAME" == "osx" ] ; then
       brew update
       brew install geographiclib
+      brew install freeglut
       brew upgrade libgeotiff
       brew upgrade cgal
       brew unlink gdal
@@ -36,6 +38,8 @@ install:
       X=`echo $Y | xargs -0 echo`
       sudo installer -pkg "${X}/"GDAL\ Complete.pkg -target /
       export PATH="/Library/Frameworks/GDAL.framework/Programs:$PATH"
+      export CPATH="/System/Library/Frameworks/OpenGL.framework/Versions/Current/Headers/"
+      export LIBRARY_PATH="/System/Library/Frameworks/OpenGL.framework/Versions/Current/Libraries/"
     fi
     if [ "$TRAVIS_OS_NAME" == "linux" ] ; then
       U='https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-4.12/CGAL-4.12.tar.xz'

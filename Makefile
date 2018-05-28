@@ -1,16 +1,16 @@
-# flags
-F = -g -fsanitize=address -Wall -Wno-unused -Werror
-F = -march=native -O3 -DNDEBUG 
+F = -march=native -O3 -DNDEBUG
+F = -g -Wall -Wno-unused -Werror# -fsanitize=address
+A =# -fsanitize=address
 
 # configuration
-CFLAGS = $F `gdal-config --cflags`
+CFLAGS = $F `gdal-config --cflags` $A
 LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
-	 -lCGAL -lgmp `gdal-config --libs` $F
+	 -lCGAL -lgmp `gdal-config --libs` -lGL -lglut $A
 
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
 BIN = get_utm_normal_shadow colorize_vertices_from_one_image \
-      write_coloured_ply refine
+      write_coloured_ply refine glflip
 
 OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)
@@ -28,6 +28,7 @@ bin/% : src/%.cpp $(OBJ)
 
 # bureaucracy
 clean: ; $(RM) $(OBJ) $(BIN)
+.SECONDARY : $(OBJ)
 
 # test
 test: bin/refine
