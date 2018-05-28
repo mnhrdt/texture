@@ -1,6 +1,6 @@
 # flags
 F = -g -fsanitize=address -Wall -Wno-unused -Werror
-F = -march=native -O3 -DNDEBUG
+F = -march=native -O3 -DNDEBUG 
 
 # configuration
 CFLAGS = $F `gdal-config --cflags`
