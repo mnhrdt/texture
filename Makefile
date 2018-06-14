@@ -10,7 +10,7 @@ LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
 BIN = get_utm_normal_shadow colorize_vertices_from_one_image \
-      write_coloured_ply refine glflip
+      write_coloured_ply refine glflip mflip
 
 OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)
@@ -33,3 +33,6 @@ clean: ; $(RM) $(OBJ) $(BIN)
 # test
 test: bin/refine
 	./bin/refine data/a.off data/a_out.off --res 0.05
+
+gltest: ./bin/mflip data/fine_mesh_02.off data/rgb_02.tiff data/rgb_08.tiff
+	$^
