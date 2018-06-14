@@ -34,5 +34,5 @@ clean: ; $(RM) $(OBJ) $(BIN)
 test: bin/refine
 	./bin/refine data/a.off data/a_out.off --res 0.05
 
-gltest: ./bin/mflip data/fine_mesh_02.off data/rgb_02.tiff data/rgb_08.tiff
+gltest: ./bin/glflip data/fine_mesh_02.off data/rgb_02.tiff data/rgb_08.tiff
 	$^
