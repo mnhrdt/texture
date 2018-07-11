@@ -1,5 +1,80 @@
-- possibility to try other DSM registration methods (e.g., phase correlation)
-- color balance pre-processing (affine)
-- use a non-quantized lidar DSM
-- fully git pipeline (using external images)
-  running "make test" should build everything and run each program
+tasks for Duke
+==============
+
+
+
+0. Put every useful thing on git and DELETE ALL FILES OUTSIDE OF GIT
+[estimated time: 1hr]
+
+
+
+1. Write a high-level script with the following interface:
+
+high_level_colorization_from_mesh_and_its_dsm.sh mesh.off dsm.tiff inputs.txt
+
+The file "mesh.off" is a fine mesh used as reference.  The file "dsm.tiff"
+represents the same data, but projected into a DSM.
+
+The file "inputs.txt" is a five-column file containing on each line five
+filenames: an (unregistered) dsm, and the corresponding PAN and MSI files with
+their RPCs.
+
+The output of this script is a single ".tiff" file containing the merged
+colors.  At first, only simple fusion criteria are used (e.g., the
+unweighted,uncorrected pointwise average), but later fancier criteria will be
+implemented.
+
+This script implements the following algorithm:
+
+	For each line in inputs.txt:
+		register the dsm of this line to the base mesh
+		project the colors into a vector of length n (=num of vertices)
+	Normalize the n-vectors using some criterion (e.g. avg/std or med/iqd)
+	Compute the fusion of all the n-vectors into a single one
+
+[estimated time: 5 days using a trivial fusion criterion by simple averaging of all un-normalized data]
+
+
+
+
+
+2. Implement (in matlab) a few fusion criteria for registered texture maps.
+The fusion may use four kinds of data:
+	- raw colors
+	- raw colors with normalized contrast
+	- gradient of colors
+	- drift field of colors
+Then, with each datum it may use several weights:
+	- uniform weights
+	- weight by a q-power of the cosine of the angle(normal,view)
+	- binary weight according to an externaly computed shadow trimap
+Finally, two kinds of aggregator can be used for the fusion:
+	- The weighted Lehmer p-mean (p controls the bias to low/high values)
+	- The weighted Fréchet p-centroid (p controls the robustness)
+It is important that this part be as independent as possible of the rest,
+allowing for an easy implementation of further fusion criteria.
+
+[estimated time: maybe 1 or 2 days per fusion criterion?  No need to implement
+all of them at the beginning]
+
+
+
+3. Allow to change the registration algorithm (gabriele's and martin's)
+[1 day to interface and test both algorithms with a common interface]
+
+
+4. Add criterion for dealing with shadows (NOTE: the input is an already given
+trimap, which can be of bad quality.  What is important in this point is that
+the trimap data is used.)
+	- First criterion: zero drift field on shadow boundaries
+	- Second criterion: points on shadow and boundary are weighted zero
+[estimated time: 4 days for the integration, 1 day to add a naive shadow trimap]
+
+
+5. Allow to chose or disable a method for color correction (as a
+pre-processing).  A few possibilities:
+	- apply a transformation of the form X'=aX+b that normalizes the avg and std of each colormap to those of a reference one
+	- the same, but compute the avg and std only of the pixels that have valid (non-nan, non-saturated) values on all the images simultaneously
+	- the same, but used robust statistics instead of avg/std
+	  like (median/absolute error) or (mode/median error)
+[estimated time: 1/2 day for each criterion]
