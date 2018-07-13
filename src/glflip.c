@@ -14,7 +14,8 @@ struct state {
 	int npoints;    // number of points in the mesh
 	float *point;   // 3 * npoints
 	int ncolors;    // number of coloring arrays
-	uint8_t *color; // 3 * npoints * ncolors
+	//uint8_t *color; // 3 * npoints * ncolors
+	float *color; // 3 * npoints * ncolors
 
 	// visualization state
 	int idx_coloring;   // a number between 0 and ncolorings-1
@@ -141,7 +142,8 @@ void my_displayfunc(void)
 	glBegin(GL_POINTS);
 	for (int i = 0; i < e->npoints; i++)
 	{
-		uint8_t *c = (e->color + 3*e->npoints*e->idx_coloring) + 3*i;
+		//uint8_t *c = (e->color + 3*e->npoints*e->idx_coloring) + 3*i;
+		float *c = (e->color + 3*e->npoints*e->idx_coloring) + 3*i;
 		float   *p = e->point + 3*i;
 		glColor3ub(c[0], c[1], c[2]);
 		glVertex3f(p[0], p[1], p[2]);
@@ -220,6 +222,8 @@ void my_motionfunc(int x, int y)
 			(h - 2.0 * e->trackball_begin_y) / h,
 			(2.0 * x - w) / w,
 			(h - 2.0 * y) / h);
+        e->trackball_begin_x = x;
+        e->trackball_begin_y = y;
 
 	glutPostRedisplay();
 }
@@ -305,7 +309,8 @@ static void fill_synthetic_rgbcube(struct state *e,
 {
 	float z = 255;                          // top of color range
 	float   *p = malloc(12*3*n*sizeof*p);   // array of 3D points
-	uint8_t *c = malloc(2*12*3*n*sizeof*c); // array RGB colors
+	//uint8_t *c = malloc(2*12*3*n*sizeof*c); // array RGB colors
+	float *c = malloc(2*12*3*n*sizeof*c); // array RGB colors
 	float d = s / (n - 1);                  // step in 3D space
 	float k = z / (n - 1);                  // step in RGB space
 
@@ -386,7 +391,8 @@ static void fill_synthetic_surface(struct state *e,
 		t[j*m+i] = (t[j*m+i] - min) / (max - min);
 
 	float   *p = malloc(  3*n*n*sizeof*p); // array of 3D points
-	uint8_t *c = malloc(2*3*n*n*sizeof*c); // array RGB colors
+	//uint8_t *c = malloc(2*3*n*n*sizeof*c); // array RGB colors
+	float *c = malloc(2*3*n*n*sizeof*c); // array RGB colors
 	for (int j = 0; j < n; j++)
 	for (int i = 0; i < n; i++)
 	{
@@ -423,7 +429,7 @@ static void setup_initial_state(struct state *e, int w, int h)
 	e->view_quat[1] = e->view_quat_diff[1] = 0.0;
 	e->view_quat[2] = e->view_quat_diff[2] = 0.0;
 	e->view_quat[3] = e->view_quat_diff[3] = 1.0;
-	e->view_scale = 1;
+	e->view_scale = 3;
 	e->view_distance = 0;
 
 	e->point_radius = 1;
