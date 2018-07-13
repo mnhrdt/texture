@@ -2,7 +2,6 @@ function matlab_wrapper(d, contrast, fusion, f_edges, fname_out)
 
 % create structures containing all required images
 rgb = dir(strcat(d, '/rgb/rgb_*.tif'));
-rgb = rgb([2:19 21:32 35:46]);
 scalars = dir(strcat(d, '/scalars/scalars_*.tif'));
 
 % get number of images and number of vertices
@@ -67,19 +66,5 @@ end
 
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
