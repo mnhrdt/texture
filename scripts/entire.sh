@@ -10,12 +10,14 @@ f=$3
 
 . $config
 
-dir=`mktemp -d`
+#dir=`mktemp -d`
+dir=/Users/dautume/Documents/doctorat/iarpa/try
+output=output_try
 
 mkdir -p $dir/mesh
 mkdir -p $dir/fused
 mkdir -p $dir/ncc_shift
-mkdir -p output/mesh
+mkdir -p $output/mesh
 
 if [ -z "$MESH" ]
 then
@@ -28,33 +30,38 @@ then
         $dir/mesh/scaled_mesh.ply 
 
     bin/refine \
-        $dif/mesh/raw_mesh.off \
-        output/mesh/refined_mesh.off \
+        $dir/mesh/scaled_mesh.off \
+        $output/mesh/refined_mesh.off \
         --res $RES_MESH
 
-    echo MESH=output/mesh/refined_mesh.off >> $config
+    echo MESH=$output/mesh/refined_mesh.off >> $config
+    MESH=$output/mesh/refined_mesh.off
 fi
 
 bin/triproc off2edges \
     $MESH \
     $dir/edges.txt
 
-cat $INPUT | xargs -L1 ./scripts/one_image.sh $dir $config
+echo $INPUTS
+
+#cat $INPUTS
+
+#cat $INPUTS | xargs -L1 ./scripts/one_image.sh $dir $config
 
 
 ############# FUSION #############
+folder=`pwd`
 
-matlab -r -nodesktop -nojvm \
-    'matlab_wrapper($dir, $c, $f, $dir/edges.txt, $dir/fused/fused_$c_$f);\
-    exit';
+matlab -nodesktop -nojvm -nosplash -r\
+    "cd '$folder/scripts/'; matlab_wrapper('$dir', '$c', '$f', '$dir/edges.txt', '$dir/fused/fused_$c$f.tif'); exit;"
 
 ######## QUANTIFICATION #########
 
-qauto -i -f $dir/fused/fused_$c\_$f.tif $dir/fused/fused_$c\_$f.tiff
+qauto -i -f $dir/fused/fused_$c$f.tif $dir/fused/fused_$c\_$f.tiff
 
 bin/write_coloured_ply \
     $MESH \
-    $dir/fused/fused_$c_$f.tiff \
-    output/mesh/fused_mesh_$c\_$f.ply
+    $dir/fused/fused_$c\_$f.tiff \
+    $output/mesh/fused_mesh_$c\_$f.ply
      
 

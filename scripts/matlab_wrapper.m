@@ -25,7 +25,7 @@ for i = 1 : nb_im
     % scalar product to -10 
     Mv = sparse(1:nv, 1:nv, ~isnan(im(:,:,1)));
     SCALARS(:, i) = Mv*scalar(:,:,1)' - ...
-        10 * speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
+        10 * (speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
 end
 
 all_nonan = ~isnan(sum(RGB,2));
@@ -48,7 +48,7 @@ switch (contrast)
         mean_rgb = sum(rgb_nonan)./nb_nonan;
         std_rgb = sqrt(sum(rgb_nonan.^2)./nb_nonan - mean_rgb.^2);
 
-        RGB_contrast = ((RGB-mean_rgb)./std_rgb).*std_all + mean_all;
+        RGB_contrast = ((RGB-mean_rgb)./std_rgb).*std_ref + mean_ref;
 end
 
 switch (fusion)

@@ -654,12 +654,12 @@ int main(int c, char *v[])
     double ymin = atof(pick_option(&c, &v, "ymin", "0"));
     double offset[3] = {xmin-ox, ymin-oy, oz};
     double sun_height = atof(pick_option(&c, &v, "sh", "10000"));
-    if (c < 0)
+    if (c < 3)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off scale_x scale_y orig_x orig_y zone rpc"
                 //0 1        2       3       4      5      6    7
-                "az el out\n", *v);
-                //8 9  10
+                "az el utm_coord sun scalars\n", *v);
+                //8 9  10        11  12
     char *filename_mesh = v[1];                     // scaled trimesh
     double scale[2] = {atof(v[2]), atof(v[3])};     // image resolution
     double origin[3] = {atof(v[4]), atof(v[5]), 0}; // utm origin

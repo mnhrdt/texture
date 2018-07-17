@@ -17,7 +17,7 @@ MSI_rpc=$8
 . $config
 
 $RECALAGE $CDSM $DSM > $dir/ncc_shift/ncc_shift_$IM.txt
-read x y z < $dir/ncc_shift/ncc_shift.txt
+read x y z < $dir/ncc_shift/ncc_shift_$IM.txt
 
 mkdir -p $dir/utm_coord 
 mkdir -p $dir/theoric_sun

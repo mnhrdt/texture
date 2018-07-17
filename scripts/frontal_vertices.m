@@ -14,10 +14,11 @@ out = zeros(1, nv, 3);
 for i = 1 : nb_im
     M = sparse(1:nv, 1:nv, idx==i);
     for l = 1 : 3 
-        out(:,:,l) = out(:,:,l) + M*RGB(:,i,l);
+        out(:,:,l) = out(:,:,l) + (M*RGB(:,i,l))';
     end
 end
-
+fname_out
+imwrite_with_tiff(out, fname_out);
 end
 
 
