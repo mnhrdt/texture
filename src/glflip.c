@@ -134,7 +134,7 @@ void my_displayfunc(void)
 	glClearColor(0.5, 0.8, 0.5, 1); // light greenish
 	//glClearColor(0, 0, 0, 1); // black
 	glClearDepth(1);
-	glClear(GL_COLOR_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
 	glLoadIdentity();
 
@@ -169,6 +169,13 @@ void my_displayfunc(void)
 	build_rotmatrix (m, e->view_quat);
 	glMultMatrixf (&m[0][0]);
 
+	glEnable(GL_ALPHA_TEST);
+	glAlphaFunc(GL_NOTEQUAL, 0);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+
 	glPointSize( e->point_radius );
 	glBegin(GL_POINTS);
 	for (int i = 0; i < e->npoints; i++)
@@ -188,9 +195,11 @@ void my_displayfunc(void)
 //	glEnd();
 
 
-	float cc[3] = {e->center[0]+1, e->center[1]+1, e->center[2]+1};
+	float cc[6] = {
+		e->center[0]-1, e->center[1]-1, e->center[2]-1,
+		e->center[0]+1, e->center[1]+1, e->center[2]+1};
 	draw_pped(e->bbx, e->bbx+3, false);
-	draw_pped(e->center, cc, false);
+	draw_pped(cc, cc + 3, false);
 
 	glFlush();
 
@@ -265,6 +274,26 @@ void my_passivemotionfunc(int x, int y)
 	fprintf(stderr, "GLUT passive motion %d %d\n", x, y);
 }
 
+static void action_distance_add(struct state *e, float d)
+{
+	e->view_distance += d;
+}
+
+static void action_scale_mul(struct state *e, float f)
+{
+	e->view_scale += f;
+}
+
+static void action_coloring_cycle(struct state *e)
+{
+	e->idx_coloring = (1 + e->idx_coloring) % e->ncolors;
+}
+
+static void action_point_radius_mul(struct state *e, float f)
+{
+	e->point_radius *= f;
+}
+
 
 // unified key handler for special and non-special keys
 static void key_handler(int k, int x, int y)
@@ -274,13 +303,13 @@ static void key_handler(int k, int x, int y)
 	if (k == FTR_KEY_ESC || k == 'q')
 		glutLeaveMainLoop();
 
-	if (k == 'd') e->view_distance += 0.1;
-	if (k == 'D') e->view_distance -= 0.1;
-	if (k == 's') e->view_scale *= 1.3;
-	if (k == 'S') e->view_scale /= 1.3;
-	if (k == ' ') e->idx_coloring = (1 + e->idx_coloring) % e->ncolors;
-	if (k == 'p') e->point_radius *= 1.1;
-	if (k == 'P') e->point_radius /= 1.1;
+	if (k == 'd') action_distance_add(e, 0.1);
+	if (k == 'D') action_distance_add(e, -0.1);
+	if (k == 's') action_scale_mul(e, 1.3);
+	if (k == 'S') action_scale_mul(e, 1/1.3);
+	if (k == ' ') action_coloring_cycle(e);
+	if (k == 'p') action_point_radius_mul(e, 1.1);
+	if (k == 'P') action_point_radius_mul(e, 1/1.1);
 
 	glutPostRedisplay();
 }
@@ -304,6 +333,32 @@ void my_specialfunc(int k, int x, int y)
 }
 
 
+void my_reshapefunc(int w, int h)
+{
+	fprintf(stderr, "GLUT reshape %d %d\n", w, h);
+
+	glViewport (0, 0, w, h);
+
+	glMatrixMode (GL_PROJECTION);
+	glLoadIdentity ();
+	glFrustum(-1, 1,  -1, 1,  1, 60);
+	//if (w > h)
+	//{
+	//	float aspect = w / (float)h;
+	//	glFrustum (-aspect, aspect, -1.0, 1.0, 5.0, 60.0);
+	//}
+	//else
+	//{
+	//	float aspect = h / (float)w;
+	//	glFrustum (-1.0, 1.0, -aspect, aspect, 5.0, 60.0);
+	//}
+
+	glMatrixMode (GL_MODELVIEW);
+	int e = glGetError();
+	if (e)
+		fprintf(stderr, "ERR = %d\n", e);
+}
+
 // function to call the shitty glut initialization code
 static void setup_glut_environment(int w, int h)
 {
@@ -316,7 +371,7 @@ static void setup_glut_environment(int w, int h)
 	glutCreateWindow("Whatever");
 	glutReshapeWindow(w, h);
 	glutDisplayFunc(my_displayfunc);
-	//glutReshapeFunc(my_reshapefunc);
+	glutReshapeFunc(my_reshapefunc);
 	glutIdleFunc(NULL);
 	glutMouseFunc(my_mousefunc);
 	glutMotionFunc(my_motionfunc);
@@ -329,6 +384,7 @@ static void setup_glut_environment(int w, int h)
 	//fprintf(stderr, "setup glut rgb = %p\n", f->rgb);
 	//if (f->glut_window_x >= 0)
 	//	glutPositionWindow(f->glut_window_x, f->glut_window_y);
+	//
 }
 
 
