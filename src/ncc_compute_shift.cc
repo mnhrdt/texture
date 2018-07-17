@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
     // delta x, delta y, delta v (affine as: alpha v + b)
     double a = scaling ? sigu/sigv : 1;
     double b = muu - muv*a;
-    printf("%d %d %f %f\n", dx, dy, a, b);
+    printf("%d %d %f\n", dx, dy, b);
     return 0;
 }
 #endif

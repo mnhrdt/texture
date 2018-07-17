@@ -18,6 +18,7 @@ int main(int c, char *v[])
     double ox = atof(pick_option(&c, &v, "ox", "000"));
     double oy = atof(pick_option(&c, &v, "oy", "000"));
     double oz = atof(pick_option(&c, &v, "oz", "000"));
+    int line = atof(pick_option(&c, &v, "l", "0"));
 
     if (c < 4)
         return fprintf(stderr, "usage:\n\t"
@@ -35,7 +36,7 @@ int main(int c, char *v[])
     double *vc = iio_read_image_double_vec(filename_colors, &w, &h, &pd);
 
     double origin[3] = {ox, oy, oz};
-    trimesh_write_to_coloured_ply(filename_ply, &m, vc, origin); 
+    trimesh_write_to_coloured_ply(filename_ply, &m, vc+pd*line*w, origin); 
 
     return 0;
 }
