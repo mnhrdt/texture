@@ -5,7 +5,7 @@ A =# -fsanitize=address
 # configuration
 CFLAGS = $F `gdal-config --cflags` $A
 LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
-	 -lCGAL -lgmp `gdal-config --libs` -lGL -lglut $A
+	 -lCGAL -lgmp `gdal-config --libs` -lglut -framework OpenGL $A
 
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper

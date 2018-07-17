@@ -263,6 +263,8 @@ void my_motionfunc(int x, int y)
 			(h - 2.0 * e->track_prev_y) / h,
 			(2.0 * x - w) / w,
 			(h - 2.0 * y) / h);
+        e->trackball_begin_x = x;
+        e->trackball_begin_y = y;
 	add_quats(e->view_quat, e->view_quat, e->view_quat_diff);
 
 	glutPostRedisplay();
@@ -388,120 +390,6 @@ static void setup_glut_environment(int w, int h)
 }
 
 
-//// silly function to create a cube with colored sides
-//static void fill_synthetic_rgbcube(struct state *e,
-//		int n,  // number of points per side
-//		float s // length of the side
-//		)
-//{
-//	float z = 255;                          // top of color range
-//	float   *p = malloc(12*3*n*sizeof*p);   // array of 3D points
-//	uint8_t *c = malloc(2*12*3*n*sizeof*c); // array RGB colors
-//	float d = s / (n - 1);                  // step in 3D space
-//	float k = z / (n - 1);                  // step in RGB space
-//
-//	// todo: break the loop into several separate loops for better ordering
-//	for (int i = 0; i < n; i++)
-//	{
-//		fprintf(stderr, "i = %d, p = %p\n", i, (void*)p);
-//		// (i*d, -, -) : (i*c, -, -)
-//		*p++ = i*d; *p++ = 0; *p++ = 0; *c++ = i*k; *c++ = 0; *c++ = 0;
-//		*p++ = i*d; *p++ = s; *p++ = 0; *c++ = i*k; *c++ = z; *c++ = 0;
-//		*p++ = i*d; *p++ = 0; *p++ = s; *c++ = i*k; *c++ = 0; *c++ = z;
-//		*p++ = i*d; *p++ = s; *p++ = s; *c++ = i*k; *c++ = z; *c++ = z;
-//
-//		// (-, i*d, -) : (-, i*c, -)
-//		*p++ = 0; *p++ = i*d; *p++ = 0; *c++ = 0; *c++ = i*k; *c++ = 0;
-//		*p++ = s; *p++ = i*d; *p++ = 0; *c++ = z; *c++ = i*k; *c++ = 0;
-//		*p++ = 0; *p++ = i*d; *p++ = s; *c++ = 0; *c++ = i*k; *c++ = z;
-//		*p++ = s; *p++ = i*d; *p++ = s; *c++ = z; *c++ = i*k; *c++ = z;
-//
-//		// (-, -, i*d) : (-, -, i*c)
-//		*p++ = 0; *p++ = 0; *p++ = i*d; *c++ = 0; *c++ = 0; *c++ = i*k;
-//		*p++ = s; *p++ = 0; *p++ = i*d; *c++ = z; *c++ = 0; *c++ = i*k;
-//		*p++ = 0; *p++ = s; *p++ = i*d; *c++ = 0; *c++ = z; *c++ = i*k;
-//		*p++ = s; *p++ = s; *p++ = i*d; *c++ = z; *c++ = z; *c++ = i*k;
-//	}
-//	for (int i = 0; i < 12*n; i++)
-//	{
-//		*c++ = 255;
-//		*c++ = 0;
-//		*c++ = 0;
-//	}
-//
-//	e->point = p - 12*3*n;
-//	e->color = c - 2*12*3*n;
-//	e->npoints = 12*n;
-//	e->ncolors = 2;
-//}
-//
-//// silly function to create a cube with colored sides
-//static void fill_synthetic_surface(struct state *e,
-//		int n,  // number of points per side
-//		float s // length of the side
-//		)
-//{
-//	int m = n + 2;
-//	float *t = malloc(m * m * sizeof*t);
-//	for (int i = 0; i < m*m; i++) // fill t with random data
-//		t[i] = rand() / (1.0 + RAND_MAX);
-//	for (int k = 0; k < 6; k++) // run a few smoothing iterations
-//	{
-//		float *u = malloc(m * m * sizeof*t); // tmp array
-//		for (int j = 1; j < m-1; j++)
-//		for (int i = 1; i < m-1; i++)
-//		{
-//			float a = 0; // accumulator
-//			for (int dj = -1; dj <= 1; dj++) // 3x3 neighborhood
-//			for (int di = -1; di <= 1; di++)
-//			{
-//				int ii = i + di;
-//				int jj = j + dj;
-//				a += t[jj*m+ii];
-//			}
-//			u[j*m+i] = a / 9;
-//		}
-//		for (int i = 0; i < m*m; i++)
-//			t[i] = u[i];
-//		free(u);
-//	}
-//	float min = INFINITY, max = -INFINITY;
-//	for (int j = 1; j < m-1; j++) // find min and max
-//	for (int i = 1; i < m-1; i++)
-//	{
-//		min = fmin(min, t[j*m+i]);
-//		max = fmax(max, t[j*m+i]);
-//	}
-//	for (int j = 1; j < m-1; j++) // normalize data between 0 and 1
-//	for (int i = 1; i < m-1; i++)
-//		t[j*m+i] = (t[j*m+i] - min) / (max - min);
-//
-//	float   *p = malloc(  3*n*n*sizeof*p); // array of 3D points
-//	uint8_t *c = malloc(2*3*n*n*sizeof*c); // array RGB colors
-//	for (int j = 0; j < n; j++)
-//	for (int i = 0; i < n; i++)
-//	{
-//		float h = t[(j+1)*m+i+1];
-//		p[3*(j*n+i)+0] = i * s / n - s/2;
-//		p[3*(j*n+i)+1] = j * s / n - s/2;
-//		p[3*(j*n+i)+2] = h * s / 5;
-//		c[3*(j*n+i)+0] = h * 255;
-//		c[3*(j*n+i)+1] = h * 255;
-//		c[3*(j*n+i)+2] = h * 255;
-//	}
-//	for (int i = 0; i < n*n; i++)
-//	{
-//		c[3*n*n+3*i+0] = 255;
-//		c[3*n*n+3*i+1] = 0;
-//		c[3*n*n+3*i+2] = 0;
-//	}
-//	free(t);
-//
-//	e->point = p;
-//	e->color = c;
-//	e->npoints = n*n;
-//	e->ncolors = 2;
-//}
 
 static void setup_initial_state(struct state *e, int w, int h)
 {
@@ -514,7 +402,7 @@ static void setup_initial_state(struct state *e, int w, int h)
 	e->view_quat[1] = e->view_quat_diff[1] = 0.0;
 	e->view_quat[2] = e->view_quat_diff[2] = 0.0;
 	e->view_quat[3] = e->view_quat_diff[3] = 1.0;
-	e->view_scale = 0.01;
+	e->view_scale = 3;
 	e->view_distance = 0;
 
 	e->trackball_begin_x = e->trackball_begin_y = NAN;
