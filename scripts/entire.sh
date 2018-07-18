@@ -7,12 +7,11 @@ set -x
 config=$1
 c=$2
 f=$3
+output=$4
 
 . $config
 
-#dir=`mktemp -d`
-dir=/Users/dautume/Documents/doctorat/iarpa/try
-output=output_try
+dir=`mktemp -d`
 
 mkdir -p $dir/mesh
 mkdir -p $dir/fused
@@ -57,7 +56,7 @@ matlab -nodesktop -nojvm -nosplash -r\
 
 ######## QUANTIFICATION #########
 
-qauto -i -f $dir/fused/fused_$c$f.tif $dir/fused/fused_$c\_$f.tiff
+qauto $dir/fused/fused_$c$f.tif $dir/fused/fused_$c\_$f.tiff
 
 bin/write_coloured_ply \
     $MESH \

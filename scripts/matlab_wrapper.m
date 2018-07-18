@@ -43,7 +43,7 @@ switch (contrast)
 
         rgb_nonan = RGB;
         rgb_nonan(isnan(rgb_nonan)) = 0;
-        rgb_ref = im_ref.*all_nonan;
+        rgb_nonan = rgb_nonan.*all_nonan;
 
         mean_rgb = sum(rgb_nonan)./nb_nonan;
         std_rgb = sqrt(sum(rgb_nonan.^2)./nb_nonan - mean_rgb.^2);
