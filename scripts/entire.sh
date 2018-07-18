@@ -43,9 +43,9 @@ bin/triproc off2edges \
 
 echo $INPUTS
 
-#cat $INPUTS
+cat $INPUTS
 
-#cat $INPUTS | xargs -L1 ./scripts/one_image.sh $dir $config
+cat $INPUTS | xargs -L1 ./scripts/one_image.sh $dir $config
 
 
 ############# FUSION #############
