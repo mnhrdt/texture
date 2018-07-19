@@ -1,8 +1,9 @@
+#include <stdlib.h>
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <GL/freeglut.h>
+#include <GLUT/glut.h>
 #include "trimesh.h"
 #include "iio.h"
 
@@ -140,6 +141,7 @@ void my_displayfunc(void)
     add_quats (e->view_quat, e->view_quat, e->view_quat_diff);
     build_rotmatrix (m, e->view_quat);
     glMultMatrixf (&m[0][0]);
+    glTranslatef(5.5, 5.5, 0.f);
 
     glPointSize( e->point_radius );
     glBegin(GL_POINTS);
@@ -256,8 +258,8 @@ static void key_handler(int k, int x, int y)
 {
     struct state *e = &global_state;
 
-    if (k == FTR_KEY_ESC || k == 'q')
-        glutLeaveMainLoop();
+//    if (k == FTR_KEY_ESC || k == 'q')
+//        glutLeaveMainLoop();
 
     if (k == 'd') e->view_distance += 0.1;
     if (k == 'D') e->view_distance -= 0.1;
@@ -297,8 +299,8 @@ static void setup_glut_environment(int w, int h)
     char *argv[]={"dummy", "-gldebug", NULL};
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB|GLUT_DEPTH);
-    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,
-            GLUT_ACTION_GLUTMAINLOOP_RETURNS);
+//    glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE,
+//            GLUT_ACTION_GLUTMAINLOOP_RETURNS);
     glutCreateWindow("Whatever");
     glutReshapeWindow(w, h);
     glutDisplayFunc(my_displayfunc);
@@ -360,7 +362,7 @@ int main(int c, char *v[])
     char *filename_mesh = v[1];
     struct trimesh m[1];
     trimesh_read_from_off(m, filename_mesh);
-    double *colors = malloc((c-2)*3*m->nv*sizeof(double));
+    double *colors = (double*)malloc((c-2)*3*m->nv*sizeof(double));
     for (int i = 2; i < c; i++){
         int nv, un, pd;
         double *im = iio_read_image_double_vec(v[i], &nv, &un, &pd);
