@@ -106,8 +106,6 @@ void colorize(
                 if (isnan(msi[l]))
                     printf("vertex with nan %d\n", v);
                 out_msi[pdm * v + l] = msi[l];}
-            if (v == 955649)
-                printf("msi %lf %lf %lf %lf %lf %lf %lf %lf \n", out_msi[pdm * v + 0], out_msi[pdm * v + 1], out_msi[pdm * v + 2], out_msi[pdm * v + 3], out_msi[pdm * v + 4], out_msi[pdm * v + 5], out_msi[pdm * v + 6], out_msi[pdm * v + 7]);
 
             // fill rgb output obtained by pansharpening
             double rgb[3] = {msi[4], 0.8 * msi[2] + 0.1 * msi[5], 1.2 * msi[1]};
@@ -116,8 +114,6 @@ void colorize(
                 out_rgb[3 * v + i] = a * rgb[i];
                 if (out_rgb[3 * v + i] > 10000)
                     printf("vertex with rgb problem %d\n", v);}
-            if (v == 955649)
-                printf("rgb %lf %lf %lf pan %lf \n", out_rgb[3 * v + 0], out_rgb[3 * v + 1], out_rgb[3 * v + 2], a);
         }
 }
 

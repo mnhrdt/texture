@@ -8,9 +8,21 @@ scalars = dir(strcat(d, '/scalars/scalars_*.tif'));
 nb_im = length(rgb);
 nv = length(imread(strcat(rgb(1).folder, '/', rgb(1).name)));
 
-% super matrices for all colour images and scalar product for visible vertices
+% super matrices for all colour images and scalar product for visible vertices or edges
 RGB = zeros(nv, nb_im, 3);
-SCALARS = zeros(nv, nb_im);
+if (fusion == "frontal_vertices")
+    SCALARSv = zeros(nv, nb_im);
+end
+if (fusion == "frontal_edges")
+    edges = load(f_edges);
+    ne = length(edges);
+    SCALARSf = zeros(ne, nb_im);
+    A = sparse(edges(:,1)+1, edges(:,2)+1, 1, nv, nv);
+    A = A + A';
+    B = incidence(A);
+    C = abs(B)/2;
+end
+
 
 % loop over the images to fill the above matrices
 for i = 1 : nb_im
@@ -23,9 +35,16 @@ for i = 1 : nb_im
 
     % keep scalar product for visible vertices and put the other vertices 
     % scalar product to -10 
-    Mv = sparse(1:nv, 1:nv, ~isnan(im(:,:,1)));
-    SCALARS(:, i) = Mv*scalar(:,:,1)' - ...
-        10 * (speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
+    if (fusion == "frontal_vertices")
+        Mv = sparse(1:nv, 1:nv, ~isnan(im(:,:,1)));
+        SCALARSv(:, i) = Mv*scalar(:,:,1)' - ...
+            10 * (speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
+    end
+    if (fusion == "frontal_edges")
+        s = C * scalar(:,:,1)';
+        me = isnan(C * RGB(:,i,1));
+        SCALARSf(:, i) = s .* (me == 0) - 10 * me;
+    end
 end
 
 all_nonan = ~isnan(sum(RGB,2));
@@ -39,7 +58,7 @@ switch (contrast)
         im_ref = im_ref.*all_nonan;
 
         mean_ref = sum(im_ref)./nb_nonan;  
-        std_ref = sqrt(sum(im_ref.^3)./nb_nonan - mean_ref.^2); 
+        std_ref = sqrt(sum(im_ref.^2)./nb_nonan - mean_ref.^2); 
 
         rgb_nonan = RGB;
         rgb_nonan(isnan(rgb_nonan)) = 0;
@@ -53,15 +72,15 @@ end
 
 switch (fusion)
     case "frontal_vertices"
-        frontal_vertices(RGB_contrast, SCALARS, fname_out);
+        frontal_vertices(RGB_contrast, SCALARSv, fname_out);
     case "frontal_edges"
-        im_ref = RGB(:,1,:); 
-        im_ref(isnan(im_ref)) = 0; 
+        im_ref = RGB_contrast(:,1,:); 
+        im_ref(isnan(im_ref)) = 0;
         im_ref = im_ref.*all_nonan;
         F = find(im_ref(:,:,1));
         dirichlet = F(floor(end/2):floor(end/2)+10);
 
-        frontal_edges(RGB_contrast, SCALARS, f_edges, dirichlet, fname_out);
+        frontal_edges(RGB_contrast, SCALARSf, B, C, dirichlet, fname_out);
 end
 
 

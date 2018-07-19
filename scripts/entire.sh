@@ -63,4 +63,4 @@ bin/write_coloured_ply \
     $dir/fused/fused_$c\_$f.tiff \
     $output/mesh/fused_mesh_$c\_$f.ply
      
-
+#rm -r $dir
