@@ -62,8 +62,7 @@ cat $INPUTS | xargs -L1 ./scripts/one_image.sh $dir $config
 # all matlab files are supposed to be in a subfolder called scripts
 folder=`pwd`
 
-matlab -nodesktop -nojvm -nosplash -r\
-    "cd '$folder/scripts/'; matlab_wrapper('$dir', '$c', '$f', '$dir/edges.txt', '$dir/fused/fused_$c$f.tif'); exit;"
+$OCTAVE "cd '$folder/scripts/'; matlab_wrapper('$dir', '$c', '$f', '$dir/edges.txt', '$dir/fused/fused_$c$f.tif'); exit;"
 
 ######## QUANTIFICATION #########
 
