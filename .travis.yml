@@ -21,6 +21,7 @@ addons:
       - libboost-system1.55-dev
       - libboost-thread1.55-dev
       - freeglut3-dev
+      - libfftw3-dev
 
 
 install:
