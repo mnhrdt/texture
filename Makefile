@@ -19,7 +19,7 @@ endif
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
 BIN = get_utm_normal_shadow colorize_vertices_from_one_image \
-      write_coloured_ply refine glflip mflip triproc \
+      write_coloured_ply refine mflip triproc \
       ncc_compute_shift gc
 
 OBJ := $(OBJ:%=src/%.o)
