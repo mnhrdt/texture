@@ -10,10 +10,12 @@ nv = length(imread(strcat(rgb(1).folder, '/', rgb(1).name)));
 
 % super matrices for all colour images and scalar product for visible vertices or edges
 RGB = zeros(nv, nb_im, 3);
-if (fusion == "frontal_vertices")
+
+if (fusion == "frontal_vertices" || fusion == "scalar_vertices")
     SCALARSv = zeros(nv, nb_im);
 end
-if (fusion == "frontal_edges")
+
+if (fusion == "frontal_edges" || fusion == "scalar_edges")
     edges = load(f_edges);
     ne = length(edges);
     SCALARSf = zeros(ne, nb_im);
@@ -35,12 +37,12 @@ for i = 1 : nb_im
 
     % keep scalar product for visible vertices and put the other vertices 
     % scalar product to -10 
-    if (fusion == "frontal_vertices")
+    if (fusion == "frontal_vertices" || fusion == "scalar_vertices")
         Mv = sparse(1:nv, 1:nv, ~isnan(im(:,:,1)));
         SCALARSv(:, i) = Mv*scalar(:,:,1)' - ...
             10 * (speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
     end
-    if (fusion == "frontal_edges")
+    if (fusion == "frontal_edges" || fusion == "scalar_edges")
         s = C * scalar(:,:,1)';
         me = isnan(C * RGB(:,i,1));
         SCALARSf(:, i) = s .* (me == 0) - 10 * me;
@@ -73,14 +75,25 @@ end
 switch (fusion)
     case "frontal_vertices"
         frontal_vertices(RGB_contrast, SCALARSv, fname_out);
+
+    case "scalar_vertices"
+        scalar_vertices(RGB_contrast, SCALARSv, fname_out);
+
     case "frontal_edges"
         im_ref = RGB_contrast(:,1,:); 
         im_ref(isnan(im_ref)) = 0;
         im_ref = im_ref.*all_nonan;
         F = find(im_ref(:,:,1));
         dirichlet = F(floor(end/2):floor(end/2)+10);
-
         frontal_edges(RGB_contrast, SCALARSf, B, C, dirichlet, fname_out);
+
+    case "scalar_edges"
+        im_ref = RGB_contrast(:,1,:); 
+        im_ref(isnan(im_ref)) = 0;
+        im_ref = im_ref.*all_nonan;
+        F = find(im_ref(:,:,1));
+        dirichlet = F(floor(end/2):floor(end/2)+10);
+        scalar_edges(RGB_contrast, SCALARSf, B, C, dirichlet, fname_out);
 end
 
 
