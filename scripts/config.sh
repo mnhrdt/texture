@@ -9,9 +9,12 @@ CROP_WIDTH=390 # pixels
 CROP_HEIGHT=372
 RES_MESH=0.3 # metres
 RECALAGE=bin/ncc_compute_shift # ou src/copy_martin/build/gc
-MESH=tmp/mesh/remeshed_dsm_m37.off
-DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
-INPUTS=input.txt
+MESH=data/fine_mesh_02.off
+DSM=data/mcdsm/outdir_37_39/mcdsm.tif
+INPUTS=data/input_try.txt
+
+OCTAVE="matlab -nodesktop -nosplash -r"
+OCTAVE="octave --eval"
 
 # ZONE=$(if [ $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) = "S" ]; then echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) '{print -$1}'); else echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2)  '{print $1}'); fi);
 
