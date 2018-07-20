@@ -11,11 +11,11 @@ nv = length(imread(strcat(rgb(1).folder, '/', rgb(1).name)));
 % super matrices for all colour images and scalar product for visible vertices or edges
 RGB = zeros(nv, nb_im, 3);
 
-if (fusion == "frontal_vertices" || fusion == "scalar_vertices")
+if (strcmp(fusion, "frontal_vertices") || strcmp(fusion, "scalar_vertices"))
     SCALARSv = zeros(nv, nb_im);
 end
 
-if (fusion == "frontal_edges" || fusion == "scalar_edges")
+if (strcmp(fusion, "frontal_edges") || strcmp(fusion, "scalar_edges"))
     edges = load(f_edges);
     ne = length(edges);
     SCALARSf = zeros(ne, nb_im);
