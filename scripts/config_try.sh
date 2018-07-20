@@ -10,12 +10,8 @@ CROP_HEIGHT=372
 RES_MESH=0.3 # metres
 #RECALAGE=bin/ncc_compute_shift 
 RECALAGE=bin/gc
-MESH=data/fine_mesh_02.off
-DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
+DSM=data/Challenge1_Lidar_nan.tif
 INPUTS=data/input_try.txt
-
-OCTAVE="matlab -nodesktop -nosplash -r"
-OCTAVE="octave --eval"
 
 # ZONE=$(if [ $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) = "S" ]; then echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) '{print -$1}'); else echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2)  '{print $1}'); fi);
 
@@ -29,3 +25,4 @@ OCTAVE="octave --eval"
 # RES_MESH=$SCALE_X
 
 
+MESH=output_try/mesh/refined_mesh.off
