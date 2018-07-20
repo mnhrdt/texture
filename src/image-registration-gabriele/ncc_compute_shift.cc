@@ -98,12 +98,12 @@ void compute_robust_statistics(struct Img &u, struct Img &msk, double *mu, doubl
 void compute_ncc(struct Img &u, struct Img &v, int range, int *dx, int *dy) {
    int initdx=*dx, initdy=*dy;
    float maxv=-INFINITY;
-#pragma omp parallel for
+//#pragma omp parallel for
    for (int y=initdy-range; y<=initdy+range; y++)
    for (int x=initdx-range; x<=initdx+range; x++) {
       float corr;
       corr = ncc(u, v, x, y);
-#pragma omp critical
+//#pragma omp critical
       if (corr > maxv) {
          *dx=x;
          *dy=y;

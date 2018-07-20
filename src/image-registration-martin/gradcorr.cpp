@@ -59,7 +59,7 @@ void height_shift(const char *I1, const char *I2, double *resX, double *resY, do
         for (int i = std::max(0.0, -resX[0]); i < std::min(w - 0.0,w - resX[0]); i++)
             for (int j = std::max(0.0, -resY[0]); j < std::min(h - 0.0,h - resY[0]); j++){
                 int k = std::round(i + resX[0]) + std::round(j + resY[0])*w; 
-                if ( !isnan(img1[k]) && !isnan(img2[i+j*w]) ){
+                if ( !std::isnan(img1[k]) && !std::isnan(img2[i+j*w]) ){
                     tmp1.push_back(img1[k]);
                     tmp2.push_back(img2[i+j*w]);
                 }

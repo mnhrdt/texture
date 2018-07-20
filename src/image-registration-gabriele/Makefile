@@ -1,4 +1,4 @@
-CXXFLAGS = -fopenmp -O3 -Wall -Wextra -Wno-unused -Wno-unused-parameter
+CXXFLAGS = -O3 -Wall -Wextra -Wno-unused -Wno-unused-parameter
 LDLIBS = -lz -ltiff -lpng -ljpeg -lm
 
 BIN = ncc_apply_shift ncc_compute_shift
