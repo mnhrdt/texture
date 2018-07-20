@@ -26,7 +26,7 @@ OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)
 
 # default target
-all: $(BIN)  # octave_iio
+all: $(BIN)  octave_iio
 
 # rule for C sources
 bin/% : src/%.c $(OBJ)
