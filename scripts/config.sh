@@ -9,8 +9,8 @@ CROP_WIDTH=390 # pixels
 CROP_HEIGHT=372
 RES_MESH=0.3 # metres
 #RECALAGE=bin/ncc_compute_shift 
-RECALAGE=src/image-registration-martin/build/gc
-MESH=tmp/mesh/remeshed_dsm_m37.off
+RECALAGE=bin/gc
+MESH=data/fine_mesh_02.off
 DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
 INPUTS=data/input_try.txt
 
