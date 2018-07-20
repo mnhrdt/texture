@@ -87,7 +87,6 @@ bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY)
 //    } else {
         return registerGC(img1, img2, w, h, resX, resY);
 //    }
-
 }
 
 bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY) {
