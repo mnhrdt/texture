@@ -89,7 +89,7 @@ void compute_robust_statistics(struct Img &u, struct Img &msk, double *mu, doubl
    std::sort(tmp.begin(), tmp.end()); //, std::greater<float>());
    *mu = tmp[tmp.size()/2];
 //   *sig = tmp[(tmp.size()*3)/4] - tmp[tmp.size()/4];  // IQR
-   for(int i=0;i<tmp.size();i++) tmp[i] = fabs(tmp[i]-*mu);
+   for(int i=0;i<(int)tmp.size();i++) tmp[i] = fabs(tmp[i]-*mu);
    std::sort(tmp.begin(), tmp.end()); //, std::greater<float>());
    *sig = 1.4826 * tmp[tmp.size()/2];                   //MAD
 }
@@ -157,7 +157,7 @@ void recursive_ncc(struct Img &u, struct Img &v, int range, int *dx, int *dy) {
 // v: pointer to original argv
 // o: option name after hyphen
 // d: default value (if NULL, the option takes no argument)
-static char *pick_option(int *c, char ***v, char *o, char *d) {
+static const char *pick_option(int *c, char ***v, const char *o, const char *d) {
    int argc = *c;
    char **argv = *v;
    int id = d ? 1 : 0;
@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
     // delta x, delta y, delta v (affine as: alpha v + b)
     double a = scaling ? sigu/sigv : 1;
     double b = muu - muv*a;
-    printf("%d %d %f\n", dx, dy, b);
+    printf("%d %d %f %f\n", dx, dy, a, b);
     return 0;
 }
 #endif
