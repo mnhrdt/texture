@@ -1,0 +1,3 @@
+01 data/mcdsm/outdir_02_06/outdir_from_02_06/cdsm.tif data/PAN/img_02.ntf data/PAN/img_02.rpc data/MSI/img_02.ntf data/MSI/img_02.xml
+07 data/mcdsm/outdir_08_13/outdir_from_08_13/cdsm.tif data/PAN/img_08.ntf data/PAN/img_08.rpc data/MSI/img_08.ntf data/MSI/img_08.xml
+16 data/mcdsm/outdir_17_16/outdir_from_17_16/cdsm.tif data/PAN/img_17.ntf data/PAN/img_17.rpc data/MSI/img_17.ntf data/MSI/img_17.xml
