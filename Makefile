@@ -5,9 +5,16 @@ A =# -fsanitize=address
 # configuration
 CFLAGS = $F `gdal-config --cflags` $A
 LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
-	 -lCGAL -lgmp `gdal-config --libs` -framework GLUT -framework OpenGL $A
+	 -lCGAL -lgmp `gdal-config --libs` $A
 
-#	 -lCGAL -lgmp `gdal-config --libs` -lglut -lGL $A
+
+# framework compatibility shit (seriously, frameworks are pure brain damage)
+ifeq (Darwin,$(shell uname))
+  LDLIBS := $(LDLIBS) -framework GLUT -framework OpenGL
+else
+  LDLIBS := $(LDLIBS) -lglut -lGL
+endif
+
 
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
@@ -31,16 +38,19 @@ bin/% : src/%.cc $(OBJ)
 
 # compile gabriele's registration
 bin/ncc_compute_shift:
-	$(MAKE) -C src/image-registration-gabriele
+	$(MAKE) -C src/image-registration-gabriele -j
 	cp src/image-registration-gabriele/ncc_compute_shift $@
 
 # compile martin's registration
 bin/gc:
-	$(MAKE) -C src/image-registration-martin
+	$(MAKE) -C src/image-registration-martin -j
 	cp src/image-registration-martin/gc $@
 
 # bureaucracy
-clean: ; $(RM) $(OBJ) $(BIN)
+clean:
+	$(RM) $(OBJ) $(BIN)
+	$(MAKE) -C src/image-registration-martin clean
+	$(MAKE) -C src/image-registration-gabriele clean
 .SECONDARY : $(OBJ)
 
 # test
