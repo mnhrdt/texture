@@ -14,6 +14,9 @@ MESH=tmp/mesh/remeshed_dsm_m37.off
 DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
 INPUTS=data/input_try.txt
 
+OCTAVE="matlab -nodesktop -nosplash -r"
+OCTAVE="octave --eval"
+
 # ZONE=$(if [ $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) = "S" ]; then echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) '{print -$1}'); else echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2)  '{print $1}'); fi);
 
 # SCALE_X=$(gdalinfo $DSM | grep Pixel | cut -f 2 -d \( | cut -f 1 -d ,
