@@ -26,7 +26,7 @@ OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)
 
 # default target
-all: $(BIN)
+all: $(BIN)  # octave_iio
 
 # rule for C sources
 bin/% : src/%.c $(OBJ)
@@ -46,9 +46,16 @@ bin/gc:
 	$(MAKE) -C src/image-registration-martin -j
 	cp src/image-registration-martin/gc $@
 
+# octave/matlab iio interface
+octave_iio:
+	$(MAKE) -C src/octave-iio
+	cp src/octave-iio/iio_read.mex* scripts
+	cp src/octave-iio/iio_write.mex* scripts
+
 # bureaucracy
 clean:
 	$(RM) $(OBJ) $(BIN)
+	$(RM) scripts/iio_*.mex*
 	$(MAKE) -C src/image-registration-martin clean
 	$(MAKE) -C src/image-registration-gabriele clean
 .SECONDARY : $(OBJ)
