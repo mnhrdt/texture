@@ -10,7 +10,7 @@ LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
 BIN = get_utm_normal_shadow colorize_vertices_from_one_image \
-      write_coloured_ply refine mflip
+      write_coloured_ply refine glflip mflip triproc
 
 OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)

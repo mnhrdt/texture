@@ -618,7 +618,7 @@ static void trimesh_test_triangle_fans(struct trimesh *m)
 }
 
 // function to save the mesh into a file, readable by Octave's "dlmread"    {{{1
-static void trimesh_dump_edges(char *filename, struct trimesh *m)
+void trimesh_dump_edges(char *filename, struct trimesh *m)
 {
 	if (!m->e) trimesh_fill_edges(m);
 
