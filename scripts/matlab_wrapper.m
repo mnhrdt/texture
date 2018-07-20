@@ -29,8 +29,8 @@ end
 % loop over the images to fill the above matrices
 for i = 1 : nb_im
     % read the images
-    im = double(1 + imread(strcat(rgb(i).folder,'/', rgb(i).name)));
-    scalar = double(imread(strcat(scalars(i).folder,'/', scalars(i).name)));
+    im = double(1 + iio_read(strcat(rgb(i).folder,'/', rgb(i).name)));
+    scalar = double(iio_read(strcat(scalars(i).folder,'/', scalars(i).name)));
 
     % fill the colour matrix
     RGB(:,i,:) = permute(im, [2 1 3]);
