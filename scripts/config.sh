@@ -8,10 +8,11 @@ CROP_Y=891 # pixels
 CROP_WIDTH=390 # pixels
 CROP_HEIGHT=372
 RES_MESH=0.3 # metres
-RECALAGE=bin/ncc_compute_shift # ou src/copy_martin/build/gc
+#RECALAGE=bin/ncc_compute_shift 
+RECALAGE=src/image-registration-martin/build/gc
 MESH=tmp/mesh/remeshed_dsm_m37.off
 DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
-INPUTS=input.txt
+INPUTS=data/input_try.txt
 
 # ZONE=$(if [ $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) = "S" ]; then echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) '{print -$1}'); else echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2)  '{print $1}'); fi);
 
