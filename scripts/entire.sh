@@ -21,7 +21,6 @@ dir=`mktemp -d`
 # create all sub folders
 mkdir -p $dir/mesh
 mkdir -p $dir/fused
-mkdir -p $dir/ncc_shift
 mkdir -p $output/mesh
 
 # if no mesh provided in config.sh, create mesh from reference dsm

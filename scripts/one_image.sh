@@ -1,24 +1,25 @@
-#!/usr/local/bin/bash
+#!/bin/bash
 # auteur : mariedautume
 
-# exemple input bash all_new.sh 01
+# normalement appelé depuis entire.sh
+# sinon bash dir config IM CDSM PAN_ntf PAN_rpc MSI_ntf PSI_rpc
 set -e
 set -x
 
-dir=$1
-config=$2
-IM=$3
-CDSM=$4
-PAN_ntf=$5
-PAN_rpc=$6
-MSI_ntf=$7
-MSI_rpc=$8
+dir=$1         # folder where to print the results
+config=$2      # configuration file (exemple scripts/config.sh
+IM=$3          # image id typically a number
+CDSM=$4        # CDSM corresponding to the image 
+PAN_ntf=$5     # satellite image (panchromatic)  
+PAN_rpc=$6     # panchromatic rpc                
+MSI_ntf=$7     # satellite image (MSI)           
+MSI_rpc=$8     # MSI rpc                         
 
+# read configaration file
 . $config
 
-$RECALAGE $CDSM $DSM > $dir/ncc_shift/ncc_shift_$IM.txt
-read x y z < $dir/ncc_shift/ncc_shift_$IM.txt
-
+# creating temporary files if they don't exist
+mkdir -p $dir/ncc_shift
 mkdir -p $dir/utm_coord 
 mkdir -p $dir/theoric_sun
 mkdir -p $dir/real_sun
@@ -27,12 +28,18 @@ mkdir -p $dir/pan
 mkdir -p $dir/msi
 mkdir -p $dir/rgb
 
+# computing shift with reference dsm
+$RECALAGE $CDSM $DSM > $dir/ncc_shift/ncc_shift_$IM.txt
+read x y z < $dir/ncc_shift/ncc_shift_$IM.txt
+
+# get azimuth et elevation from the msi images
 az=`gdalinfo $MSI_ntf | grep SUN_AZI | cut -f 2 -d=`
 el=`gdalinfo $MSI_ntf | grep SUN_ELE | cut -f 2 -d=`
 
-#bin/triproc data/mesh_curve_scaled_remeshed_02.off output/edges.txt
-    #tmp/mesh/remeshed_dsm_37.off \
-
+# get for each vertex its utm coordinates if visible (nan otherwise)
+#                         theoric shadow from the geometry
+#                         scalar product between satellite orientation and
+#                                surface normal
 bin/get_utm_normal_shadow \
     $MESH \
     $SCALE_X $SCALE_Y \
@@ -45,7 +52,8 @@ bin/get_utm_normal_shadow \
     $dir/scalars/scalars_$IM.tif \
     -ox $x -oy $y -oz $z -xmin $CROP_X -ymin $CROP_Y 
 
-    #tmp/mesh/remeshed_dsm_37.off \
+# get for each vertex its pan, msi and rgb values and shadow obtained from 
+# thresholding
 bin/colorize_vertices_from_one_image \
     $MESH \
     $PAN_ntf \
@@ -60,12 +68,10 @@ bin/colorize_vertices_from_one_image \
     $dir/rgb/rgb_$IM.tif \
     $dir/real_sun/real_sun_$IM.tif 
 
-
+# quantification to be able to directly look at the intermediary results 
+# with mflip
+########### TO DO ##############
+# better choice of quantization
+################################
 qauto -i -f -p 0.5 $dir/rgb/rgb_$IM.tif $dir/rgb/rgb_$IM.tiff
-# qauto -i -f exp/soutput/vc_$im.tif exp/soutput/vc_$im.tiff
-
-#bin/write_coloured_ply \
-#    exp/output/mesh_curve_scaled_remeshed_02.off \
-#    exp/soutput/vc_$im.tiff \
-#    exp/soutput/mesh_registred_ps_$im\_02.ply 
 
