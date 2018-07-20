@@ -1,4 +1,4 @@
-#include "trimesh.c"
+#include "trimesh.h"
 
 #include <stdio.h>
 #include <string.h>

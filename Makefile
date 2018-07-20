@@ -5,12 +5,12 @@ A =# -fsanitize=address
 # configuration
 CFLAGS = $F `gdal-config --cflags` $A
 LDLIBS = -lm -ltiff -ljpeg -lpng -lGeographic \
-	 -lCGAL -lgmp `gdal-config --libs` -lglut -framework OpenGL $A
+	 -lCGAL -lgmp `gdal-config --libs` -lglut -lGL $A
 
 # variables
 OBJ = iio drawtriangle trimesh rpc pickopt normals geographiclib_wrapper
 BIN = get_utm_normal_shadow colorize_vertices_from_one_image \
-      write_coloured_ply refine glflip mflip
+      write_coloured_ply refine glflip mflip triproc
 
 OBJ := $(OBJ:%=src/%.o)
 BIN := $(BIN:%=bin/%)
