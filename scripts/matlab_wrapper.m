@@ -37,12 +37,12 @@ for i = 1 : nb_im
 
     % keep scalar product for visible vertices and put the other vertices 
     % scalar product to -10 
-    if (fusion == "frontal_vertices" || fusion == "scalar_vertices")
+    if (strcmp(fusion, "frontal_vertices") || strcmp(fusion, "scalar_vertices"))
         Mv = sparse(1:nv, 1:nv, ~isnan(im(:,:,1)));
         SCALARSv(:, i) = Mv*scalar(:,:,1)' - ...
             10 * (speye(nv) - Mv) * ones(size(scalar(:,:,1)'));
     end
-    if (fusion == "frontal_edges" || fusion == "scalar_edges")
+    if (strcmp(fusion, "frontal_edges") || strcmp(fusion, "scalar_edges"))
         s = C * scalar(:,:,1)';
         me = isnan(C * RGB(:,i,1));
         SCALARSf(:, i) = s .* (me == 0) - 10 * me;
