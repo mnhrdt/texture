@@ -1,6 +1,6 @@
 # choice between debug and relsease (the second line prevails)
-FLAGS = -g -Wall -Wextra            # debug
-FLAGS = -O3 -march=native -DNDEBUG  # release
+FLAGS = -g -Wall -Wextra -fsanitize=address            # debug
+#FLAGS = -O3 -march=native -DNDEBUG  # release
 
 # compiler flags
 CXXFLAGS ?= $(FLAGS)

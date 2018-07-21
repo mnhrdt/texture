@@ -39,15 +39,13 @@ void crop_images(double *image1, double *image2, int w1, int w2,
 }
 
 
-void height_shift(const char *I1, const char *I2, double *resX, double *resY, double *resZ){
+void height_shift(const char *I1, const char *I2, double resX, double resY, double *resZ){
     int w1, h1, pd1, w2, h2, pd2;
-    double *image1 = iio_read_image_double_vec(I1, &w1, &h1, &pd1);
-    double *image2 = iio_read_image_double_vec(I2, &w2, &h2, &pd2);
+    double *image1 = (double *) iio_read_image_double_vec(I1, &w1, &h1, &pd1);
+    double *image2 = (double *) iio_read_image_double_vec(I2, &w2, &h2, &pd2);
     
     int w = std::min(w1,w2); int h = std::min(h1,h2);
-    double *img1 = (double *) malloc(w * h * sizeof(double));
-    double *img2 = (double *) malloc(w * h * sizeof(double));
-    crop_images(image1, image2, w1, w2, img1, img2, h); 
+//    std::vector<double> imgs(w*h);
     
 //    if (w1 != w2 || h1 != h2 || pd1 != pd2 || pd1 != 1) {
 //        std::cout << "Images must have the same size, height and be single channel." << std::endl;
@@ -56,18 +54,24 @@ void height_shift(const char *I1, const char *I2, double *resX, double *resY, do
 //    } else {
         std::vector<double> tmp1;
         std::vector<double> tmp2;
-        for (int i = std::max(0.0, -resX[0]); i < std::min(w - 0.0,w - resX[0]); i++)
-            for (int j = std::max(0.0, -resY[0]); j < std::min(h - 0.0,h - resY[0]); j++){
-                int k = std::round(i + resX[0]) + std::round(j + resY[0])*w; 
-                if ( !std::isnan(img1[k]) && !std::isnan(img2[i+j*w]) ){
-                    tmp1.push_back(img1[k]);
-                    tmp2.push_back(img2[i+j*w]);
+        for (int i = 0; i < w; i++)
+            for (int j = 0; j < h; j++){
+                int i2 = i + resX;
+                int j2 = j + resY;
+                if (i2 < 0 || i2 > w - 1 || j2 < 0 || j2 > h - 1)
+                    continue;
+                if ( !std::isnan(image1[i+j*w1]) && !std::isnan(image2[i2+j2*w2]) ){
+                    tmp1.push_back(image1[i+j*w1]);
+                    tmp2.push_back(image2[i2+j2*w2]);
                 }
             }
         std::sort(tmp1.begin(), tmp1.end());
         std::sort(tmp2.begin(), tmp2.end());
-        resZ[0] = tmp2[tmp2.size()/2]-tmp1[tmp1.size()/2];
+        *resZ = tmp2[tmp2.size()/2]-tmp1[tmp1.size()/2];
+//        for (int i = 0; i < w*h; i++)
+//            imgs[i] += resZ[0];
 //    }
+//        iio_write_image_double_vec("ooo.tif", &(imgs[0]), w, h, 1);
 }
 
 bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY) {
@@ -85,7 +89,7 @@ bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY)
 //        std::cout << "Image 1: (" << w1 << "x" << h1 << "x" << pd1 << std::endl;
 //        std::cout << "Image 2: (" << w2 << "x" << h2 << "x" << pd2 << std::endl;
 //    } else {
-        return registerGC(img1, img2, w, h, resX, resY);
+      return registerGC(img1, img2, w, h, resX, resY);
 //    }
 }
 
