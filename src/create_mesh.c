@@ -36,6 +36,7 @@ int main(int c, char *v[])
         scale[0] = tmp[1], scale[1] = tmp[5];
     } else {
         fprintf(stderr, "WARNING: not found origin and scale info\n");
+        return 1;
     }
 
     struct trimesh m[1];
