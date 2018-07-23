@@ -422,12 +422,12 @@ void check_triangle_orientation(
         sun_direction(sun_dir, az_el[0], az_el[1]);
 
         // check if triangle faces the camera
-        if (scalar_product(tri_normal, cam_dir, 3) > 0)
+        if (scalar_product(tri_normal, cam_dir, 3) < 0)
             for (int i = 0; i < 3; i++)
                 v_cam_visibility[triangle_vertices[i]] = true;
 
         // check if triangle faces the sun
-        if (scalar_product(tri_normal, sun_dir, 3) > 0)
+        if (scalar_product(tri_normal, sun_dir, 3) < 0)
             for (int i = 0; i < 3; i++)
                 v_sun_visibility[triangle_vertices[i]] = true;
 
