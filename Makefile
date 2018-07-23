@@ -1,6 +1,6 @@
 F = -march=native -O3 -DNDEBUG
-F = -g -Wall -Wno-unused -Werror -Wno-deprecated# -fsanitize=address
-A =# -fsanitize=address
+F = -g -Wall -Wno-unused -Werror -Wno-deprecated -fsanitize=address
+A = -fsanitize=address
 
 # configuration
 CFLAGS = $F `gdal-config --cflags` $A

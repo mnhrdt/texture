@@ -11,7 +11,10 @@ RES_MESH=0.3 # metres
 #RECALAGE=bin/ncc_compute_shift 
 RECALAGE=bin/gc
 DSM=data/Challenge1_Lidar_nan.tif
-INPUTS=data/input_try.txt
+#DSM=data/mcdsm/outdir_37_39/outdir_from_37_39/cdsm.tif
+INPUTS=data/input.txt
+OCTAVE="matlab -nodesktop -nosplash -r"
+#OCTAVE="octave --eval"
 
 # ZONE=$(if [ $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) = "S" ]; then echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2) '{print -$1}'); else echo $(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | awk -F$(gdalinfo $DSM | grep UTM | awk -F"zone" '{print $2}' | cut -f 1 -d \" | tail -c 2)  '{print $1}'); fi);
 
@@ -25,4 +28,7 @@ INPUTS=data/input_try.txt
 # RES_MESH=$SCALE_X
 
 
-MESH=output_try/mesh/refined_mesh.off
+#MESH=output_try/mesh/refined_mesh.off
+#MESH=output_cdsm/mesh/refined_mesh.off
+MESH=output_lidar/mesh/refined_mesh.off
+#MESH=output_cdsm/mesh/refined_mesh.off

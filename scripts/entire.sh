@@ -54,7 +54,7 @@ bin/triproc off2edges \
 
 # loop over all images to get shadow and colour information for each vertex 
 # from one image
-cat $INPUTS | xargs -L1 ./scripts/one_image.sh $dir $config
+cat $INPUTS | xargs  -L1 ./scripts/one_image.sh $dir $config
 
 
 ############# FUSION #############
@@ -69,7 +69,7 @@ $OCTAVE "cd '$folder/scripts/'; matlab_wrapper('$dir', '$c', '$f', '$dir/edges.t
 # trouver une meilleure méthode
 ################################
 
-qauto $dir/fused/fused_$c$f.tif $dir/fused/fused_$c\_$f.tiff
+plambda $dir/fused/fused_$c$f.tif "x sqrt" | qauto - $dir/fused/fused_$c\_$f.tiff
 
 # création du mesh final
 bin/write_coloured_ply \

@@ -22,7 +22,7 @@ RECALAGE=bin/gc
 
 # M-code interpreter
 OCTAVE="matlab -nodesktop -nosplash -r"
-OCTAVE="octave --eval"
+#OCTAVE="octave --eval"
 
 
 
