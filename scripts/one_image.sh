@@ -28,12 +28,9 @@ mkdir -p $dir/pan
 mkdir -p $dir/msi
 mkdir -p $dir/rgb
 
-> $dir/ncc_shift/ncc_shift_$IM.txt
 # computing shift with reference dsm
-$RECALAGE $CDSM $DSM > $dir/ncc_shift/ncc_shift_$IM.txt
+$RECALAGE $CDSM $DSM $dir/ncc_shift/shifted_$IM.tif > $dir/ncc_shift/ncc_shift_$IM.txt
 read x y z < $dir/ncc_shift/ncc_shift_$IM.txt
-zp=`echo 1 + $z | bc`
-echo $z $zp
 
 # get azimuth et elevation from the msi images
 az=`gdalinfo $MSI_ntf | grep SUN_AZI | cut -f 2 -d=`
@@ -53,7 +50,7 @@ bin/get_utm_normal_shadow \
     $dir/utm_coord/utm_coord_$IM.tif \
     $dir/theoric_sun/theoric_sun_$IM.tif \
     $dir/scalars/scalars_$IM.tif \
-    -ox $x -oy $y -oz $zp -xmin $CROP_X -ymin $CROP_Y 
+    -ox $x -oy $y -oz $z -xmin $CROP_X -ymin $CROP_Y 
 
 # get for each vertex its pan, msi and rgb values and shadow obtained from 
 # thresholding

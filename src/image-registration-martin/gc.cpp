@@ -27,13 +27,13 @@ static const char *pick_option(int *c, char ***v, const char *o, const char *d)
 
 int main(int argc, char **argv) {
     bool unix_style = pick_option(&argc, &argv, "u", "1");
-    if (argc != 3) {
-        std::cout << "Usage: gc I1 I2" << std::endl;
+    if (argc != 4) {
+        std::cout << "Usage: gc I1 I2 output" << std::endl;
         std::cout << "I1 and I2 must be grayscale and have the same size." << std::endl << std::endl;
     } else {
         double resX, resY, resZ;
         registerGCFiles(argv[1], argv[2], &resX, &resY);
-        height_shift(argv[1], argv[2], resX, resY, &resZ);
+        height_shift(argv[1], argv[2], resX, resY, &resZ, argv[3]);
 	if (unix_style)
 		std::cout << resX << " " << resY << " " << -resZ << "\n";
 	else

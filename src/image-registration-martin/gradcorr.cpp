@@ -38,40 +38,83 @@ void crop_images(double *image1, double *image2, int w1, int w2,
         }
 }
 
+void median_height_estimation(double *image1, double *image2, double *imgs, 
+        int w1, int w2, int w, int h, double resX, double resY, double *resZ){
 
-void height_shift(const char *I1, const char *I2, double resX, double resY, double *resZ){
+    std::vector<double> tmp1;
+    std::vector<double> tmp2;
+
+    // loop over the points nonan in both image to fill the above lists
+    // fill in registered image (height from image2)
+    for (int i = 0; i < w; i++)
+        for (int j = 0; j < h; j++){
+            int i2 = i + resX;
+            int j2 = j + resY;
+            if (i2 < 0 || i2 > w - 1 || j2 < 0 || j2 > h - 1)
+                continue;
+            else 
+                imgs[i+j*w] = image2[i2 + j2 * w2];
+            if ( !std::isnan(image1[i+j*w1]) && !std::isnan(image2[i2+j2*w2]) ){
+                tmp1.push_back(image1[i+j*w1]);
+                tmp2.push_back(image2[i2+j2*w2]);
+            }
+        }
+
+    // compute difference of medians
+    std::sort(tmp1.begin(), tmp1.end());
+    std::sort(tmp2.begin(), tmp2.end());
+    resZ[0] = tmp2[tmp2.size()/2]-tmp1[tmp1.size()/2];
+
+    // adjust height for registered image
+    for (int i = 0; i < w*h; i++)
+        imgs[i] -= resZ[0];
+
+}
+
+void mode_height_estimation(double *image1, double *imgs, 
+        int w1, int w, int h, double *resZ,
+        double *alpha){
+
+    std::vector<int> hist(40,0);
+    for (int i = 0; i < w; i++)
+        for (int j = 0; j < h; j++)
+            if (abs(imgs[i+j*w] - image1[i+j*w1]) < 4)
+                for (int k = 0; k < 39; k++){
+                    hist[k] += (imgs[i+j*w] - image1[i+j*w1] > - 3.9 + 0.2 * k) &&
+                        (imgs[i+j*w] - image1[i+j*w1] < - 3.9 + 0.2 * (k + 1));
+                }
+
+    std::vector<int>::iterator result = std::max_element(hist.begin(), hist.end());
+    int idx = std::distance(hist.begin(), result);
+
+    alpha[0] = - 3.9 + 0.2 * (idx + 0.5);
+    for (int i = 0; i < w*h; i++)
+        imgs[i] -= alpha[0];
+
+    resZ[0] += alpha[0];
+    hist.clear();
+}
+
+void height_shift(const char *I1, const char *I2, double resX, double resY, double *resZ, 
+        char *f_out){
+
+    // read input images
     int w1, h1, pd1, w2, h2, pd2;
     double *image1 = (double *) iio_read_image_double_vec(I1, &w1, &h1, &pd1);
     double *image2 = (double *) iio_read_image_double_vec(I2, &w2, &h2, &pd2);
     
+    // initialise registered image
     int w = std::min(w1,w2); int h = std::min(h1,h2);
-//    std::vector<double> imgs(w*h);
-    
-//    if (w1 != w2 || h1 != h2 || pd1 != pd2 || pd1 != 1) {
-//        std::cout << "Images must have the same size, height and be single channel." << std::endl;
-//        std::cout << "Image 1: (" << w1 << "x" << h1 << "x" << pd1 << std::endl;
-//        std::cout << "Image 2: (" << w2 << "x" << h2 << "x" << pd2 << std::endl;
-//    } else {
-        std::vector<double> tmp1;
-        std::vector<double> tmp2;
-        for (int i = 0; i < w; i++)
-            for (int j = 0; j < h; j++){
-                int i2 = i + resX;
-                int j2 = j + resY;
-                if (i2 < 0 || i2 > w - 1 || j2 < 0 || j2 > h - 1)
-                    continue;
-                if ( !std::isnan(image1[i+j*w1]) && !std::isnan(image2[i2+j2*w2]) ){
-                    tmp1.push_back(image1[i+j*w1]);
-                    tmp2.push_back(image2[i2+j2*w2]);
-                }
-            }
-        std::sort(tmp1.begin(), tmp1.end());
-        std::sort(tmp2.begin(), tmp2.end());
-        *resZ = tmp2[tmp2.size()/2]-tmp1[tmp1.size()/2];
-//        for (int i = 0; i < w*h; i++)
-//            imgs[i] += resZ[0];
-//    }
-//        iio_write_image_double_vec("ooo.tif", &(imgs[0]), w, h, 1);
+    double *imgs = (double *) malloc(w * h * sizeof(double));
+
+    median_height_estimation(image1, image2, imgs, w1, w2, w, h, resX, resY, resZ);
+    double alpha = 10;
+
+    mode_height_estimation(image1, imgs, w1, w, h, resZ, &alpha);
+
+    // write registered image
+    iio_write_image_double_vec(f_out, &(imgs[0]), w, h, 1);
+    free(imgs);
 }
 
 bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY) {
