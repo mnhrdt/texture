@@ -48,8 +48,8 @@ void median_height_estimation(double *image1, double *image2, double *imgs,
     // fill in registered image (height from image2)
     for (int i = 0; i < w; i++)
         for (int j = 0; j < h; j++){
-            int i2 = i + resX;
-            int j2 = j + resY;
+            int i2 = i - resX;
+            int j2 = j - resY;
             if (i2 < 0 || i2 > w - 1 || j2 < 0 || j2 > h - 1)
                 continue;
             else 
@@ -110,7 +110,7 @@ void height_shift(const char *I1, const char *I2, double resX, double resY, doub
     median_height_estimation(image1, image2, imgs, w1, w2, w, h, resX, resY, resZ);
     double alpha = 10;
 
-    mode_height_estimation(image1, imgs, w1, w, h, resZ, &alpha);
+    //mode_height_estimation(image1, imgs, w1, w, h, resZ, &alpha);
 
     // write registered image
     iio_write_image_double_vec(f_out, &(imgs[0]), w, h, 1);
