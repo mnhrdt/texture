@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
         registerGCFiles(argv[1], argv[2], &resX, &resY);
         height_shift(argv[2], argv[1], resX, resY, &resZ, argv[3]);
 	if (unix_style)
-		std::cout << resX << " " << resY << " " << -resZ << "\n";
+		std::cout << resX << " " << resY << " " << resZ << "\n";
 	else
 		std::cout << "Estimated displacement: (" << resX << "," << resY << ")" << std::endl << std::endl;
     }
