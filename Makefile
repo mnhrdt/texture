@@ -1,5 +1,5 @@
 F = -march=native -O3 -DNDEBUG
-F = -g -Wall -Wno-unused -Werror -Wno-deprecated -fsanitize=address
+F = -g -Wall -Wno-unused -Werror
 A = -fsanitize=address
 
 # configuration

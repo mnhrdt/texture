@@ -23,6 +23,7 @@ inline float BilinearInterpolation(float q11, float q12, float q21, float q22, f
 
 inline float GetInterpolatedValueBilinear(double *img, int width, int height, double x, double y)
 {
+    (void)height;
     int xF = floor(x);
     int yF = floor(y);
     float res = BilinearInterpolation(
