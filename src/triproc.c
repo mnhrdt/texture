@@ -13,6 +13,7 @@ int main_off2edges(int c, char *v[])
 	struct trimesh m[1];
 	trimesh_read_from_off(m, filename_in);
 	trimesh_dump_edges(filename_out, m);
+	trimesh_free_tables(m);
 
 	return 0;
 }

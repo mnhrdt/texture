@@ -173,6 +173,8 @@ void create_shadow_mask(
     printf("threshold t = %lf", t);
     for (int v = 0; v < 3 * nv; v++)
         out_sun[v] = (out_pan[v] > t) ? 1 : 0;
+
+    free(v_sun);
 }
 
 int main(int c, char *v[])
@@ -251,6 +253,8 @@ int main(int c, char *v[])
 
     // free allocated memory
     free(out_pan); free(out_msi); free(out_rgb); free(out_sun);
+    free(utm_coord);
+    trimesh_free_tables(m);
 
     return 0;
 }
