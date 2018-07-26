@@ -137,7 +137,7 @@ bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY)
 }
 
 bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY) {
-    double cutoffFreq = 0.25;
+    //double cutoffFreq = 0.25;
     // First, compute image gradients
     double *dx1 = (double *) malloc(w * h * sizeof(double));
     double *dy1 = (double *) malloc(w * h * sizeof(double));
@@ -188,7 +188,7 @@ bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY
 
     // Save magnitude
 //    double *mag = (double *) malloc(w * h * sizeof(double));
-    char filename[200];
+//    char filename[200];
 //    complexMag(FFTgI1, w, h, mag);
 //    strcpy(filename, "/home/rais/PhD/Thales/data/maggI1.tiff");
 //    iio_write_image_double(filename, mag, w, h);

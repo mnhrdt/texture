@@ -154,7 +154,6 @@ void parseHomography(double H[9], const char *opt2refFile) {
 
     FILE *f = fopen(opt2refFile, "rt");
     char line[1024];
-    char *token;
     int i = 0;
     while (fgets(line, 1024, f))
     {

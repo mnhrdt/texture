@@ -1220,11 +1220,11 @@ recover_broken_pixels_float(float *clear, float *broken, int n, int pd)
 }
 
 
-static void break_pixels_uint8(uint8_t *broken, uint8_t *clear, int n, int pd)
-{
-	FORI(n) FORL(pd)
-		broken[n*l + i] = clear[pd*i + l];
-}
+//static void break_pixels_uint8(uint8_t *broken, uint8_t *clear, int n, int pd)
+//{
+//	FORI(n) FORL(pd)
+//		broken[n*l + i] = clear[pd*i + l];
+//}
 
 static void break_pixels_double(double *broken, double *clear, int n, int pd)
 {
@@ -1246,11 +1246,11 @@ recover_broken_pixels_int(int *clear, int *broken, int n, int pd)
 		clear[pd*i + l] = broken[n*l + i];
 }
 
-static void break_pixels_int(int *broken, int *clear, int n, int pd)
-{
-	FORI(n) FORL(pd)
-		broken[n*l + i] = clear[pd*i + l];
-}
+//static void break_pixels_int(int *broken, int *clear, int n, int pd)
+//{
+//	FORI(n) FORL(pd)
+//		broken[n*l + i] = clear[pd*i + l];
+//}
 
 
 static
