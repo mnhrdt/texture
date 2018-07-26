@@ -29,6 +29,7 @@ mkdir -p $dir/msi
 mkdir -p $dir/rgb
 
 # computing shift with reference dsm
+#$RECALAGE $CDSM $DSM $dir/ncc_shift/shifted_$IM.tif > $dir/ncc_shift/ncc_shift_$IM.txt
 $RECALAGE $CDSM $DSM $dir/ncc_shift/shifted_$IM.tif > $dir/ncc_shift/ncc_shift_$IM.txt
 read x y z < $dir/ncc_shift/ncc_shift_$IM.txt
 

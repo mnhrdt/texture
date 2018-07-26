@@ -185,6 +185,7 @@ int main(int argc, char* argv[])
     int i = 1;
     char* f_u     = (argc>i)? argv[i]      : (char*) "" ;      i++;
     char* f_v     = (argc>i)? argv[i]      : (char*) "" ;      i++;
+    char *output_image = (argc > i) ? argv[i] : (char *) "-";  i++;
     int   range   = atoi((argc>i)? argv[i] : (char*) "5");     i++;
     int   dx      = argc > i ? atoi(argv[i]) : 0;     i++;
     int   dy      = argc > i ? atoi(argv[i]) : 0;     i++;
@@ -194,7 +195,7 @@ int main(int argc, char* argv[])
     struct Img v = iio_read_vector_split(f_v);
     struct Img outv(v);
 
-    if (argc < 6)
+    if (argc < 7)
         recursive_ncc(u, v, range, &dx, &dy);
 
      //iio_write_vector_split("corr.tif", corr);
@@ -227,7 +228,17 @@ int main(int argc, char* argv[])
     // delta x, delta y, delta v (affine as: alpha v + b)
     double a = scaling ? sigu/sigv : 1;
     double b = muu - muv*a;
-    printf("%d %d %f %f\n", dx, dy, a, b);
+    printf("%d %d %f \n", dx, dy, b);
+
+    // apply transformation
+    struct Img o(u);
+    for (int y = 0; y < o.ny; y++)
+        for (int x = 0; x < o.nx; x++)
+            o(x, y) = a * valnan(u, x-dx, y-dy) + b;
+
+    // write output
+    iio_write_vector_split(output_image, o); 
+
     return 0;
 }
 #endif

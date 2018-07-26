@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
     } else {
         double resX, resY, resZ;
         registerGCFiles(argv[1], argv[2], &resX, &resY);
-        height_shift(argv[1], argv[2], resX, resY, &resZ, argv[3]);
+        height_shift(argv[2], argv[1], resX, resY, &resZ, argv[3]);
 	if (unix_style)
 		std::cout << resX << " " << resY << " " << -resZ << "\n";
 	else
