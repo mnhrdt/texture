@@ -3,7 +3,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
+
+#ifdef __APPLE__ // fix apple's brain damage
 #include <GLUT/glut.h>
+#else
+#include <GL/freeglut.h>
+#endif
+
 #include "trimesh.h"
 #include "iio.h"
 
@@ -258,7 +264,8 @@ static void key_handler(int k, int x, int y)
 {
     struct state *e = &global_state;
 
-//    if (k == FTR_KEY_ESC || k == 'q')
+    if (k == FTR_KEY_ESC || k == 'q')
+        exit(0);
 //        glutLeaveMainLoop();
 
     if (k == 'd') e->view_distance += 0.1;
