@@ -6,7 +6,7 @@
 
 #ifdef __APPLE__ // fix apple's brain damage
 #include <GLUT/glut.h>
-#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #else
 #include <GL/freeglut.h>
 #endif
