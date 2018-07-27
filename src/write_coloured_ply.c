@@ -23,21 +23,22 @@ int main(int c, char *v[])
     if (c < 4)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off vc.png out.ply\n",*v);
-                //0 1        2      3           
-                
+                //0 1        2      3
     char *filename_mesh = v[1];
     char *filename_colors = v[2];
     char *filename_ply = v[3];
 
-    struct trimesh m;
-    trimesh_read_from_off(&m, filename_mesh);
+    struct trimesh m[1];
+    trimesh_read_from_off(m, filename_mesh);
 
     int w, h, pd;
     double *vc = iio_read_image_double_vec(filename_colors, &w, &h, &pd);
 
     double origin[3] = {ox, oy, oz};
-    trimesh_write_to_coloured_ply(filename_ply, &m, vc+pd*line*w, origin); 
+    trimesh_write_to_coloured_ply(filename_ply, m, vc+pd*line*w, origin);
 
+    trimesh_free_tables(m);
+    free(vc);
     return 0;
 }
 
