@@ -115,25 +115,27 @@ void height_shift(const char *I1, const char *I2, double resX, double resY, doub
     // write registered image
     iio_write_image_double_vec(f_out, &(imgs[0]), w, h, 1);
     free(imgs);
+    free(image1);
+    free(image2);
 }
 
-bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY) {
-    int w1, h1, pd1, w2, h2, pd2;
-    double *image1 = iio_read_image_double_vec(I1, &w1, &h1, &pd1);
-    double *image2 = iio_read_image_double_vec(I2, &w2, &h2, &pd2);
-    
-    int w = std::min(w1,w2); int h = std::min(h1,h2);
-    double *img1 = (double *) malloc(w * h * sizeof(double));
-    double *img2 = (double *) malloc(w * h * sizeof(double));
-    crop_images(image1, image2, w1, w2, img1, img2, h); 
-    
-//    if (w1 != w2 || h1 != h2 || pd1 != pd2 || pd1 != 1) {
-//        std::cout << "Images must have the same size, height and be single channel." << std::endl;
-//        std::cout << "Image 1: (" << w1 << "x" << h1 << "x" << pd1 << std::endl;
-//        std::cout << "Image 2: (" << w2 << "x" << h2 << "x" << pd2 << std::endl;
-//    } else {
-      return registerGC(img1, img2, w, h, resX, resY);
-//    }
+bool registerGCFiles(const char *I1, const char *I2, double *resX, double *resY)
+{
+        int w1, h1, pd1, w2, h2, pd2;
+        double *image1 = iio_read_image_double_vec(I1, &w1, &h1, &pd1);
+        double *image2 = iio_read_image_double_vec(I2, &w2, &h2, &pd2);
+
+        int w = std::min(w1,w2); int h = std::min(h1,h2);
+        double *img1 = (double *) malloc(w * h * sizeof(double));
+        double *img2 = (double *) malloc(w * h * sizeof(double));
+        crop_images(image1, image2, w1, w2, img1, img2, h);
+        free(image1);
+        free(image2);
+
+        bool r = registerGC(img1, img2, w, h, resX, resY);
+        free(img1);
+        free(img2);
+        return r;
 }
 
 bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY) {
@@ -166,6 +168,7 @@ bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY
             gI2[y*w+x][1] = dy2[y*w+x];
         }
     }
+    free(dx1); free(dx2); free(dy1); free(dy2);
     // Create Tukey Window to avoid border effects on the FFT
     double *tukey;// = (double *) malloc(175 * sizeof(double));
     create2DTukeyWindow(&tukey, w, h, 0.25);
@@ -256,6 +259,7 @@ bool registerGC(double *I1, double *I2, int w, int h, double *resX, double *resY
         failed = true;
     }
 
+    free(gc);
     fftw_destroy_plan(p1);
     fftw_destroy_plan(p2);
     fftw_destroy_plan(p3);

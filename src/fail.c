@@ -10,7 +10,7 @@
 static const char *emptystring = "";
 static const char *myname(void)
 {
-#  define n 0x29a
+#  define n 0x59a
 	//const int n = 0x29a;
 	static char buf[n];
 	pid_t p = getpid();

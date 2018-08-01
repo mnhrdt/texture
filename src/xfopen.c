@@ -25,7 +25,7 @@ static FILE *xfopen(const char *s, const char *p)
 
 	f = fopen(s, p);
 	if (f == NULL)
-		fail("can not open file \"%s\" in mode \"%s\", // (%s)",
+		fail("can not open file \"%s\" in mode \"%s\"", // (%s)",
 				s, p);//, strerror(errno));
 	return f;
 }
