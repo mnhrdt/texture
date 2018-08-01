@@ -131,8 +131,9 @@ double norm_with_t_threshold(
     {
         if (isnan(out_pan[3*v]))      // check if vertex seen by camera
                 continue;
-        if (((out_pan[3*v] > t) && isnan(v_sun[3 * v])) || ((out_pan[3*v] <= t) && !isnan(v_sun[3*v])))
+        if (((out_pan[3*v] > t) && isnan(v_sun[3 * v])) || ((out_pan[3*v] <= t) && !isnan(v_sun[3*v]))){
             norm += 1;
+        }
     }
     return norm;
 }
@@ -144,18 +145,18 @@ double get_shadow_threshold(
         double t_min, double t_max)  // threshold bound
 {
     // initialize threshold and l1 norms with this threshold
-    double t = t_min;
-    double l1norm = norm_with_t_threshold(v_sun, out_pan, nv, t);
+    double thresh = 0;
+    double l1norm = norm_with_t_threshold(v_sun, out_pan, nv, t_min);
     double l1norm_old = l1norm;
 
     // keep incrementing while the norm decreases
-    while (l1norm_old >= l1norm && t < t_max)
-    {
-        l1norm_old = l1norm;
-        t += 1;
+    for (int t = t_min; t < t_max; t++){
         l1norm = norm_with_t_threshold(v_sun, out_pan, nv, t);
+        if (l1norm <= l1norm_old)
+            thresh = t;
+        l1norm_old = l1norm;
     }
-    return t;
+    return thresh;
 }
 
 void create_shadow_mask(
@@ -171,16 +172,19 @@ void create_shadow_mask(
     // get shadow threshold and fill practical shadow location
     double t = get_shadow_threshold(v_sun, out_pan, nv, t_min, t_max);
     printf("threshold t = %lf", t);
-    for (int v = 0; v < 3 * nv; v++)
-        out_sun[v] = (out_pan[v] > t) ? 1 : 0;
+    for (int v = 0; v < 3 * nv; v++){
+        out_sun[v] = (out_pan[v] > t) ? 255 : 0;
+        if (isnan(out_pan[v]))
+            out_sun[v] = 150;
+    }
 
     free(v_sun);
 }
 
 int main(int c, char *v[])
 {
-    double t_min = atof(pick_option(&c, &v, "tmin", "0"));
-    double t_max = atof(pick_option(&c, &v, "tmax", "1000"));
+    double t_min = atof(pick_option(&c, &v, "tmin", "100"));
+    double t_max = atof(pick_option(&c, &v, "tmax", "600"));
     if (c < 5)
         return fprintf(stderr, "usage:\n\t"
                 "%s mesh.off pan.ntf pan.xml msi.ntf msi.xml"
