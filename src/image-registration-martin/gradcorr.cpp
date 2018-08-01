@@ -110,7 +110,7 @@ void height_shift(const char *I1, const char *I2, double resX, double resY, doub
     median_height_estimation(image1, image2, imgs, w1, w2, w, h, resX, resY, resZ);
     double alpha = 10;
 
-    //mode_height_estimation(image1, imgs, w1, w, h, resZ, &alpha);
+    mode_height_estimation(image1, imgs, w1, w, h, resZ, &alpha);
 
     // write registered image
     iio_write_image_double_vec(f_out, &(imgs[0]), w, h, 1);
