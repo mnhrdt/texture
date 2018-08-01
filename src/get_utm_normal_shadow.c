@@ -427,7 +427,7 @@ void check_triangle_orientation(
                 v_cam_visibility[triangle_vertices[i]] = true;
 
         // check if triangle faces the sun
-        if (scalar_product(tri_normal, sun_dir, 3) < 0)
+        if (scalar_product(tri_normal, sun_dir, 3) > 0)
             for (int i = 0; i < 3; i++)
                 v_sun_visibility[triangle_vertices[i]] = true;
 
@@ -577,10 +577,47 @@ void check_vertex_visibility_sun(
     double sc[2] = {scale[0]+3*scale[0]/10, scale[1]+3*scale[1]/10};
 
     // if the vertex is close enough to the saved point, save utm coordinates
-    if (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2]
-            || pow(scalar_product(diff, sun_dir, 3),2) < 2*pow(euclidean_norm(sc,2),2))
-        for (int i = 0; i < 3; i++)
+    static int counter = 0;
+    static int counter2 = 0;
+
+    static int counterA = 0;
+    static int counterB = 0;
+    static int counterAeB = 0;
+    static int counterAoB = 0;
+
+    bool A = (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2]);
+    bool B = (pow(scalar_product(diff, sun_dir, 3),2) < 4*pow(euclidean_norm(sc,2),2));
+
+    if (A){
+        if (B)
+            counterAeB++;
+        counterA++;
+    }
+    if (A || B)
+        counterAoB++;
+
+    if (B)
+        counterB++;
+//    if ((sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2])
+//    if (sun_plan[3*(ij[1]*xywhs[2]+ij[0])+2] == enz[2]){
+//             || (pow(scalar_product(diff, sun_dir, 3),2) < 4*pow(euclidean_norm(sc,2),2))){
+//        if (pow(scalar_product(diff, sun_dir, 3),2) >= 4*pow(euclidean_norm(sc,2),2))
+//            printf("problem diff %lf %lf %lf\n", diff[0], diff[1], diff[2]);
+//        if (pow(scalar_product(diff, sun_dir, 3),2) < 4*pow(euclidean_norm(sc,2),2))
+//            counter2++;
+            if  (pow(scalar_product(diff, sun_dir, 3),2) < 4*pow(euclidean_norm(sc,2),2)){
+//             || (pow(scalar_product(diff, sun_dir, 3),2) < 4*pow(euclidean_norm(sc,2),2))){
+        counter++;
+        for (int i = 0; i < 3; i++){
+            if (isnan(enz[i]))
+                printf("isnan v %d\n", v);
             out_sun[3 * v + i] = enz[i];
+        }
+    }
+//    if (v > 619600)
+//        printf("counter %d counter2 %d\n", counter, counter2);
+    if (v > 619600)
+        printf("counterA %d counterAeB %d counter B %d counterAoB %d\n", counterA, counterAeB, counterB, counterAoB);
 }
 
 
@@ -623,6 +660,9 @@ void check_vertices_visibility(
         double n = m->v[3 * v + 1] + origin[1];
         double z = m->v[3 * v + 2] + origin[2];
         double enz[3] = {e, n, z};
+
+        if (isnan(e) || isnan(n) || isnan(z))
+            printf("enz isnan vertex v %d\n", v);
 
         if (v_cam_visibility[v])
             check_vertex_visibility_satellite(out_img, v, huge_rpc,
@@ -712,6 +752,7 @@ int main(int c, char *v[])
     iio_write_image_double_vec("sun_plan_get_utm.tif", sun_plan, xywhs[2], xywhs[3], 3);
     iio_write_image_double_vec("img_copy_get_utm.tif", img_copy, xywh[2], xywh[3], 3);
  
+    printf("xywhs %d %d %d %d xywh %d %d %d %d", xywhs[0], xywhs[1], xywhs[2], xywhs[3], xywh[0], xywh[1], xywh[2], xywh[3]);
     // fill vertices angles
     vertices_normals_from_mesh(v_normals, m, t_angles, t_normals);
 
