@@ -9,6 +9,14 @@ im=$1
 . scripts/config.sh
 
 read x y s z < data/ncc_shift/ncc_shift_$im.txt
+#x=`sed -n '1p' < data/martin/martin_$im.txt | cut -f 2 -d \( | cut -f 1 -d ,`
+#y=`sed -n '1p' < data/martin/martin_$im.txt | cut -f 2 -d , | cut -f 1 -d \)`
+#z=`sed -n '3p' < data/martin/martin_$im.txt`
+
+#echo $x 
+#echo $y
+#echo $z
+
 
 mkdir -p output
 az=`gdalinfo data/MSI/img_$im.ntf | grep SUN_AZI | cut -f 2 -d=`

@@ -85,6 +85,8 @@ switch (fusion)
         im_ref = im_ref.*all_nonan;
         F = find(im_ref(:,:,1));
         dirichlet = F(floor(end/2):floor(end/2)+10);
+        dirichlet = F(end-30:end);
+        %dirichlet = [70460:70470];
         frontal_edges(RGB_contrast, SCALARSf, B, C, dirichlet, fname_out);
 
     case "scalar_edges"
@@ -93,6 +95,7 @@ switch (fusion)
         im_ref = im_ref.*all_nonan;
         F = find(im_ref(:,:,1));
         dirichlet = F(floor(end/2):floor(end/2)+10);
+        dirichlet = F(end-30:end);
         scalar_edges(RGB_contrast, SCALARSf, B, C, dirichlet, fname_out);
 end
 

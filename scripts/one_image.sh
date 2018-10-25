@@ -4,7 +4,7 @@
 # normalement appelé depuis entire.sh
 # sinon bash dir config IM CDSM PAN_ntf PAN_rpc MSI_ntf PSI_rpc
 set -e
-set -x
+#set -x
 
 dir=$1         # folder where to print the results
 config=$2      # configuration file (exemple scripts/config.sh
@@ -74,5 +74,6 @@ bin/colorize_vertices_from_one_image \
 ########### TO DO ##############
 # better choice of quantization
 ################################
+
 qauto -i -f -p 0.5 $dir/rgb/rgb_$IM.tif $dir/rgb/rgb_$IM.tiff
 

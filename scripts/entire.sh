@@ -16,7 +16,11 @@ output=$4
 
 . $config
 
+# uncomment to get full dataset for scripts/input.txt
+# scp -r bou:/home/mariedautume/src/texture/data /Users/dautume/Documents/doctorat/iarpa/
+
 dir=`mktemp -d`
+#dir=/var/folders/lf/340rxbq16lqcy2g_v_29j7wr0000gn/T/tmp.xK0mnau3/
 
 # create all sub folders
 mkdir -p $dir/mesh
@@ -27,15 +31,15 @@ mkdir -p $output/mesh
 if [ -z "$MESH" ]
 then
 
-    gdal_translate -ot float64 -srcwin 1505 891 390 372 $DSM $dir/mesh/small_dsm.tif
+    gdal_translate -ot float64 -srcwin 1505 891 390 372 $MESH_DSM $dir/mesh/small_dsm.tif
 
     bin/create_mesh \
         $dir/mesh/small_dsm.tif \
-        $dir/mesh/scaled_mesh.off \
+        $output/mesh/scaled_mesh.off \
         $dir/mesh/scaled_mesh.ply 
 
     bin/refine \
-        $dir/mesh/scaled_mesh.off \
+        $output/mesh/scaled_mesh.off \
         $output/mesh/refined_mesh.off \
         --res $RES_MESH
 
