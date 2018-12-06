@@ -5,7 +5,9 @@
 \usepackage{amssymb}                % fancy symbols like \checkmark
 \usepackage{color}                  % colorized text
 \usepackage{url,hyperref}           % to make clickable hyperlinks
-\usepackage{mathptmx}               % times new roman font
+\usepackage[osf,sups]{Baskervaldx}  % fancy font
+\usepackage[bigdelims,cmintegrals,vvarbb,baskervaldx]{newtxmath} % math font
+\usepackage[cal=boondoxo]{mathalfa} % mathcal from STIX, unslanted a bit
 
 % macros for math
 \def\R{\mathbf{R}} % real numbers
@@ -408,6 +410,214 @@ standard in the CGAL library.
 
 
 
+
+
+\clearpage
+\section{Fusion criteria}
+
+Our problem is now the following: produce a beautiful texture onto a given
+mesh, obtained by taking the data from multiple images.  Thanks to the work
+described above, we can assume that each point of the mesh can be mapped very
+precisely into any of the images from where it is visible.  The final texture
+will be obtained by combining all these colors in a consistent way.
+
+The whole texturing pipeline has five steps:
+
+\begin{enumerate}
+	\item {\bf Preprocessing.} This is an optional step, where we may
+		normalize/equalize the colors of the images so that they are
+		easier to merge afterwards.  This involves also the
+		pansharpening step if we want to work with color or
+		multispectral images.
+	\item {\bf Data projection.}
+		Here we assign to each vertex of the mesh a list of
+		features to merge.  In the simplest case it is just the pixel
+		values projected from the images, but it can also be the
+		gradients, drift-fields or other pointwise descriptors.
+		We also compute and store all the required ancillary
+		information, such as the angles between the surface normal
+		and the point of view, the shadows (simulated from the
+		geometry, or estimated by intensity thresholding), and the
+		shadow trimaps.
+	\item {\bf Data smoothing.}
+		This is an optional step, where we may smooth-out the weight
+		field, the shadow boundaries, filter obviously outlying data,
+		etc.  We may also use the shadows to discard or weigh part of
+		the data.
+	\item {\bf Data fusion.}
+		This is the core step, where the list of features assigned to
+		each point is merged into a single feature for that point.
+		This involves always taking a (possibly weighted)
+		aggregation of the feature vectors, maybe with some pre and
+		post processing (e.g., compute the gradients, merge them,
+		then solve Poisson equation).
+	\item {\bf Data post-processing.}
+		Here we convert the feature vectors at each point into 8-bit RGB
+		values.  It may involve some type of color normalization
+		(retinex, enhance saturation).
+\end{enumerate}
+
+The core step is the~\emph{fusion}, where an aggregator is used to combine
+several features into one.  An aggregator is a function~$f:\R^{d\times
+N}\to\R^d$ that combines~$N$ features into a single one, where the features
+are~$d$-dimensional vectors.
+
+The simplest possible aggregator is the average function:
+\[
+	\mathrm{avg}(x_1,\ldots,x_N)=
+	\frac{x_1+\cdots+x_N}{N}
+\]
+We will consider three families of aggregators that have the average function
+as a particular case.  Each of these families depends on a real-valued
+parameter~$p$:
+
+The~\emph{power means} only make sense when all the features are positive
+real numbers:
+\[
+	M_p(x_1,\ldots,x_N):=
+	\sqrt[p]{ \frac{x_1^p+\cdots+x_N^p}{N} }
+\]
+
+The~\emph{Lehmer means}, or self-weighted means, work also for vector-valued features:
+\[
+	L_p(x_1,\ldots,x_N):=
+	\frac
+	{\|x_1\|^px_1+\cdots+\|x_N\|^px_N}
+	{\|x_1\|^p+\cdots+\|x_N\|^p}
+\]
+
+And the~\emph{Fréchet means}, which minimize a power mean of the errors:
+\[
+	F_p(x_1,\ldots,x_N):=
+	\mathrm{arg}\min_{m}\sum_{i=1}^N
+	\left\|
+	m-x_i
+	\right\|^p
+\]
+
+Notice that~$\mathrm{avg}=M_1=L_0=F_2$.  Other particular cases
+are~$L_{-\infty}=$~the vector of smallest norm, $L_{\infty}=$~the vector of
+largest norm, $F_1=$~the geometric median, $F_{0^+}=$~the ``mode''.  The
+aggregators~$M_p$ and~$L_p$ are straightforward to compute.  To compute~$F_p$
+requires solving an optimization problem.  For~$p=2$ the solution is explicit
+($F_2=M_1$), and for~$p=1$ there are very efficient algorithms to find it.
+In any case, for~$p>=1$ the problem is smooth, convex and separable and a
+couple of iterations of any reasonable iterative method will get to the
+solution very fast.  As~$p$ goes to infinity,~$F_p$ converges to the midpoint
+of the pair of features that are further apart.  For~$p<1$ the problem is not
+necessarily convex and the solution is better approximated by using
+heuristics.  For example, a ``soft mode''~$F_\epsilon$ can be found reliably
+by the~$X$-medians algorithm.
+
+Notice that different aggregators can be combined in~\emph{polar
+coordinates}.  For example,~$\displaystyle \frac{F_1\|L_\infty\|}{\|F_1\|}$
+gives a vector that has the same direction as the geometric median, and the
+maximum length.
+
+\bigskip
+
+All the aggregators above can be~\emph{weighted} if you have a set
+of~$N$ positive weights~$\omega_1,\ldots,\omega_N$.  To steer the importance
+of these weights, we raise them to a power~$q\ge0$, where~$q$ is a new
+parameter:
+\[
+	M_{p,q}(\omega_1,\ldots,\omega_N;\ x_1,\ldots,x_N):=
+	\sqrt[p]{
+	\frac{\omega_1^qx_1^p+\cdots+\omega_N^qx_N^p}
+	{\omega_1^q+\cdots+\omega_N^q} }
+\]
+\[
+	L_{p,q}(\omega_1,\ldots,\omega_N;\ x_1,\ldots,x_N):=
+	\frac
+	{\omega_1^q\|x_1\|^px_1+\cdots+\omega_N^q\|x_N\|^px_N}
+	{\omega_1^q\|x_1\|^p+\cdots+\omega_N^q\|x_N\|^p}
+\]
+\[
+	F_{p,q}(\omega_1,\ldots,\omega_N;\ x_1,\ldots,x_N):=
+	\mathrm{arg}\min_{m}\sum_{i=1}^N
+	\omega_i^q
+	\left\|
+	m-x_i
+	\right\|^p
+\]
+In all the cases above, setting~$q=0$ reduces to the unweighted case.  Also,
+setting~$q=\infty$ reduces to selecting the feature with the largest
+corresponding weight.  The weight formalism is useful to reject some points
+from the aggregation, by setting their weight to zero.  Notice that in that
+case we use the convention~$0^0=1$.
+
+More importantly, the zero weights can be used to reject whole *images* from the
+collection.  This simplifies the scripting considerably: you always compute
+the fusion of all the images, but set some weight to zero if there is an
+image that you want to discard.  In what follows we assume that the
+weight~$w_i$ of a point is the positive part of the cosine of the angle between the normal at the
+surface on that point and the line of sight
+\[
+	\omega_i = \max\left(0,\cos\left(\vec n,
+	\mathrm{sight}_i\right)\right).
+\]
+Thus the weight is~$1$ for exactly fronto-parallel surface patches, and
+decreases until 0 for perpendicular and invisible surface patches.
+Furthermore, the weight can be set to zero depending on the shadow trimaps
+and the fusion criterion used.
+
+Here are some examples of fusion criteria (without using the shadow trimaps):
+
+\begin{enumerate}
+	\item {\bf Naive fusion~$L_{0,0}$.}  You just compute the unweighted
+		average of the input colors.
+	\item {\bf Most frontal face~$L_{0,\infty}$.}  You select the color
+		of the image that is most frontal at each point.
+	\item {\bf Robust fusion~$F_{1,0}$.}  The unweighted geometric median
+		of all the colors.
+	\item {\bf Weighted robust fusion~$F_{1,2}$.}  The weighted geometric
+		median of all the colors.
+	\item {\bf More robust fusion~$F_{\tfrac12,0}$.}  The soft mode of all
+		the colors (estimated by x-medians).
+	\item {\bf More robust weighted fusion~$F_{\tfrac12,2}.$}  The
+		weighted soft mode of all the colors
+	\item {\bf PDE-based fusion.}  Let~$D$ be a differential operator
+		and~$f$ an aggregator function.  You compute~$D^{-1}\circ
+		f\circ D$.  Notice that~$D^{-1}$ involves solving a PDE, and
+		you typically have to give a Dirichlet boundary condition on
+		some points (always), and optionally a few Neumann boundary
+		conditions.  Typical examples include~$D=$~gradient
+		and~$D^{-1}=$~Poisson equation, or~$D=$~drift field
+		and~$D^{-1}=$~osmosis equation.  For~$D=D^{-1}=$~identity we
+		recover the previous cases based on color values.
+		Thus, this case is the most general one.
+\end{enumerate}
+
+The fusion by PDE is very important.  Of fundamental importance is the
+observation that {\bf the choices of~$f$ and~$D$ are completely independent}.
+For example, suppose that we consider only the agregators~$L_0$ and~$F_1$,
+the three values of~$q=0,2,\infty$, and the three choices of~$D$ (identity,
+gradient or drift field).  This gives a total of at least 18 fusion criteria
+to try.
+
+\bigskip
+
+Next: enumeration of different ways to use the shadow trimaps~$T_i$.  Let us
+recall that~$T_i$ takes values between 0 (completely inside the shadow), 1
+completely outside the shadow) and interpolates depending to our belief 
+
+\begin{enumerate}
+	\item Ignore the shadow trimaps
+	\item Multiply the weights of the aggregator by 0, at the points
+		where the trimap does not equal to 1.  Thus, the features
+		that are inside the shadow are not used.
+	\item Multiply the weights of the aggregator by the trimaps values.
+		If the trimap is smooth, this allows a smooth transition
+		between the inside and the outside of the shadow.
+	\item Set the drift field to zero where the trimap does not equal 0
+		or 1.  Thus, only drift fields that are completely inside or
+		completely outside the shadow are used.
+	\item Solve the PDE on the region~$T<1$, with Dirichlet boundary
+		condition determined by aggregating the images on the
+		region~$T=1$.
+\end{enumerate}
+
+
 \end{document}
-% vim: set tw=77 spell spelllang=fr:
+% vim: set tw=77 spell spelllang=en:
 
